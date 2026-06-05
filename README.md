@@ -1,6 +1,6 @@
 # Mein erstes Repo
 
-Willkomen bei meinem ersten GitHub-Projekt!
+Willkommen bei meinem ersten GitHub-Projekt!
 
 Dieses Repository dient als Einstieg in die Welt von Git und GitHub.
 
