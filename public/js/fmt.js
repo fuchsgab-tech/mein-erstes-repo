@@ -53,6 +53,21 @@ export function whenLong(o) {
   return [`${dayShort(o.start)}, ${time(o.start)} Uhr –`, `${dayShort(o.end)}, ${time(o.end)} Uhr`];
 }
 
+// „in 25 Min.“, „morgen“, „in 5 Tagen“
+export function untilText(d) {
+  const min = Math.round((d - Date.now()) / 60000);
+  if (min < 1) return 'jetzt';
+  if (min < 60) return `in ${min} Min.`;
+  const days = daysBetween(startOfDay(new Date()), startOfDay(d));
+  if (days === 0) return `in ${Math.round(min / 60)} Std.`;
+  if (days === 1) return 'morgen';
+  if (days < 14) return `in ${days} Tagen`;
+  if (days < 60) return `in ${Math.round(days / 7)} Wochen`;
+  return `in ${Math.round(days / 30)} Monaten`;
+}
+
+export const hours = (n) => `${n.toLocaleString('de-DE', { maximumFractionDigits: 1 })} Std.`;
+
 export function ago(iso) {
   const s = (Date.now() - Date.parse(iso)) / 1000;
   if (s < 60) return 'gerade eben';

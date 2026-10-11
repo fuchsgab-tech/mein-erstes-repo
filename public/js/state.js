@@ -31,7 +31,12 @@ export const state = {
   search: '',
   listDays: 60,
   lastCalendarId: load('zg.lastCal', null),
-  theme: load('zg.theme', 'auto'),
+  serverPrefs: null,
+  online: new Set(),
+  activity: [],
+  typing: new Map(),
+  seenAt: load('zg.seen', new Date(0).toISOString()),
+  dragging: false,
 };
 
 // Wird von app.js gesetzt, damit andere Module neu zeichnen können
@@ -53,10 +58,29 @@ export const COLORS = [
 export const EMOJIS = ['🌿', '📅', '🏠', '❤️', '👨‍👩‍👧', '🎉', '⚽️', '🎓', '💼', '✈️', '🍕', '🎵', '🐶', '🏋️', '📚', '🎮', '⛰️', '🍷', '🎂', '👯', '🧘', '🚲', '🌸', '⭐️'];
 
 export async function loadAll() {
-  const [me, ev] = await Promise.all([api('GET', '/api/me'), api('GET', '/api/events')]);
+  const [me, ev, act] = await Promise.all([
+    api('GET', '/api/me'),
+    api('GET', '/api/events'),
+    api('GET', '/api/activity?limit=80'),
+  ]);
   state.me = me.user;
+  state.serverPrefs = me.prefs;
   state.calendars = me.calendars;
   state.events = new Map(ev.events.map((e) => [e.id, e]));
+  state.activity = act.activity;
+}
+
+export async function loadPresence() {
+  const { online } = await api('GET', '/api/presence');
+  state.online = new Set(online);
+}
+
+export const unreadCount = () =>
+  state.activity.filter((a) => a.userId !== state.me?.id && a.at > state.seenAt).length;
+
+export function markSeen() {
+  state.seenAt = new Date().toISOString();
+  persist('zg.seen', state.seenAt);
 }
 
 export async function loadEvents(calendarId) {
@@ -68,6 +92,7 @@ export async function loadEvents(calendarId) {
 export async function loadMe() {
   const me = await api('GET', '/api/me');
   state.me = me.user;
+  state.serverPrefs = me.prefs;
   state.calendars = me.calendars;
 }
 

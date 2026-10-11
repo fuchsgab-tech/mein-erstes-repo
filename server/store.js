@@ -11,6 +11,7 @@ const EMPTY = () => ({
   events: {},
   comments: {},
   subscriptions: {},
+  activity: [],
 });
 
 export function openStore(file) {

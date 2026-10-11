@@ -1,12 +1,14 @@
 // Alle Fenster der App: Tag, Termin, Editor, Kalender, Import, Profil, Einladung
 import { api, auth } from './api.js';
 import { h, icon, linkify } from './h.js';
-import { ago, dayLong, dayMonth, relDay, shortDate, weekdayName, whenLong, whenShort } from './fmt.js';
+import { ago, dayLong, dayMonth, relDay, shortDate, untilText, weekdayName, whenLong, whenShort } from './fmt.js';
+import { burst, burstFrom } from './fx.js';
 import { describeRrule, joinRrule, occurrences, REPEAT_PRESETS, splitRrule } from './recur.js';
 import {
-  COLORS, EMOJIS, calById, defaultCalendarId, eventColor, hooks, loadAll, loadEvents, loadMe, persist, person,
+  COLORS, EMOJIS, calById, defaultCalendarId, eventColor, hooks, loadAll, loadEvents, loadMe, markSeen, person,
   rememberCalendar, setHidden, state, visibleOccurrences,
 } from './state.js';
+import { DEFAULT_PREFS, SKINS, prefs, resolvedMode, setPrefs } from './themes.js';
 import { addDays, daysBetween, localTz, pad, parseYmd, startOfDay, ymd } from './time.js';
 import {
   avatar, avatarStack, busy, chooseDialog, confirmDialog, copyText, errorToast, field, openSheet, segmented,
@@ -16,10 +18,12 @@ import {
 const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const closeBtn = (s) => h('button.icon-btn', { onclick: () => s.close(), 'aria-label': 'Schließen', title: 'Schließen' }, icon('x'));
 
-function toggle(label, value, onChange) {
+function toggle(label, value, onChange, hint) {
   const input = h('input', { type: 'checkbox', checked: value, onchange: () => onChange(input.checked) });
-  return h('label.toggle', null, h('span', null, label), input, h('span.track', null, h('span.thumb')));
+  return h('label.toggle', null, h('span', null, label, hint ? h('small', null, hint) : null), input, h('span.track', null, h('span.thumb')));
 }
+
+const isOnline = (id) => state.online.has(id);
 
 function meta(iconName, ...content) {
   return h('div.meta', null, icon(iconName, 19), h('div.v', null, ...content));
@@ -31,14 +35,18 @@ export function occItem(o, day) {
   const ev = o.ev;
   const cal = calById(ev.calendarId);
   const people = (ev.attendees || []).map(person);
-  return h('button.item', { style: { '--c': eventColor(ev) }, onclick: () => openEvent(o) },
+  const now = Date.now();
+  const rx = Object.entries(ev.reactions || {}).filter(([, ids]) => ids.length).map(([e]) => e).slice(0, 3);
+  const cls = o.end <= now && !o.allDay ? 'past' : o.start <= now && o.end > now && !o.allDay ? 'now' : '';
+  return h('button.item', { class: cls, style: { '--c': eventColor(ev) }, onclick: () => openEvent(o) },
     h('span.stripe'),
     h('span.when', null, whenShort(o, day)),
     h('span.item-main', null,
       h('span.title', null, ev.title),
       h('span.sub', null, cal ? `${cal.emoji} ${cal.name}` : '', ev.location ? ` · ${ev.location}` : ''),
     ),
-    people.length ? avatarStack(people, 22, 3) : null,
+    rx.length ? h('span.rx', null, rx.join('')) : null,
+    people.length ? avatarStack(people, 22, 3, isOnline) : null,
     ev.commentCount ? h('span.cc', { title: 'Kommentare' }, icon('message', 14), ev.commentCount) : null,
   );
 }
@@ -72,14 +80,44 @@ export function openDay(d) {
 
 // ---------- Termin ansehen ----------
 
+const REACTIONS = ['❤️', '👍', '🎉', '😂', '😮', '🙏', '🔥', '🥳'];
+
 function currentOcc(ev, occ) {
   if (ev.rrule) return { ...occ, ev };
   return occurrences(ev, new Date(-8.64e15), new Date(8.64e15))[0] || { ...occ, ev };
 }
 
+// Passendes Vorkommen zu einem Termin (bei Serien das nächste)
+export function occForEvent(ev) {
+  if (!ev.rrule) return occurrences(ev, new Date(-8.64e15), new Date(8.64e15))[0];
+  const from = startOfDay(new Date());
+  return occurrences(ev, from, addDays(from, 800))[0] || occurrences(ev, new Date(0), addDays(from, 1)).pop();
+}
+
+export function openEventById(id) {
+  const ev = state.events.get(id);
+  const o = ev && occForEvent(ev);
+  if (o) openEvent(o);
+  else toast('Diesen Termin gibt es nicht mehr.', { error: true });
+}
+
+function statusBadge(o) {
+  const now = Date.now();
+  if (o.allDay) {
+    const days = daysBetween(startOfDay(new Date()), startOfDay(o.start));
+    if (days > 0) return h('span.ev-badge', null, icon('clock', 15), untilText(o.start));
+    return null;
+  }
+  if (o.start <= now && o.end > now) return h('span.ev-badge', null, h('span.live-dot.red'), 'Läuft gerade');
+  if (o.end <= now) return null;
+  return h('span.ev-badge', null, icon('clock', 15), untilText(o.start));
+}
+
 export function openEvent(occ) {
   const id = occ.ev.id;
   let comments = null;
+  let pickerOpen = false;
+  let lastTyping = 0;
   const textarea = h('textarea.input', {
     rows: 1,
     placeholder: 'Kommentar schreiben …',
@@ -87,6 +125,10 @@ export function openEvent(occ) {
     oninput: () => {
       textarea.style.height = 'auto';
       textarea.style.height = `${Math.min(140, textarea.scrollHeight)}px`;
+      if (textarea.value && Date.now() - lastTyping > 2500) {
+        lastTyping = Date.now();
+        api('POST', `/api/events/${id}/typing`).catch(() => {});
+      }
     },
     onkeydown: (e) => {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
@@ -97,6 +139,7 @@ export function openEvent(occ) {
   });
   const sendBtn = h('button.btn.primary.icon-only', { onclick: () => send(), 'aria-label': 'Senden', title: 'Senden' }, icon('send', 18));
   const composer = h('div.composer', null, textarea, sendBtn);
+  const typingEl = h('div.typing', { hidden: true, 'aria-live': 'polite' });
 
   async function loadComments() {
     try {
@@ -116,9 +159,51 @@ export function openEvent(occ) {
       await api('POST', `/api/events/${id}/comments`, { text });
       textarea.value = '';
       textarea.style.height = 'auto';
+      lastTyping = 0;
       await loadComments();
       hooks.render();
     });
+  }
+
+  async function react(emoji, el) {
+    const ev = state.events.get(id);
+    if (!ev) return;
+    const mine = (ev.reactions?.[emoji] || []).includes(state.me.id);
+    if (!mine) burstFrom(el, [emoji], 9, 0.55);
+    try {
+      const r = await api('POST', `/api/events/${id}/react`, { emoji });
+      state.events.set(id, { ...r.event, commentCount: ev.commentCount });
+      sheet.refresh();
+      hooks.render();
+    } catch (e) {
+      errorToast(e);
+    }
+  }
+
+  function reactionsRow(ev, s) {
+    const chips = Object.entries(ev.reactions || {}).filter(([, ids]) => ids.length).map(([emoji, ids]) => h('button.rx-chip', {
+      class: ids.includes(state.me.id) ? 'mine' : '',
+      title: ids.map((x) => (x === state.me.id ? 'Du' : person(x).name)).join(', '),
+      onclick: (e) => react(emoji, e.currentTarget),
+    }, emoji, h('b', null, ids.length)));
+    return h('div.reactions', null,
+      chips,
+      h('button.rx-chip.rx-add', {
+        title: 'Reagieren',
+        'aria-label': 'Reagieren',
+        onclick: () => {
+          pickerOpen = !pickerOpen;
+          s.refresh();
+        },
+      }, icon(pickerOpen ? 'x' : 'smile', 18)),
+      pickerOpen ? h('div.rx-picker', null, REACTIONS.map((e) => h('button', {
+        'aria-label': `Mit ${e} reagieren`,
+        onclick: (evt) => {
+          pickerOpen = false;
+          react(e, evt.currentTarget);
+        },
+      }, e))) : null,
+    );
   }
 
   const sheet = openSheet({
@@ -140,12 +225,16 @@ export function openEvent(occ) {
 
       const attendBtn = h(`button.btn.${going ? 'going' : 'primary'}`, {
         style: { '--c': color },
-        onclick: (e) => busy(e.currentTarget, async () => {
-          const r = await api('POST', `/api/events/${id}/attend`, { going: !going });
-          state.events.set(id, { ...r.event, commentCount: ev.commentCount });
-          s.refresh();
-          hooks.render();
-        }),
+        onclick: (e) => {
+          const btn = e.currentTarget;
+          if (!going) burstFrom(btn, ['🎉', '✨', '🥳', '💚', '🙌'], 20);
+          busy(btn, async () => {
+            const r = await api('POST', `/api/events/${id}/attend`, { going: !going });
+            state.events.set(id, { ...r.event, commentCount: ev.commentCount });
+            s.refresh();
+            hooks.render();
+          });
+        },
       }, icon(going ? 'check' : 'sparkle', 18), going ? 'Du bist dabei' : 'Ich bin dabei');
 
       return {
@@ -156,6 +245,8 @@ export function openEvent(occ) {
         ),
         body: [
           h('h2.ev-title', null, ev.title),
+          statusBadge(o),
+          reactionsRow(ev, s),
           meta('clock', h('div', null, line1), h('div.muted', null, line2)),
           ev.rrule ? meta('repeat', describeRrule(ev.rrule, o.start)) : null,
           ev.location ? meta('pin', h('a', { href: mapsUrl, target: '_blank', rel: 'noopener noreferrer' }, ev.location)) : null,
@@ -164,10 +255,10 @@ export function openEvent(occ) {
           meta('user', h('span.muted', null, `Eingetragen von ${person(ev.createdBy).name}`)),
 
           h('div.section', null,
-            h('h3', null, 'Wer ist dabei?'),
+            h('h3', null, 'Wer ist dabei?', people.length ? h('span.count', null, people.length) : null),
             h('div.attend', null,
               people.length
-                ? h('div.people', null, people.map((p) => h('span.person', null, avatar(p, 26), p.id === state.me.id ? 'Du' : p.name)))
+                ? h('div.people', null, people.map((p) => h('span.person', null, avatar(p, 26, { online: isOnline(p.id) }), p.id === state.me.id ? 'Du' : p.name)))
                 : h('p.muted.small-text', null, 'Noch hat niemand zugesagt.'),
             ),
             attendBtn,
@@ -181,7 +272,7 @@ export function openEvent(occ) {
                 ? h('div.comments', null, comments.map((c) => {
                   const who = c.author || { name: 'Ehemaliges Mitglied', color: '#9b9da4' };
                   return h('div.comment', { class: c.userId === state.me.id ? 'mine' : '' },
-                    avatar(who, 30),
+                    avatar(who, 30, { online: isOnline(c.userId) }),
                     h('div.bubble', null,
                       h('div.who', null, c.userId === state.me.id ? 'Du' : who.name, h('span.when', null, ago(c.createdAt))),
                       h('div.txt', null, linkify(c.text)),
@@ -201,6 +292,7 @@ export function openEvent(occ) {
                   );
                 }))
                 : h('p.muted.small-text', null, 'Noch keine Kommentare. Fragt hier, wer was mitbringt 🙂'),
+            typingEl,
             composer,
           ),
         ],
@@ -214,7 +306,78 @@ export function openEvent(occ) {
   });
   sheet.eventId = id;
   sheet.reloadComments = loadComments;
+  sheet.updateTyping = () => {
+    const ids = [...(state.typing.get(id)?.keys() || [])];
+    typingEl.hidden = !ids.length;
+    if (ids.length) {
+      typingEl.replaceChildren(
+        h('span.dots', null, h('i'), h('i'), h('i')),
+        `${ids.map((x) => person(x).name).join(' & ')} ${ids.length > 1 ? 'schreiben' : 'schreibt'} …`,
+      );
+    }
+  };
+  sheet.onReaction = (emoji) => burstFrom(sheet.box.querySelector('.reactions'), [emoji], 9, 0.55);
+  sheet.updateTyping();
   loadComments();
+}
+
+// Termin per Drag & Drop um ein paar Tage verschieben
+export async function moveOccurrence(o, delta) {
+  const ev = o.ev;
+  const shift = (x, allDay) => (allDay ? ymd(addDays(parseYmd(x.slice(0, 10)), delta)) : addDays(new Date(x), delta).toISOString());
+  try {
+    if (ev.rrule && o.orig) {
+      const choice = await chooseDialog({
+        title: 'Serientermin verschieben',
+        options: [
+          { value: 'one', label: 'Nur diesen Termin', hint: dayLong(o.start) },
+          { value: 'all', label: 'Alle Termine der Serie' },
+        ],
+      });
+      if (!choice) return;
+      if (choice === 'one') {
+        await api('PATCH', `/api/events/${ev.id}`, { exdates: [...(ev.exdates || []), o.orig] });
+        await api('POST', '/api/events', {
+          calendarId: ev.calendarId, title: ev.title, allDay: ev.allDay, tz: ev.tz, location: ev.location, notes: ev.notes, color: ev.color,
+          start: ev.allDay ? ymd(addDays(o.start, delta)) : addDays(o.start, delta).toISOString(),
+          end: ev.allDay ? ymd(addDays(o.end, delta - 1)) : addDays(o.end, delta).toISOString(),
+        });
+      } else {
+        await api('PATCH', `/api/events/${ev.id}`, {
+          start: shift(ev.start, ev.allDay), end: shift(ev.end, ev.allDay), exdates: (ev.exdates || []).map((x) => shift(x, ev.allDay)),
+        });
+      }
+      await loadEvents(ev.calendarId);
+      hooks.render();
+      toast('Verschoben');
+      return;
+    }
+    const before = { start: ev.start, end: ev.end };
+    const after = { start: shift(ev.start, ev.allDay), end: shift(ev.end, ev.allDay) };
+    state.events.set(ev.id, { ...ev, ...after });
+    hooks.render();
+    await api('PATCH', `/api/events/${ev.id}`, after);
+    toast(`„${ev.title}“ verschoben`, {
+      action: {
+        label: 'Rückgängig',
+        run: async () => {
+          try {
+            await api('PATCH', `/api/events/${ev.id}`, before);
+          } catch (e) {
+            errorToast(e);
+          }
+          await loadEvents(ev.calendarId);
+          hooks.render();
+        },
+      },
+    });
+    await loadEvents(ev.calendarId);
+    hooks.render();
+  } catch (e) {
+    errorToast(e);
+    await loadEvents(ev.calendarId).catch(() => {});
+    hooks.render();
+  }
 }
 
 async function deleteEvent(ev, o) {
@@ -485,6 +648,7 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
       await loadEvents(f.calendarId);
       if (editing && ev.calendarId !== f.calendarId) await loadEvents(ev.calendarId);
       hooks.render();
+      if (!editing) burstFrom(btn, ['✨', '🎉', '🌿', '💫'], 14);
       sheet.close();
       onSaved?.();
       toast(editing ? 'Gespeichert' : 'Termin eingetragen');
@@ -929,12 +1093,6 @@ export function openImport({ calendarId = null } = {}) {
 
 // ---------- Profil ----------
 
-export function applyTheme(theme) {
-  const root = document.documentElement;
-  if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
-  else delete root.dataset.theme;
-}
-
 export function openProfile() {
   let color = state.me.color;
   const preview = h('span');
@@ -962,15 +1120,18 @@ export function openProfile() {
           color = c;
           drawPreview();
         })),
-        field('Darstellung', segmented([
-          { value: 'auto', label: 'Automatisch' },
-          { value: 'light', label: 'Hell' },
-          { value: 'dark', label: 'Dunkel' },
-        ], state.theme, (v) => {
-          state.theme = v;
-          persist('zg.theme', v);
-          applyTheme(v);
-        })),
+        h('button.btn.block.design-btn', { style: { marginTop: '20px' }, onclick: () => openDesign() }, icon('palette', 18), 'Design & Stil anpassen'),
+        h('div.toggle-list', null, toggle('Browser-Benachrichtigungen', prefs.notify, async (v) => {
+          if (v && 'Notification' in window && Notification.permission !== 'granted') {
+            const r = await Notification.requestPermission().catch(() => 'denied');
+            if (r !== 'granted') {
+              toast('Benachrichtigungen wurden im Browser nicht erlaubt.', { error: true });
+              v = false;
+            }
+          }
+          setPrefs({ notify: v });
+          sheet.refresh();
+        }, 'Wenn jemand etwas einträgt, während Zeitgarten im Hintergrund offen ist')),
         h('div.section', null,
           h('h3', null, 'Auf anderem Gerät nutzen'),
           h('p.muted.small-text', null, 'Öffne diesen persönlichen Link auf deinem Handy oder Laptop, um dort mit deinem Profil angemeldet zu sein. Gib ihn niemandem sonst!'),
@@ -1041,5 +1202,145 @@ export async function openJoin(code) {
       body: inviteCard(info),
       foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Später'), h('span.grow'), joinBtn],
     }),
+  });
+}
+
+// ---------- Neuigkeiten ----------
+
+// Person hinter einer Neuigkeit (auch wenn sie noch nicht in der Mitgliederliste steht)
+export function actor(a) {
+  const p = person(a.userId);
+  return p.name === 'Ehemaliges Mitglied' && a.name ? { id: a.userId, name: a.name, color: a.color || p.color } : p;
+}
+
+export function activityText(a) {
+  const self = a.userId === state.me.id;
+  const who = self ? 'Du' : actor(a).name;
+  const hat = self ? 'hast' : 'hat';
+  const ist = self ? 'bist' : 'ist';
+  const t = a.title ? `„${a.title}“` : 'einen Termin';
+  const rest = {
+    'event.create': ` ${hat} ${t} eingetragen`,
+    'event.update': ` ${hat} ${t} geändert`,
+    'event.skip': ` ${hat} einen Termin von ${t} abgesagt`,
+    'event.delete': ` ${hat} ${t} gelöscht`,
+    comment: ` ${hat} ${t} kommentiert${a.text ? `: „${a.text}“` : ''}`,
+    attend: ` ${ist} bei ${t} dabei 🎉`,
+    react: ` ${hat} auf ${t} mit ${a.emoji || '❤️'} reagiert`,
+    'member.join': ` ${ist} ${t} beigetreten 👋`,
+    'member.leave': ` ${hat} ${t} verlassen`,
+    import: ` ${hat} ${a.count || ''} Termine in ${t} importiert`,
+  }[a.kind] || ` ${hat} etwas geändert`;
+  return { who, rest, plain: `${who}${rest}` };
+}
+
+export function feedItem(a, seenAt, onOpen) {
+  const cal = calById(a.calendarId);
+  const { who, rest } = activityText(a);
+  const unread = a.userId !== state.me.id && a.at > seenAt;
+  return h('button.feed-item', {
+    class: unread ? 'unread' : '',
+    onclick: () => {
+      if (a.eventId && state.events.has(a.eventId)) {
+        onOpen?.();
+        openEventById(a.eventId);
+      } else if (cal) {
+        onOpen?.();
+        openCalendar(cal.id);
+      }
+    },
+  },
+  avatar(actor(a), 32, { online: isOnline(a.userId) }),
+  h('span.txt', null, h('b', null, who), rest, h('span.ago', null, ago(a.at), cal ? ` · ${cal.emoji} ${cal.name}` : '')));
+}
+
+export function openActivity() {
+  const seen = state.seenAt;
+  markSeen();
+  hooks.render();
+  openSheet({
+    live: true,
+    className: 'activity-sheet',
+    render: (s) => ({
+      title: 'Neuigkeiten',
+      body: state.activity.length
+        ? h('div.feed', null, state.activity.map((a) => feedItem(a, seen, () => s.close())))
+        : h('div.empty.small', null, h('div.empty-art', null, '🔔'), h('p', null, 'Noch nichts passiert. Lade Freunde ein, dann geht’s los!')),
+    }),
+  });
+}
+
+// ---------- Design & Stil ----------
+
+const FONTS = [
+  { id: 'modern', name: 'Modern', css: 'ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif' },
+  { id: 'rounded', name: 'Rund', css: 'ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", Nunito, sans-serif' },
+  { id: 'serif', name: 'Elegant', css: 'ui-serif, "New York", "Iowan Old Style", Palatino, Georgia, serif' },
+  { id: 'mono', name: 'Technisch', css: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace' },
+];
+
+function skinCard(sk, mode, set) {
+  const p = sk[mode];
+  const on = prefs.skin === sk.id;
+  return h('button.skin', { class: on ? 'on' : '', 'aria-pressed': String(on), onclick: () => set({ skin: sk.id, accent: null }) },
+    h('div.skin-prev', {
+      class: [p.glow && 'glow', p.outline && 'outline'].filter(Boolean).join(' '),
+      style: { '--p-bg': p.bg, '--p-surface': p.surface, '--p-accent': p.accent, '--p-text': p.text },
+    },
+    h('div.sp-side', null, h('i'), h('i'), h('i'), h('i')),
+    h('div.sp-main', null, h('b.e1'), h('b'), h('b'), h('b'), h('b.e2'), h('b.e3'), h('b'), h('b'), h('b'), h('b.e1'), h('b'), h('b.e2'))),
+    h('div.skin-name', null, sk.name, on ? icon('check', 16) : null),
+    h('div.skin-desc', null, sk.desc),
+  );
+}
+
+export function openDesign() {
+  const sheet = openSheet({
+    className: 'wide design-sheet',
+    render: (s) => {
+      const mode = resolvedMode();
+      const set = (patch) => {
+        setPrefs(patch);
+        s.refresh();
+        hooks.render();
+      };
+      const skin = SKINS.find((x) => x.id === prefs.skin) || SKINS[0];
+      const opt = (on, onclick, ...children) => h('button.opt', { class: on ? 'on' : '', 'aria-pressed': String(on), onclick }, ...children);
+      return {
+        title: 'Design & Stil',
+        body: [
+          h('p.muted', null, 'Mach Zeitgarten zu deinem Kalender. Du siehst jede Änderung sofort, und sie gilt auch auf deinen anderen Geräten.'),
+          field('Stil', h('div.skins', null, SKINS.map((sk) => skinCard(sk, mode, set)))),
+          field('Hell oder dunkel', segmented([
+            { value: 'auto', label: 'Automatisch', icon: 'sparkle' },
+            { value: 'light', label: 'Hell', icon: 'sun' },
+            { value: 'dark', label: 'Dunkel', icon: 'zap' },
+          ], prefs.mode, (v) => set({ mode: v }))),
+          field('Akzentfarbe', swatches(prefs.accent, (c) => set({ accent: c }), { allowNone: true, noneColor: skin[mode].accent })),
+          field('So sehen Termine aus', h('div.opts', null,
+            [['tint', 'Getönt'], ['solid', 'Kräftig'], ['line', 'Linie']].map(([v, label]) => opt(prefs.events === v, () => set({ events: v }),
+              h(`span.sample.s-${v}`, null, '☕ Brunch'), label)))),
+          field('Schrift für Überschriften', h('div.opts', null,
+            FONTS.map((f) => opt(prefs.font === f.id, () => set({ font: f.id }), h('span.aa', { style: { fontFamily: f.css } }, 'Aa'), f.name)))),
+          field('Ecken', h('div.opts', null,
+            [['sharp', 'Eckig', '3px'], ['round', 'Rund', '9px'], ['pill', 'Extra rund', '15px']].map(([v, label, r]) => opt(prefs.corners === v, () => set({ corners: v }),
+              h('span.shape', { style: { borderRadius: r } }), label)))),
+          field('Abstände', segmented([
+            { value: 'cozy', label: 'Luftig' },
+            { value: 'compact', label: 'Kompakt' },
+          ], prefs.density, (v) => set({ density: v }))),
+          h('div.toggle-list', null,
+            toggle('Kalenderwochen anzeigen', prefs.kw, (v) => set({ kw: v }), 'KW-Nummer in der Monatsansicht'),
+            toggle('Bewegter Hintergrund & Animationen', prefs.motion, (v) => set({ motion: v }), 'Bei Aurora, Neon & Co. bewegt sich der Hintergrund sanft'),
+            toggle('Konfetti & Effekte', prefs.fx, (v) => {
+              set({ fx: v });
+              if (v) burst(innerWidth / 2, innerHeight / 2, ['🎉', '✨', '🥳'], 18);
+            }, 'Beim Zusagen, Reagieren und Eintragen'),
+          ),
+          h('button.btn.ghost.sm', { style: { marginTop: '18px' }, onclick: () => set({ ...DEFAULT_PREFS }) }, icon('refresh', 16), 'Auf Standard zurücksetzen'),
+        ],
+        foot: h('button.btn.primary.block', { onclick: () => sheet.close() }, 'Fertig'),
+      };
+    },
   });
 }

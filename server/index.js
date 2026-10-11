@@ -194,8 +194,46 @@ function push(userId, payload) {
   for (const res of set) res.write(msg);
 }
 
-function notifyCalendar(calId, payload) {
-  for (const m of membersOf(calId)) push(m.userId, payload);
+function notifyCalendar(calId, payload, { except = null } = {}) {
+  for (const m of membersOf(calId)) if (m.userId !== except) push(m.userId, payload);
+}
+
+// Alle, die mindestens einen Kalender mit dieser Person teilen
+function contactsOf(userId) {
+  const set = new Set();
+  for (const calId of calendarIdsOf(userId)) for (const m of membersOf(calId)) set.add(m.userId);
+  set.delete(userId);
+  return set;
+}
+
+const onlineContacts = (userId) => [...contactsOf(userId)].filter((id) => streams.has(id));
+
+function announcePresence(userId, online) {
+  for (const id of contactsOf(userId)) push(id, { type: 'online', userId, online });
+}
+
+// Neuigkeiten („Max hat … eingetragen“)
+function logActivity(calId, userId, kind, extra = {}) {
+  const u = db.users[userId];
+  const a = { id: newId(8), calendarId: calId, userId, name: u?.name, color: u?.color, kind, at: now(), ...extra };
+  db.activity.push(a);
+  if (db.activity.length > 3000) db.activity.splice(0, db.activity.length - 3000);
+  notifyCalendar(calId, { type: 'activity', activity: a });
+  return a;
+}
+
+const REACTIONS = ['❤️', '👍', '🎉', '😂', '😮', '🙏', '🔥', '🥳'];
+
+// Persönliche Design-Einstellungen (nur einfache Werte)
+function cleanPrefs(p) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(p).slice(0, 24)) {
+    if (!/^[a-zA-Z]{1,20}$/.test(k)) continue;
+    if (typeof v === 'boolean' || v === null) out[k] = v;
+    else if (typeof v === 'string' && /^[#\w-]{0,24}$/.test(v)) out[k] = v;
+  }
+  return out;
 }
 
 setInterval(() => {
@@ -313,15 +351,32 @@ route('POST', '/api/users', ({ body }) => {
 
 route('GET', '/api/me', ({ user }) => ({
   user: publicUser(user),
+  prefs: user.prefs || {},
   calendars: calendarIdsOf(user.id).map((id) => calendarView(db.calendars[id], user)),
 }));
+
+route('GET', '/api/presence', ({ user }) => ({ online: onlineContacts(user.id) }));
+
+route('GET', '/api/activity', ({ user, query }) => {
+  const mine = new Set(calendarIdsOf(user.id));
+  const limit = Math.min(200, Math.max(1, Number(query.get('limit')) || 60));
+  const list = [];
+  for (let i = db.activity.length - 1; i >= 0 && list.length < limit; i--) {
+    if (mine.has(db.activity[i].calendarId)) list.push(db.activity[i]);
+  }
+  return { activity: list };
+});
 
 route('PATCH', '/api/me', ({ user, body }) => {
   if ('name' in body) user.name = str(body.name, 40).trim() || user.name;
   if (isColor(body.color)) user.color = body.color;
+  if ('prefs' in body) user.prefs = cleanPrefs(body.prefs);
   store.save();
-  for (const id of calendarIdsOf(user.id)) notifyCalendar(id, { type: 'calendars' });
-  return { user: publicUser(user) };
+  if ('name' in body || 'color' in body) {
+    for (const id of calendarIdsOf(user.id)) notifyCalendar(id, { type: 'calendars' });
+  }
+  if ('prefs' in body) push(user.id, { type: 'prefs' });
+  return { user: publicUser(user), prefs: user.prefs || {} };
 });
 
 route('POST', '/api/me/token', ({ user }) => {
@@ -364,6 +419,7 @@ route('POST', '/api/calendars/:id/leave', ({ user, params }) => {
     deleteCalendar(cal);
   } else {
     db.members = db.members.filter((m) => !(m.calendarId === cal.id && m.userId === user.id));
+    logActivity(cal.id, user.id, 'member.leave', { title: cal.name });
     if (cal.ownerId === user.id) {
       const next = others.sort((a, b) => a.joinedAt.localeCompare(b.joinedAt))[0];
       next.role = 'owner';
@@ -420,6 +476,8 @@ route('POST', '/api/invites/:code/accept', ({ user, params }) => {
   db.members.push({ calendarId: cal.id, userId: user.id, role: 'member', joinedAt: now() });
   store.save();
   notifyCalendar(cal.id, { type: 'calendars', joined: user.id });
+  logActivity(cal.id, user.id, 'member.join', { title: cal.name });
+  if (streams.has(user.id)) announcePresence(user.id, true);
   return { calendarId: cal.id, already: false };
 });
 
@@ -447,6 +505,7 @@ route('POST', '/api/events', ({ user, body }) => {
   db.events[ev.id] = ev;
   store.save();
   notifyCalendar(cal.id, { type: 'events', calendarId: cal.id });
+  logActivity(cal.id, user.id, 'event.create', { eventId: ev.id, title: ev.title, start: ev.start, allDay: ev.allDay });
   return { event: eventView(ev) };
 });
 
@@ -464,6 +523,8 @@ route('PATCH', '/api/events/:id', ({ user, body, params }) => {
   store.save();
   notifyCalendar(old.calendarId, { type: 'events', calendarId: old.calendarId });
   if (ev.calendarId !== old.calendarId) notifyCalendar(ev.calendarId, { type: 'events', calendarId: ev.calendarId });
+  const onlyExdates = Object.keys(body).every((k) => k === 'exdates');
+  logActivity(ev.calendarId, user.id, onlyExdates ? 'event.skip' : 'event.update', { eventId: ev.id, title: ev.title, start: ev.start, allDay: ev.allDay });
   return { event: eventView(ev) };
 });
 
@@ -473,18 +534,44 @@ route('DELETE', '/api/events/:id', ({ user, params }) => {
   deleteEventData(ev);
   store.save();
   notifyCalendar(ev.calendarId, { type: 'events', calendarId: ev.calendarId });
+  logActivity(ev.calendarId, user.id, 'event.delete', { title: ev.title });
   return { ok: true };
 });
 
 route('POST', '/api/events/:id/attend', ({ user, body, params }) => {
   const ev = requireEvent(params.id, user);
   const set = new Set(ev.attendees || []);
+  const was = set.has(user.id);
   if (body.going) set.add(user.id);
   else set.delete(user.id);
   ev.attendees = [...set];
   store.save();
   notifyCalendar(ev.calendarId, { type: 'events', calendarId: ev.calendarId });
+  if (body.going && !was) logActivity(ev.calendarId, user.id, 'attend', { eventId: ev.id, title: ev.title });
   return { event: eventView(ev) };
+});
+
+route('POST', '/api/events/:id/react', ({ user, body, params }) => {
+  const ev = requireEvent(params.id, user);
+  if (!REACTIONS.includes(body.emoji)) fail(400, 'Diese Reaktion gibt es nicht.');
+  ev.reactions ||= {};
+  const set = new Set(ev.reactions[body.emoji] || []);
+  const added = !set.has(user.id);
+  if (added) set.add(user.id);
+  else set.delete(user.id);
+  if (set.size) ev.reactions[body.emoji] = [...set];
+  else delete ev.reactions[body.emoji];
+  store.save();
+  notifyCalendar(ev.calendarId, { type: 'events', calendarId: ev.calendarId });
+  notifyCalendar(ev.calendarId, { type: 'reaction', eventId: ev.id, userId: user.id, emoji: body.emoji, added }, { except: user.id });
+  if (added) logActivity(ev.calendarId, user.id, 'react', { eventId: ev.id, title: ev.title, emoji: body.emoji });
+  return { event: eventView(ev) };
+});
+
+route('POST', '/api/events/:id/typing', ({ user, params }) => {
+  const ev = requireEvent(params.id, user);
+  notifyCalendar(ev.calendarId, { type: 'typing', eventId: ev.id, userId: user.id }, { except: user.id });
+  return { ok: true };
 });
 
 // Kommentare
@@ -506,6 +593,7 @@ route('POST', '/api/events/:id/comments', ({ user, body, params }) => {
   db.comments[c.id] = c;
   store.save();
   notifyCalendar(ev.calendarId, { type: 'comments', calendarId: ev.calendarId, eventId: ev.id });
+  logActivity(ev.calendarId, user.id, 'comment', { eventId: ev.id, title: ev.title, text: text.slice(0, 120) });
   return { comment: { ...c, author: publicUser(user) } };
 });
 
@@ -572,6 +660,7 @@ route('POST', '/api/import', async ({ user, body }) => {
   store.save();
   if (created) push(user.id, { type: 'calendars' });
   notifyCalendar(cal.id, { type: 'calendars' });
+  if (!created) logActivity(cal.id, user.id, 'import', { title: cal.name, count });
   return { count, calendarId: cal.id, createdCalendar: created };
 });
 
@@ -657,12 +746,18 @@ function openStream(req, res, user) {
     'X-Accel-Buffering': 'no',
   });
   res.write('retry: 3000\n\n');
-  if (!streams.has(user.id)) streams.set(user.id, new Set());
+  const first = !streams.has(user.id);
+  if (first) streams.set(user.id, new Set());
   streams.get(user.id).add(res);
+  res.write(`data: ${JSON.stringify({ type: 'presence', online: onlineContacts(user.id) })}\n\n`);
+  if (first) announcePresence(user.id, true);
   req.on('close', () => {
     const set = streams.get(user.id);
     set?.delete(res);
-    if (set && !set.size) streams.delete(user.id);
+    if (set && !set.size) {
+      streams.delete(user.id);
+      announcePresence(user.id, false);
+    }
   });
 }
 
@@ -775,6 +870,6 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 server.listen(PORT, () => {
-  console.log(`🌿 Zeitgarten läuft auf http://localhost:${PORT}`);
+  console.log(`🌿 Zeitgarten läuft auf http://localhost:${server.address().port}`);
   console.log(`   Daten werden gespeichert in ${DATA_FILE}`);
 });

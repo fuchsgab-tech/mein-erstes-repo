@@ -122,13 +122,43 @@ export function chooseDialog({ title, text, options }) {
 
 // ---------- Meldungen ----------
 
-export function toast(text, { error = false } = {}) {
-  const el = h(`div.toast${error ? '.error' : ''}`, { role: 'status' }, icon(error ? 'x' : 'check', 18), text);
-  document.getElementById('toasts').append(el);
-  setTimeout(() => {
+export function toast(text, { error = false, action = null } = {}) {
+  const el = h(`div.toast${error ? '.error' : ''}`, { role: 'status' }, icon(error ? 'x' : 'check', 18), h('span', null, text));
+  const dismiss = () => {
     el.classList.add('out');
     setTimeout(() => el.remove(), 300);
-  }, error ? 4200 : 2600);
+  };
+  if (action) {
+    el.append(h('button.t-action', {
+      onclick: () => {
+        dismiss();
+        action.run();
+      },
+    }, action.label));
+  }
+  document.getElementById('toasts').append(el);
+  setTimeout(dismiss, error ? 4200 : action ? 5200 : 2600);
+}
+
+// Meldung, wenn jemand anderes etwas gemacht hat
+export function liveToast({ user, text, sub = 'Gerade eben', onClick }) {
+  const box = document.getElementById('toasts');
+  const max = matchMedia('(max-width: 760px)').matches ? 2 : 3;
+  while (box.querySelectorAll('.toast.live').length >= max) box.querySelector('.toast.live').remove();
+  const el = h('div.toast.live', { role: 'status' },
+    avatar(user, 30),
+    h('span.tx', null, h('span', null, text), h('small', null, h('span.live-dot'), sub)),
+  );
+  const dismiss = () => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 300);
+  };
+  el.addEventListener('click', () => {
+    dismiss();
+    onClick?.();
+  });
+  box.append(el);
+  setTimeout(dismiss, 5000);
 }
 
 export function errorToast(e) {
@@ -164,17 +194,18 @@ function luminance(hex) {
 
 export const textOn = (hex) => (luminance(hex) > 0.36 ? '#1c1d22' : '#ffffff');
 
-export function avatar(user, size = 32) {
+export function avatar(user, size = 32, { online = false } = {}) {
   return h('span.avatar', {
-    title: user.name,
+    class: online ? 'online' : '',
+    title: online ? `${user.name} · online` : user.name,
     style: { '--c': user.color, color: textOn(user.color), width: `${size}px`, height: `${size}px`, fontSize: `${Math.round(size * 0.4)}px` },
   }, initials(user.name));
 }
 
-export function avatarStack(users, size = 26, max = 4) {
+export function avatarStack(users, size = 26, max = 4, isOnline = () => false) {
   const shown = users.slice(0, max);
   return h('span.avatars', null,
-    shown.map((u) => avatar(u, size)),
+    shown.map((u) => avatar(u, size, { online: isOnline(u.id) })),
     users.length > max ? h('span.avatar.more-av', { style: { width: `${size}px`, height: `${size}px`, fontSize: `${Math.round(size * 0.38)}px` } }, `+${users.length - max}`) : null,
   );
 }

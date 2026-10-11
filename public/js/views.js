@@ -3,8 +3,10 @@ import { h, icon } from './h.js';
 import { dayLong, monthName, relDay, time, weekdayName, WEEKDAYS } from './fmt.js';
 import { occFirstDay, occLastDay } from './recur.js';
 import { eventColor, state, visibleOccurrences } from './state.js';
-import { addDays, addMonths, daysBetween, sameDay, startOfDay, startOfWeek, ymd } from './time.js';
-import { occItem, openDay, openEditor, openEvent } from './sheets.js';
+import { prefs } from './themes.js';
+import { addDays, addMonths, daysBetween, isoWeek, parseYmd, sameDay, startOfDay, startOfWeek, ymd } from './time.js';
+import { moveOccurrence, occItem, openDay, openEditor, openEvent } from './sheets.js';
+import { textOn } from './ui.js';
 
 const isNarrow = () => matchMedia('(max-width: 760px)').matches;
 const cssPx = (el, name, fallback) => parseFloat(getComputedStyle(el).getPropertyValue(name)) || fallback;
@@ -46,13 +48,100 @@ function weekSegments(occs, ws) {
   return segs;
 }
 
-function barEl(s, { lane, top, showTime }) {
+// ---------- Ziehen & Ablegen (Monat) ----------
+
+let suppressClick = false;
+
+function attachDrag(el, o) {
+  if (o.ev.subscriptionId) return;
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const touch = e.pointerType === 'touch';
+    const rect = el.getBoundingClientRect();
+    const offX = startX - rect.left;
+    const offY = startY - rect.top;
+    // Welcher Tag wurde gegriffen? (bei mehrtägigen Terminen wichtig)
+    const cells = [...(el.parentElement?.previousElementSibling?.children || [])];
+    const grabCell = cells.find((c) => {
+      const r = c.getBoundingClientRect();
+      return startX >= r.left && startX < r.right;
+    });
+    let dragging = false;
+    let ghost = null;
+    let target = null;
+    let timer = null;
+
+    const place = (ev) => {
+      ghost.style.transform = `translate(${ev.clientX - offX}px, ${ev.clientY - offY}px) rotate(-2deg) scale(1.05)`;
+    };
+    const begin = (ev) => {
+      dragging = true;
+      state.dragging = true;
+      el.classList.add('dragging');
+      document.body.classList.add('is-dragging');
+      ghost = el.cloneNode(true);
+      ghost.classList.remove('dragging');
+      ghost.classList.add('drag-ghost');
+      Object.assign(ghost.style, { left: '0', top: '0', width: `${rect.width}px`, height: `${rect.height}px` });
+      document.body.append(ghost);
+      place(ev);
+      navigator.vibrate?.(10);
+    };
+    const finish = async (drop) => {
+      clearTimeout(timer);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+      if (!dragging) return;
+      suppressClick = true;
+      setTimeout(() => {
+        suppressClick = false;
+        state.dragging = false;
+      }, 60);
+      el.classList.remove('dragging');
+      document.body.classList.remove('is-dragging');
+      ghost?.remove();
+      target?.classList.remove('drop-target');
+      if (drop && target?.dataset.date && grabCell?.dataset.date) {
+        const delta = daysBetween(parseYmd(grabCell.dataset.date), parseYmd(target.dataset.date));
+        if (delta) await moveOccurrence(o, delta);
+      }
+    };
+    const onMove = (ev) => {
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 6) return;
+        if (touch) return finish(false); // auf dem Handy erst nach langem Drücken
+        begin(ev);
+      }
+      ev.preventDefault();
+      place(ev);
+      const under = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day');
+      if (under !== target) {
+        target?.classList.remove('drop-target');
+        target = under;
+        target?.classList.add('drop-target');
+      }
+    };
+    const onUp = () => finish(true);
+    const onCancel = () => finish(false);
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
+    if (touch) timer = setTimeout(() => begin(e), 420);
+  });
+}
+
+function barEl(s, { lane, top, showTime, draggable = false }) {
   const ev = s.o.ev;
+  const color = eventColor(ev);
   const cls = [s.block ? 'block' : 'timed', s.contL && 'cont-l', s.contR && 'cont-r'].filter(Boolean).join(' ');
-  return h('button.bar', {
+  const el = h('button.bar', {
     class: cls,
     style: {
-      '--c': eventColor(ev),
+      '--c': color,
+      '--on-c': textOn(color),
       left: `calc(${s.col} * 100% / 7 + 2px)`,
       width: `calc(${s.span} * 100% / 7 - 4px)`,
       top: `${top + s.lane * lane}px`,
@@ -61,9 +150,11 @@ function barEl(s, { lane, top, showTime }) {
     title: ev.title,
     onclick: (e) => {
       e.stopPropagation();
-      openEvent(s.o);
+      if (!suppressClick) openEvent(s.o);
     },
   }, !s.block && showTime ? h('span.t', null, time(s.o.start)) : null, h('span.label', null, ev.title));
+  if (draggable) attachDrag(el, s.o);
+  return el;
 }
 
 // ---------- Monat ----------
@@ -88,9 +179,10 @@ export function renderMonth(container) {
         sameDay(d, today) && 'today',
         i >= 5 && 'we',
       ].filter(Boolean).join(' ');
-      return h('div.day', { class: cls, role: 'button', tabindex: '-1', 'aria-label': dayLong(d), onclick: () => openDay(d) },
+      return h('div.day', { class: cls, role: 'button', tabindex: '-1', 'aria-label': dayLong(d), 'data-date': ymd(d), onclick: () => openDay(d) },
         h('span.num', null, d.getDate()),
         d.getDate() === 1 ? h('span.mon', null, monthName(d).slice(0, 3)) : null,
+        i === 0 && prefs.kw ? h('span.kw', { title: `Kalenderwoche ${isoWeek(d)}` }, `KW ${isoWeek(d)}`) : null,
       );
     }));
     const layer = h('div.week-events');
@@ -120,7 +212,7 @@ export function renderMonth(container) {
       for (const s of segs) {
         const cols = Array.from({ length: s.span }, (_, i) => s.col + i);
         const visible = s.lane < maxLanes - 1 || (s.lane === maxLanes - 1 && !cols.some((i) => over[i]));
-        if (visible) out.push(barEl(s, { lane, top, showTime }));
+        if (visible) out.push(barEl(s, { lane, top, showTime, draggable: true }));
         else for (const i of cols) hidden[i]++;
       }
       hidden.forEach((n, i) => {
@@ -218,6 +310,7 @@ export function renderWeek(container) {
         class: dur < 45 ? 'short' : '',
         style: {
           '--c': eventColor(ev),
+          '--on-c': textOn(eventColor(ev)),
           top: `calc(${it.s / 60} * var(--hour) + 1px)`,
           height: `calc(${dur / 60} * var(--hour) - 2px)`,
           left: `calc(${it.col} * 100% / ${it.cols} + 2px)`,
