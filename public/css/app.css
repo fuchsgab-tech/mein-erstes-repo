@@ -1342,3 +1342,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 @media (max-width: 380px) {
   .today-btn { display: none; }
 }
+
+/* iPhone zoomt sonst beim Tippen in Eingabefelder hinein */
+@media (max-width: 760px) {
+  .input, .search-box input, .composer textarea { font-size: 16px; }
+}

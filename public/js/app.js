@@ -13,6 +13,7 @@ import {
 } from './ui.js';
 import { renderList, renderMini, renderMonth, renderWeek } from './views.js';
 import { renderToday } from './dashboard.js';
+import './bgfx.js';
 import {
   activityText, actor, inviteCard, openActivity, openCalendar, openDesign, openEditor, openEventById, openImport,
   openInvitePicker, openJoin, openNewCalendar, openProfile,

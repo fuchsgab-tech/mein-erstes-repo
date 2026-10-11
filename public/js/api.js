@@ -1,6 +1,9 @@
 // Verbindung zum Server
 const KEY = 'zg.token';
 
+// Die Demo-Version (demo/api.js) setzt das auf true
+export const isDemo = false;
+
 let token = null;
 try {
   token = localStorage.getItem(KEY);

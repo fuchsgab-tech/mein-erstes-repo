@@ -3,6 +3,8 @@
 // Max und Lena sind Beispiel-Freunde, die live mitmachen, damit man die Live-Funktionen allein ausprobieren kann.
 import { createCore } from '../server/core.js';
 
+export const isDemo = true;
+
 const DB_KEY = 'zg.demo.db';
 const TOKEN_KEY = 'zg.token';
 

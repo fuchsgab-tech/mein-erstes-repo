@@ -18,14 +18,15 @@ copy('demo/api.js', 'js/api.js'); // statt Server: alles im Browser
 copy('server/core.js', 'server/core.js');
 copy('server/ics.js', 'server/ics.js');
 copy('public/js/time.js', 'public/js/time.js'); // wird von core.js und ics.js eingebunden
-copy('public/css/app.css', 'css/app.css');
+const CSS = ['app.css', 'skins-live.css', 'calendar.css', 'caldav.css'];
+for (const f of CSS) copy(`public/css/${f}`, `css/${f}`);
 copy('public/icon.svg', 'icon.svg');
 copy('public/icon-192.png', 'icon-192.png');
 
 const head = `<title>Zeitgarten</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <script src="js/boot-theme.js"></script>
-<link rel="stylesheet" href="css/app.css">
+${CSS.map((f) => `<link rel="stylesheet" href="css/${f}">`).join('\n')}
 <script type="module" src="js/app.js"></script>`;
 const body = `<div id="app"></div>
 <div id="overlay-root"></div>
