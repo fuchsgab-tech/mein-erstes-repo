@@ -70,7 +70,13 @@ export const prefs = { ...DEFAULT_PREFS, ...readLocal() };
 
 const dark = matchMedia('(prefers-color-scheme: dark)');
 export const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-export const resolvedMode = () => (prefs.mode === 'auto' ? (dark.matches ? 'dark' : 'light') : prefs.mode);
+// Bei „Automatisch“ zählt eine helle/dunkle Wahl der umgebenden App (data-theme), sonst das System
+const hostTheme = () => document.documentElement.dataset.theme;
+export const resolvedMode = () => {
+  if (prefs.mode !== 'auto') return prefs.mode;
+  if (hostTheme() === 'dark' || hostTheme() === 'light') return hostTheme();
+  return dark.matches ? 'dark' : 'light';
+};
 
 function luminance(hex) {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
@@ -103,6 +109,8 @@ export function applyPrefs() {
 }
 
 dark.addEventListener('change', () => prefs.mode === 'auto' && applyPrefs());
+new MutationObserver(() => prefs.mode === 'auto' && applyPrefs())
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 let syncTimer = null;
 export function setPrefs(patch, { sync = true } = {}) {

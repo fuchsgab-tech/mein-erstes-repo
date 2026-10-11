@@ -1,5 +1,5 @@
 // Zeitgarten – Start der App im Browser
-import { api, auth } from './api.js';
+import { api, auth, openStream } from './api.js';
 import { h, icon } from './h.js';
 import { monthName } from './fmt.js';
 import {
@@ -63,7 +63,7 @@ async function renderWelcome(code) {
       const r = await api('POST', '/api/users', { name, color });
       auth.set(r.token);
       if (valid) await api('POST', `/api/invites/${encodeURIComponent(code)}/accept`);
-      history.replaceState(null, '', '/');
+      if (code) history.replaceState(null, '', '/');
       await startApp();
       toast(valid ? `Willkommen in „${invite.calendar.name}“!` : `Schön, dass du da bist, ${name}!`);
     });
@@ -72,7 +72,7 @@ async function renderWelcome(code) {
   app.replaceChildren(h('div.welcome', null,
     FLOATIES.map((f) => h('div.floaty', { style: { '--c': f.c, left: f.x, top: f.y, animationDelay: f.d } }, f.t)),
     h('div.welcome-card', null,
-      h('div.brand.big', null, h('img', { src: '/icon.svg', alt: '' }), 'Zeitgarten'),
+      h('div.brand.big', null, h('img', { src: 'icon.svg', alt: '' }), 'Zeitgarten'),
       invite?.error ? h('p.form-error', null, invite.error) : null,
       valid
         ? inviteCard(invite)
@@ -199,7 +199,7 @@ function renderSidebar() {
     fn();
   };
   els.sidebar.replaceChildren(
-    h('div.brand', null, h('img', { src: '/icon.svg', alt: '' }), 'Zeitgarten'),
+    h('div.brand', null, h('img', { src: 'icon.svg', alt: '' }), 'Zeitgarten'),
     h('button.btn.primary.block.lg.new-btn', { onclick: action(() => openEditor({ date: defaultNewDate() })) }, icon('plus', 20), 'Neuer Termin'),
     mini,
     h('div.side-section', null,
@@ -367,7 +367,7 @@ async function flushLive() {
   } catch (e) {
     if (e.status === 401) {
       auth.set(null);
-      location.href = '/';
+      location.reload();
     }
   }
 }
@@ -419,7 +419,7 @@ function onActivity(a) {
   });
   if (prefs.notify && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
     try {
-      const n = new Notification('Zeitgarten', { body: plain, icon: '/icon-192.png', tag: a.id });
+      const n = new Notification('Zeitgarten', { body: plain, icon: 'icon-192.png', tag: a.id });
       n.onclick = () => {
         window.focus();
         if (a.eventId) openEventById(a.eventId);
@@ -432,25 +432,8 @@ function onActivity(a) {
 
 function connectLive() {
   source?.close();
-  source = new EventSource(`/api/stream?token=${encodeURIComponent(auth.token)}`);
   let broken = false;
-  source.onopen = () => {
-    if (broken) {
-      needAll = true;
-      scheduleLive();
-    }
-    broken = false;
-  };
-  source.onerror = () => {
-    broken = true;
-  };
-  source.onmessage = (e) => {
-    let msg;
-    try {
-      msg = JSON.parse(e.data);
-    } catch {
-      return;
-    }
+  source = openStream((msg) => {
     switch (msg.type) {
       case 'presence':
         state.online = new Set(msg.online);
@@ -484,7 +467,18 @@ function connectLive() {
     }
     if (msg.type === 'comments') forEachSheet((s) => s.eventId === msg.eventId && s.reloadComments?.());
     scheduleLive();
-  };
+  }, {
+    onOpen: () => {
+      if (broken) {
+        needAll = true;
+        scheduleLive();
+      }
+      broken = false;
+    },
+    onError: () => {
+      broken = true;
+    },
+  });
 }
 
 let hiddenAt = 0;

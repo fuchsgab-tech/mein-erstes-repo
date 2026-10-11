@@ -1148,7 +1148,7 @@ export function openProfile() {
               });
               if (!ok) return;
               auth.set(null);
-              location.href = '/';
+              location.reload();
             },
           }, icon('logout', 16), 'Abmelden'),
         ),

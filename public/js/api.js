@@ -23,6 +23,23 @@ export const auth = {
   },
 };
 
+// Live-Verbindung zum Server: meldet neue Termine, Kommentare, wer online ist …
+export function openStream(onMessage, { onOpen, onError } = {}) {
+  const source = new EventSource(`/api/stream?token=${encodeURIComponent(token)}`);
+  source.onopen = () => onOpen?.();
+  source.onerror = () => onError?.();
+  source.onmessage = (e) => {
+    let msg;
+    try {
+      msg = JSON.parse(e.data);
+    } catch {
+      return; // kaputte Nachricht ignorieren
+    }
+    onMessage(msg);
+  };
+  return { close: () => source.close() };
+}
+
 export async function api(method, path, body) {
   let res;
   try {

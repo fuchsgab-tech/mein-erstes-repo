@@ -532,7 +532,7 @@ input[type="date"].input, input[type="time"].input { padding: 0 10px; font-varia
 
 /* ---------- Grundgerüst ---------- */
 
-.shell { display: grid; grid-template-columns: 284px minmax(0, 1fr); height: 100vh; height: 100dvh; }
+.shell { display: grid; grid-template-columns: 284px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 100vh; height: 100dvh; }
 .sidebar {
   display: flex; flex-direction: column; gap: 18px; padding: 18px 14px 14px;
   background: var(--sidebar-bg); border-right: 1px solid var(--line); overflow-y: auto; min-height: 0;
@@ -543,7 +543,7 @@ input[type="date"].input, input[type="time"].input { padding: 0 10px; font-varia
 .brand img { width: 32px; height: 32px; border-radius: 9px; }
 .brand.big { justify-content: center; font-size: 22px; margin-bottom: 8px; }
 .brand.big img { width: 40px; height: 40px; border-radius: 11px; }
-.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100vh; height: 100dvh; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .topbar { display: flex; align-items: center; gap: 8px; padding: 16px 22px 12px; }
 .topbar .title { margin: 0 6px 0 0; font-family: var(--font-display); font-size: 27px; font-weight: 800; letter-spacing: -0.035em; white-space: nowrap; }
 .topbar .title .year { color: var(--text-3); font-weight: 600; }
@@ -1132,6 +1132,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 .toast.out { animation: toastOut 0.3s ease forwards; }
 .toast .t-action { margin-left: 6px; padding: 4px 10px; border-radius: 9px; background: color-mix(in srgb, var(--toast-text) 14%, transparent); font-weight: 750; font-size: 13.5px; }
 .toast.live { cursor: pointer; padding-left: 8px; }
+.toast.demo-hint { max-width: 440px; line-height: 1.4; font-size: 14px; cursor: pointer; }
 .toast.live .avatar { box-shadow: 0 0 0 2px var(--toast-bg); }
 .toast.live .tx { display: flex; flex-direction: column; min-width: 0; }
 .toast.live .tx span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52vw; }

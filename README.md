@@ -73,6 +73,16 @@ Dann im Browser **http://localhost:3000** öffnen. Fertig.
 
 > Tipp: Mit `npm run dev` startet der Server bei jeder Änderung am Code automatisch neu.
 
+## Demo ohne Server
+
+Zum Ausprobieren gibt es eine Demo-Version, die komplett im Browser läuft. Sie nutzt dieselbe Logik wie der Server (`server/core.js`), speichert aber alles nur auf dem eigenen Gerät. Zwei Beispiel-Freunde, Max und Lena, machen live mit: Sie kommen online, tragen Termine ein, antworten auf Kommentare und reagieren auf neue Termine.
+
+```bash
+npm run demo
+```
+
+Das baut die Demo nach `demo/dist/`. Den Ordner kannst du auf jeden statischen Hoster legen, zum Beispiel GitHub Pages. Einladungslinks und Kalender-Abos per Link funktionieren in der Demo nicht, dafür braucht es den echten Server.
+
 ## Mit Freunden nutzen (online stellen)
 
 Damit deine Freunde den Einladungslink öffnen können, muss die App im Internet erreichbar sein. Dafür gibt es mehrere Wege:
@@ -107,7 +117,8 @@ Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den Export, die 
 
 ```
 server/
-  index.js        Webserver und API (Kalender, Einladungen, Termine, Kommentare, Live-Updates, Online-Status)
+  index.js        Webserver: HTTP, Live-Verbindungen, Dateien
+  core.js         Die eigentliche Logik (Kalender, Einladungen, Termine, Neuigkeiten …), auch für die Demo
   ics.js          .ics-Dateien lesen und schreiben
   safe-fetch.js   Kalender-Links sicher aus dem Internet laden
   store.js        Speichern in einer JSON-Datei
@@ -122,6 +133,9 @@ public/
   js/fx.js        Konfetti, Emoji-Regen und Tooltips
   js/recur.js     Wiederkehrende Termine
   js/time.js      Datum, Zeitzonen und Kalenderwochen
+demo/
+  api.js          Ersetzt in der Demo den Server: alles im Browser, mit Max und Lena als Beispiel-Freunden
+  build.mjs       Baut die Demo nach demo/dist/
 test/             Automatische Tests
 ```
 

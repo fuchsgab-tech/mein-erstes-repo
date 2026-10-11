@@ -4,7 +4,8 @@
     var p = JSON.parse(localStorage.getItem('zg.prefs') || '{}') || {};
     var d = document.documentElement.dataset;
     var mode = p.mode || 'auto';
-    if (mode === 'auto') mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var host = document.documentElement.dataset.theme;
+    if (mode === 'auto') mode = host === 'dark' || host === 'light' ? host : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     d.skin = p.skin || 'garten';
     d.mode = mode;
     d.events = p.events || 'tint';
