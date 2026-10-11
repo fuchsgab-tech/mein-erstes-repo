@@ -1,0 +1,1045 @@
+// Alle Fenster der App: Tag, Termin, Editor, Kalender, Import, Profil, Einladung
+import { api, auth } from './api.js';
+import { h, icon, linkify } from './h.js';
+import { ago, dayLong, dayMonth, relDay, shortDate, weekdayName, whenLong, whenShort } from './fmt.js';
+import { describeRrule, joinRrule, occurrences, REPEAT_PRESETS, splitRrule } from './recur.js';
+import {
+  COLORS, EMOJIS, calById, defaultCalendarId, eventColor, hooks, loadAll, loadEvents, loadMe, persist, person,
+  rememberCalendar, setHidden, state, visibleOccurrences,
+} from './state.js';
+import { addDays, daysBetween, localTz, pad, parseYmd, startOfDay, ymd } from './time.js';
+import {
+  avatar, avatarStack, busy, chooseDialog, confirmDialog, copyText, errorToast, field, openSheet, segmented,
+  swatches, toast,
+} from './ui.js';
+
+const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const closeBtn = (s) => h('button.icon-btn', { onclick: () => s.close(), 'aria-label': 'Schließen', title: 'Schließen' }, icon('x'));
+
+function toggle(label, value, onChange) {
+  const input = h('input', { type: 'checkbox', checked: value, onchange: () => onChange(input.checked) });
+  return h('label.toggle', null, h('span', null, label), input, h('span.track', null, h('span.thumb')));
+}
+
+function meta(iconName, ...content) {
+  return h('div.meta', null, icon(iconName, 19), h('div.v', null, ...content));
+}
+
+// ---------- Eintrag in Listen ----------
+
+export function occItem(o, day) {
+  const ev = o.ev;
+  const cal = calById(ev.calendarId);
+  const people = (ev.attendees || []).map(person);
+  return h('button.item', { style: { '--c': eventColor(ev) }, onclick: () => openEvent(o) },
+    h('span.stripe'),
+    h('span.when', null, whenShort(o, day)),
+    h('span.item-main', null,
+      h('span.title', null, ev.title),
+      h('span.sub', null, cal ? `${cal.emoji} ${cal.name}` : '', ev.location ? ` · ${ev.location}` : ''),
+    ),
+    people.length ? avatarStack(people, 22, 3) : null,
+    ev.commentCount ? h('span.cc', { title: 'Kommentare' }, icon('message', 14), ev.commentCount) : null,
+  );
+}
+
+// ---------- Tag ----------
+
+export function openDay(d) {
+  const day = startOfDay(d);
+  openSheet({
+    live: true,
+    className: 'day-sheet',
+    render: (s) => {
+      const occs = visibleOccurrences(day, addDays(day, 1));
+      const rel = relDay(day);
+      return {
+        head: h('div.sheet-head', null,
+          h('div.grow', null,
+            h('div.eyebrow', null, rel ? `${rel} · ${weekdayName(day)}` : weekdayName(day)),
+            h('h2', null, dayMonth(day), day.getFullYear() !== new Date().getFullYear() ? ` ${day.getFullYear()}` : ''),
+          ),
+          closeBtn(s),
+        ),
+        body: occs.length
+          ? h('div.day-list', null, occs.map((o) => occItem(o, day)))
+          : h('div.empty.small', null, h('div.empty-art', null, '☀️'), h('p', null, 'Noch nichts geplant.')),
+        foot: h('button.btn.primary.block.lg', { onclick: () => openEditor({ date: day }) }, icon('plus', 20), 'Termin hinzufügen'),
+      };
+    },
+  });
+}
+
+// ---------- Termin ansehen ----------
+
+function currentOcc(ev, occ) {
+  if (ev.rrule) return { ...occ, ev };
+  return occurrences(ev, new Date(-8.64e15), new Date(8.64e15))[0] || { ...occ, ev };
+}
+
+export function openEvent(occ) {
+  const id = occ.ev.id;
+  let comments = null;
+  const textarea = h('textarea.input', {
+    rows: 1,
+    placeholder: 'Kommentar schreiben …',
+    maxlength: 2000,
+    oninput: () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(140, textarea.scrollHeight)}px`;
+    },
+    onkeydown: (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        send();
+      }
+    },
+  });
+  const sendBtn = h('button.btn.primary.icon-only', { onclick: () => send(), 'aria-label': 'Senden', title: 'Senden' }, icon('send', 18));
+  const composer = h('div.composer', null, textarea, sendBtn);
+
+  async function loadComments() {
+    try {
+      comments = (await api('GET', `/api/events/${id}/comments`)).comments;
+      const ev = state.events.get(id);
+      if (ev) ev.commentCount = comments.length;
+      if (!sheet.closed) sheet.refresh();
+    } catch {
+      /* Termin evtl. gelöscht */
+    }
+  }
+
+  async function send() {
+    const text = textarea.value.trim();
+    if (!text) return;
+    await busy(sendBtn, async () => {
+      await api('POST', `/api/events/${id}/comments`, { text });
+      textarea.value = '';
+      textarea.style.height = 'auto';
+      await loadComments();
+      hooks.render();
+    });
+  }
+
+  const sheet = openSheet({
+    live: true,
+    className: 'event-sheet',
+    render: (s) => {
+      const ev = state.events.get(id);
+      const cal = ev && calById(ev.calendarId);
+      if (!ev || !cal) {
+        return { title: 'Termin', body: h('div.empty.small', null, h('div.empty-art', null, '🍃'), h('p', null, 'Dieser Termin wurde gelöscht.')) };
+      }
+      const o = currentOcc(ev, occ);
+      const color = eventColor(ev);
+      const [line1, line2] = whenLong(o);
+      const going = (ev.attendees || []).includes(state.me.id);
+      const people = (ev.attendees || []).map(person);
+      const sub = ev.subscriptionId ? cal.subscriptions.find((x) => x.id === ev.subscriptionId) : null;
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location || '')}`;
+
+      const attendBtn = h(`button.btn.${going ? 'going' : 'primary'}`, {
+        style: { '--c': color },
+        onclick: (e) => busy(e.currentTarget, async () => {
+          const r = await api('POST', `/api/events/${id}/attend`, { going: !going });
+          state.events.set(id, { ...r.event, commentCount: ev.commentCount });
+          s.refresh();
+          hooks.render();
+        }),
+      }, icon(going ? 'check' : 'sparkle', 18), going ? 'Du bist dabei' : 'Ich bin dabei');
+
+      return {
+        head: h('div.sheet-head', null,
+          h('span.ev-cal', { style: { '--c': color } }, h('span.dot'), `${cal.emoji} ${cal.name}`),
+          h('span.grow'),
+          closeBtn(s),
+        ),
+        body: [
+          h('h2.ev-title', null, ev.title),
+          meta('clock', h('div', null, line1), h('div.muted', null, line2)),
+          ev.rrule ? meta('repeat', describeRrule(ev.rrule, o.start)) : null,
+          ev.location ? meta('pin', h('a', { href: mapsUrl, target: '_blank', rel: 'noopener noreferrer' }, ev.location)) : null,
+          ev.notes ? meta('notes', h('div.notes', null, linkify(ev.notes))) : null,
+          sub ? meta('feed', h('span.muted', null, `Aus dem Abo „${sub.name}“ – wird automatisch aktualisiert.`)) : null,
+          meta('user', h('span.muted', null, `Eingetragen von ${person(ev.createdBy).name}`)),
+
+          h('div.section', null,
+            h('h3', null, 'Wer ist dabei?'),
+            h('div.attend', null,
+              people.length
+                ? h('div.people', null, people.map((p) => h('span.person', null, avatar(p, 26), p.id === state.me.id ? 'Du' : p.name)))
+                : h('p.muted.small-text', null, 'Noch hat niemand zugesagt.'),
+            ),
+            attendBtn,
+          ),
+
+          h('div.section', null,
+            h('h3', null, 'Kommentare', comments?.length ? h('span.count', null, comments.length) : null),
+            comments === null
+              ? h('p.muted.small-text', null, 'Lädt …')
+              : comments.length
+                ? h('div.comments', null, comments.map((c) => {
+                  const who = c.author || { name: 'Ehemaliges Mitglied', color: '#9b9da4' };
+                  return h('div.comment', { class: c.userId === state.me.id ? 'mine' : '' },
+                    avatar(who, 30),
+                    h('div.bubble', null,
+                      h('div.who', null, c.userId === state.me.id ? 'Du' : who.name, h('span.when', null, ago(c.createdAt))),
+                      h('div.txt', null, linkify(c.text)),
+                    ),
+                    c.userId === state.me.id ? h('button.icon-btn.sm.del', {
+                      title: 'Kommentar löschen',
+                      onclick: async () => {
+                        try {
+                          await api('DELETE', `/api/comments/${c.id}`);
+                          await loadComments();
+                          hooks.render();
+                        } catch (e) {
+                          errorToast(e);
+                        }
+                      },
+                    }, icon('trash', 15)) : null,
+                  );
+                }))
+                : h('p.muted.small-text', null, 'Noch keine Kommentare. Fragt hier, wer was mitbringt 🙂'),
+            composer,
+          ),
+        ],
+        foot: sub ? null : [
+          h('button.btn.danger', { onclick: (e) => busy(e.currentTarget, async () => { if (await deleteEvent(ev, o)) s.close(); }) }, icon('trash', 18), 'Löschen'),
+          h('span.grow'),
+          h('button.btn.primary', { onclick: () => openEditor({ ev, occ: o, onSaved: () => s.close() }) }, icon('edit', 18), 'Bearbeiten'),
+        ],
+      };
+    },
+  });
+  sheet.eventId = id;
+  sheet.reloadComments = loadComments;
+  loadComments();
+}
+
+async function deleteEvent(ev, o) {
+  if (ev.rrule && o.orig) {
+    const choice = await chooseDialog({
+      title: 'Serientermin löschen',
+      options: [
+        { value: 'one', label: 'Nur diesen Termin', hint: dayLong(o.start) },
+        { value: 'all', label: 'Alle Termine der Serie', danger: true },
+      ],
+    });
+    if (!choice) return false;
+    if (choice === 'one') await api('PATCH', `/api/events/${ev.id}`, { exdates: [...(ev.exdates || []), o.orig] });
+    else await api('DELETE', `/api/events/${ev.id}`);
+  } else {
+    const ok = await confirmDialog({
+      title: 'Termin löschen?',
+      text: `„${ev.title}“ wird für alle in diesem Kalender gelöscht.`,
+      ok: 'Löschen',
+      danger: true,
+    });
+    if (!ok) return false;
+    await api('DELETE', `/api/events/${ev.id}`);
+  }
+  await loadEvents(ev.calendarId);
+  hooks.render();
+  toast('Termin gelöscht');
+  return true;
+}
+
+// ---------- Termin bearbeiten / anlegen ----------
+
+export function openEditor({ ev = null, occ = null, date = null, hour = null, calendarId = null, onSaved = null } = {}) {
+  if (!state.calendars.length) {
+    toast('Lege zuerst einen Kalender an.');
+    openNewCalendar();
+    return;
+  }
+  const editing = !!ev;
+  const now = new Date();
+  let f;
+  if (editing) {
+    let s;
+    let e;
+    if (occ) {
+      s = occ.start;
+      e = ev.allDay ? addDays(occ.end, -1) : occ.end;
+    } else {
+      s = ev.allDay ? parseYmd(ev.start) : new Date(ev.start);
+      e = ev.allDay ? parseYmd(ev.end) : new Date(ev.end);
+    }
+    const { pattern, until } = splitRrule(ev.rrule);
+    f = {
+      title: ev.title, calendarId: ev.calendarId, allDay: ev.allDay,
+      startDate: ymd(s), startTime: ev.allDay ? '10:00' : hm(s),
+      endDate: ymd(e), endTime: ev.allDay ? '11:00' : hm(e),
+      repeat: pattern, until, color: ev.color, location: ev.location || '', notes: ev.notes || '',
+    };
+  } else {
+    const base = startOfDay(date || state.cursor);
+    const h0 = hour ?? (ymd(base) === ymd(now) ? Math.min(23, now.getHours() + 1) : 10);
+    const s = new Date(base);
+    s.setHours(h0, 0, 0, 0);
+    const e = new Date(s.getTime() + 3600e3);
+    f = {
+      title: '', calendarId: calById(calendarId) ? calendarId : defaultCalendarId(), allDay: false,
+      startDate: ymd(s), startTime: hm(s), endDate: ymd(e), endTime: hm(e),
+      repeat: '', until: '', color: null, location: '', notes: '',
+    };
+  }
+
+  const toDate = (d, t) => new Date(`${d}T${t || '00:00'}`);
+  const durMs = () => (f.allDay ? daysBetween(parseYmd(f.startDate), parseYmd(f.endDate)) * 864e5 : toDate(f.endDate, f.endTime) - toDate(f.startDate, f.startTime));
+  let keepDur = Math.max(0, durMs());
+  const error = h('p.form-error', { hidden: true });
+
+  const titleInput = h('input.title-input', {
+    placeholder: 'Was steht an?',
+    value: f.title,
+    maxlength: 200,
+    autofocus: !editing,
+    'aria-label': 'Titel',
+    oninput: () => {
+      f.title = titleInput.value;
+      titleInput.classList.remove('shake');
+    },
+    onkeydown: (e) => e.key === 'Enter' && save(saveBtn),
+  });
+
+  const calChips = h('div.chips');
+  const drawChips = () => calChips.replaceChildren(...state.calendars.map((c) => h('button.chip', {
+    type: 'button',
+    class: c.id === f.calendarId ? 'on' : '',
+    style: { '--c': c.color },
+    onclick: () => {
+      f.calendarId = c.id;
+      drawChips();
+      drawColors();
+    },
+  }, h('span', null, c.emoji), c.name)));
+  drawChips();
+
+  const sDate = h('input.input', { type: 'date', value: f.startDate, required: true });
+  const sTime = h('input.input.time', { type: 'time', value: f.startTime, step: 300, required: true });
+  const eDate = h('input.input', { type: 'date', value: f.endDate, required: true });
+  const eTime = h('input.input.time', { type: 'time', value: f.endTime, step: 300, required: true });
+
+  const shiftEnd = () => {
+    if (f.allDay) {
+      f.endDate = ymd(addDays(parseYmd(f.startDate), Math.round(keepDur / 864e5)));
+    } else {
+      const end = new Date(toDate(f.startDate, f.startTime).getTime() + keepDur);
+      f.endDate = ymd(end);
+      f.endTime = hm(end);
+    }
+    eDate.value = f.endDate;
+    eTime.value = f.endTime;
+  };
+  sDate.addEventListener('change', () => {
+    if (!sDate.value) return;
+    f.startDate = sDate.value;
+    shiftEnd();
+    updateRepeatLabels();
+    untilInput.min = f.startDate;
+  });
+  sTime.addEventListener('change', () => {
+    if (!sTime.value) return;
+    f.startTime = sTime.value;
+    shiftEnd();
+  });
+  const onEnd = () => {
+    if (eDate.value) f.endDate = eDate.value;
+    if (eTime.value) f.endTime = eTime.value;
+    keepDur = Math.max(0, durMs());
+  };
+  eDate.addEventListener('change', onEnd);
+  eTime.addEventListener('change', onEnd);
+
+  const repeatSel = h('select.input');
+  const presets = REPEAT_PRESETS.map((p) => ({ ...p }));
+  if (f.repeat && !presets.some((p) => p.id === f.repeat)) presets.push({ id: f.repeat, custom: true });
+  function updateRepeatLabels() {
+    const start = parseYmd(f.startDate);
+    repeatSel.replaceChildren(...presets.map((p) => {
+      let label = p.label;
+      if (p.custom) label = `Benutzerdefiniert: ${describeRrule(p.id, start)}`;
+      else if (p.id === 'FREQ=WEEKLY' || p.id === 'FREQ=MONTHLY' || p.id === 'FREQ=YEARLY') label = describeRrule(p.id, start);
+      return h('option', { value: p.id, selected: p.id === f.repeat }, label);
+    }));
+  }
+  updateRepeatLabels();
+  const untilInput = h('input.input', { type: 'date', value: f.until, min: f.startDate, onchange: () => (f.until = untilInput.value) });
+  const untilField = field('Wiederholung endet (optional)', untilInput);
+  untilField.hidden = !f.repeat;
+  repeatSel.addEventListener('change', () => {
+    f.repeat = repeatSel.value;
+    untilField.hidden = !f.repeat;
+  });
+
+  const colorWrap = h('div');
+  const drawColors = () => colorWrap.replaceChildren(swatches(f.color, (c) => (f.color = c), {
+    allowNone: true,
+    noneColor: calById(f.calendarId)?.color,
+  }));
+  drawColors();
+
+  const locInput = h('input.input', { value: f.location, placeholder: 'Adresse oder Treffpunkt', maxlength: 300, oninput: () => (f.location = locInput.value) });
+  const notesInput = h('textarea.input', { placeholder: 'Was sollte man wissen?', maxlength: 5000, oninput: () => (f.notes = notesInput.value) }, f.notes);
+
+  const form = h('div.editor', { class: f.allDay ? 'all-day' : '' },
+    titleInput,
+    field('Kalender', calChips),
+    h('div.field', null, toggle('Ganztägig', f.allDay, (v) => {
+      f.allDay = v;
+      form.classList.toggle('all-day', v);
+      keepDur = v ? Math.max(0, daysBetween(parseYmd(f.startDate), parseYmd(f.endDate))) * 864e5 : 3600e3;
+      shiftEnd();
+    })),
+    h('div.grid-2', null,
+      field('Beginn', h('div.dt', null, sDate, sTime)),
+      field('Ende', h('div.dt', null, eDate, eTime)),
+    ),
+    error,
+    h('div.grid-2', null, field('Wiederholen', repeatSel), untilField),
+    field('Farbe', colorWrap),
+    field('Ort', locInput),
+    field('Notizen', notesInput),
+  );
+
+  async function save(btn) {
+    error.hidden = true;
+    if (!f.title.trim()) {
+      titleInput.classList.remove('shake');
+      void titleInput.offsetWidth;
+      titleInput.classList.add('shake');
+      titleInput.focus();
+      return;
+    }
+    let start;
+    let end;
+    if (f.allDay) {
+      start = f.startDate;
+      end = f.endDate < f.startDate ? f.startDate : f.endDate;
+    } else {
+      const s = toDate(f.startDate, f.startTime);
+      const e = toDate(f.endDate, f.endTime);
+      if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
+        error.textContent = 'Bitte gib Datum und Uhrzeit an.';
+        error.hidden = false;
+        return;
+      }
+      if (e < s) {
+        error.textContent = 'Das Ende liegt vor dem Beginn.';
+        error.hidden = false;
+        return;
+      }
+      start = s.toISOString();
+      end = e.toISOString();
+    }
+    const payload = {
+      calendarId: f.calendarId, title: f.title.trim(), allDay: f.allDay, start, end, tz: localTz(),
+      rrule: joinRrule(f.repeat, f.repeat ? f.until : ''), color: f.color, location: f.location.trim(), notes: f.notes,
+    };
+
+    await busy(btn, async () => {
+      if (!editing) {
+        await api('POST', '/api/events', payload);
+      } else if (ev.rrule && occ?.orig) {
+        const choice = await chooseDialog({
+          title: 'Serientermin ändern',
+          text: 'Möchtest du nur diesen einen Termin ändern oder die ganze Serie?',
+          options: [
+            { value: 'one', label: 'Nur diesen Termin', hint: dayLong(occ.start) },
+            { value: 'all', label: 'Alle Termine der Serie' },
+          ],
+        });
+        if (!choice) return;
+        if (choice === 'one') {
+          await api('PATCH', `/api/events/${ev.id}`, { exdates: [...(ev.exdates || []), occ.orig] });
+          await api('POST', '/api/events', { ...payload, rrule: null });
+        } else {
+          // Verschiebung auf den Serienbeginn übertragen
+          const baseDay = ev.allDay ? parseYmd(ev.start) : startOfDay(new Date(ev.start));
+          const dayDelta = daysBetween(startOfDay(occ.start), parseYmd(f.startDate));
+          const newBase = addDays(baseDay, dayDelta);
+          const series = { ...payload };
+          let exdates = [];
+          if (f.allDay) {
+            series.start = ymd(newBase);
+            series.end = ymd(addDays(newBase, daysBetween(parseYmd(start), parseYmd(end))));
+            if (ev.allDay) exdates = (ev.exdates || []).map((x) => ymd(addDays(parseYmd(x.slice(0, 10)), dayDelta)));
+          } else {
+            const s = toDate(ymd(newBase), f.startTime);
+            series.start = s.toISOString();
+            series.end = new Date(s.getTime() + (Date.parse(end) - Date.parse(start))).toISOString();
+            if (!ev.allDay) {
+              const msDelta = s.getTime() - Date.parse(ev.start);
+              exdates = (ev.exdates || []).map((x) => new Date(Date.parse(x) + msDelta).toISOString());
+            }
+          }
+          await api('PATCH', `/api/events/${ev.id}`, { ...series, exdates });
+        }
+      } else {
+        await api('PATCH', `/api/events/${ev.id}`, payload);
+      }
+      rememberCalendar(f.calendarId);
+      setHidden(f.calendarId, false);
+      await loadEvents(f.calendarId);
+      if (editing && ev.calendarId !== f.calendarId) await loadEvents(ev.calendarId);
+      hooks.render();
+      sheet.close();
+      onSaved?.();
+      toast(editing ? 'Gespeichert' : 'Termin eingetragen');
+    });
+  }
+
+  const saveBtn = h('button.btn.primary', { onclick: () => save(saveBtn) }, icon('check', 18), editing ? 'Speichern' : 'Eintragen');
+  const sheet = openSheet({
+    className: 'editor-sheet',
+    render: () => ({
+      title: editing ? 'Termin bearbeiten' : 'Neuer Termin',
+      body: form,
+      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen'), h('span.grow'), saveBtn],
+    }),
+  });
+}
+
+// ---------- Kalender ----------
+
+function emojiPicker(current, onPick) {
+  const wrap = h('div.emoji-grid');
+  const draw = (cur) => wrap.replaceChildren(...EMOJIS.map((e) => h('button', {
+    type: 'button',
+    class: e === cur ? 'on' : '',
+    onclick: () => {
+      onPick(e);
+      draw(e);
+    },
+  }, e)));
+  draw(current);
+  return wrap;
+}
+
+export function openNewCalendar() {
+  let emoji = '📅';
+  let color = COLORS[(state.calendars.length * 3 + 5) % COLORS.length].hex;
+  const badge = h('span.cal-badge', { style: { '--c': color } }, emoji);
+  const nameInput = h('input.input', { placeholder: 'z. B. WG, Familie, Fußball …', maxlength: 60, autofocus: true });
+  const create = (btn) => busy(btn, async () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      nameInput.focus();
+      return;
+    }
+    const { calendar } = await api('POST', '/api/calendars', { name, emoji, color });
+    await loadMe();
+    hooks.render();
+    sheet.close();
+    toast('Kalender erstellt – lade jetzt deine Leute ein!');
+    openCalendar(calendar.id, { invite: true });
+  });
+  nameInput.addEventListener('keydown', (e) => e.key === 'Enter' && create(createBtn));
+  const createBtn = h('button.btn.primary', { onclick: () => create(createBtn) }, 'Erstellen');
+  const sheet = openSheet({
+    className: 'small',
+    render: () => ({
+      title: 'Neuer Kalender',
+      body: [
+        h('p.muted', null, 'Ein Kalender für eine Gruppe – zum Beispiel deine Familie, die WG oder dein Team.'),
+        h('div.row.name-row', null, badge, nameInput),
+        field('Symbol', emojiPicker(emoji, (e) => {
+          emoji = e;
+          badge.textContent = e;
+        })),
+        field('Farbe', swatches(color, (c) => {
+          color = c;
+          badge.style.setProperty('--c', c);
+        })),
+      ],
+      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen'), h('span.grow'), createBtn],
+    }),
+  });
+}
+
+export function openCalendar(calId, { invite = false } = {}) {
+  const cal0 = calById(calId);
+  if (!cal0) return;
+  let emoji = cal0.emoji;
+  let color = cal0.color;
+  const nameInput = h('input.input', { value: cal0.name, maxlength: 60, oninput: () => markDirty() });
+  const badge = h('span.cal-badge', { style: { '--c': color } }, emoji);
+  const saveRow = h('div.save-row', { hidden: true },
+    h('button.btn.primary.sm', {
+      onclick: (e) => busy(e.currentTarget, async () => {
+        await api('PATCH', `/api/calendars/${calId}`, { name: nameInput.value, emoji, color });
+        await loadMe();
+        hooks.render();
+        saveRow.hidden = true;
+        toast('Gespeichert');
+      }),
+    }, 'Änderungen speichern'),
+  );
+  const markDirty = () => (saveRow.hidden = false);
+  const general = h('div.cal-general', null,
+    h('div.row.name-row', null, badge, nameInput),
+    field('Symbol', emojiPicker(emoji, (e) => {
+      emoji = e;
+      badge.textContent = e;
+      markDirty();
+    })),
+    field('Farbe', swatches(color, (c) => {
+      color = c;
+      badge.style.setProperty('--c', c);
+      markDirty();
+    })),
+    saveRow,
+  );
+
+  const sheet = openSheet({
+    live: true,
+    className: 'cal-sheet',
+    render: (s) => {
+      const cal = calById(calId);
+      if (!cal) {
+        setTimeout(() => s.close());
+        return { title: '', body: h('div') };
+      }
+      const isOwner = cal.ownerId === state.me.id;
+      const link = `${location.origin}/join/${cal.inviteCode}`;
+      const shareText = `Komm in meinen Kalender „${cal.emoji} ${cal.name}“ bei Zeitgarten, dann können wir zusammen planen:`;
+      const feed = `${location.origin}/feed/${cal.feedToken}.ics`;
+
+      return {
+        head: h('div.sheet-head', null,
+          h('div.grow', null, h('div.eyebrow', null, 'Kalender'), h('h2', null, `${cal.emoji} ${cal.name}`)),
+          closeBtn(s),
+        ),
+        body: [
+          h('div.invite-card', { id: 'invite', style: { '--c': cal.color } },
+            h('div.invite-top', null,
+              h('span.invite-icon', null, icon('userPlus', 22)),
+              h('div', null,
+                h('strong', null, 'Freunde einladen'),
+                h('p', null, 'Schick diesen Link – wer ihn öffnet, kann beitreten und mitplanen.'),
+              ),
+            ),
+            h('div.link-box', null,
+              h('span.link-text', null, link.replace(/^https?:\/\//, '')),
+              h('button.btn.sm', { onclick: () => copyText(link, 'Einladungslink kopiert') }, icon('copy', 16), 'Kopieren'),
+            ),
+            h('div.row.wrap', null,
+              navigator.share ? h('button.btn.primary.sm', {
+                onclick: () => navigator.share({ title: `${cal.emoji} ${cal.name}`, text: shareText, url: link }).catch(() => {}),
+              }, icon('share', 16), 'Teilen') : null,
+              h('a.btn.sm.wa', {
+                href: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${link}`)}`,
+                target: '_blank',
+                rel: 'noopener noreferrer',
+              }, icon('message', 16), 'WhatsApp'),
+              isOwner ? h('button.btn.ghost.sm', {
+                title: 'Der alte Link funktioniert danach nicht mehr',
+                onclick: async (e) => {
+                  const ok = await confirmDialog({
+                    title: 'Neuen Link erstellen?',
+                    text: 'Der bisherige Einladungslink funktioniert danach nicht mehr. Wer schon dabei ist, bleibt dabei.',
+                    ok: 'Neuer Link',
+                  });
+                  if (ok) {
+                    await busy(e.currentTarget, async () => {
+                      await api('POST', `/api/calendars/${cal.id}/invite`);
+                      await loadMe();
+                      s.refresh();
+                      toast('Neuer Einladungslink erstellt');
+                    });
+                  }
+                },
+              }, icon('refresh', 16), 'Neuer Link') : null,
+            ),
+          ),
+
+          h('div.section', null,
+            h('h3', null, 'Mitglieder', h('span.count', null, cal.members.length)),
+            h('div.members', null, cal.members.map((m) => h('div.member', null,
+              avatar(m, 36),
+              h('div.m-main', null,
+                h('strong', null, m.name, m.id === state.me.id ? h('span.muted', null, ' (du)') : null),
+                h('span', null, m.role === 'owner' ? 'Hat den Kalender erstellt' : `Dabei seit ${shortDate(new Date(m.joinedAt))}`),
+              ),
+              isOwner && m.id !== state.me.id ? h('button.icon-btn', {
+                title: `${m.name} entfernen`,
+                onclick: async () => {
+                  const ok = await confirmDialog({ title: `${m.name} entfernen?`, text: `${m.name} sieht den Kalender danach nicht mehr.`, ok: 'Entfernen', danger: true });
+                  if (!ok) return;
+                  try {
+                    await api('DELETE', `/api/calendars/${cal.id}/members/${m.id}`);
+                    await loadMe();
+                    s.refresh();
+                  } catch (err) {
+                    errorToast(err);
+                  }
+                },
+              }, icon('x', 18)) : null,
+            ))),
+          ),
+
+          h('div.section', null, h('h3', null, 'Aussehen'), general),
+
+          h('div.section', null,
+            h('h3', null, 'Importierte Kalender'),
+            cal.subscriptions.length ? h('div.subs', null, cal.subscriptions.map((sub) => h('div.member', null,
+              h('span.sub-icon', null, icon('feed', 18)),
+              h('div.m-main', null,
+                h('strong', null, sub.name),
+                h('span', { class: sub.error ? 'err' : '' }, sub.error ? `Fehler: ${sub.error}` : `${sub.count} Termine · ${sub.host} · aktualisiert ${ago(sub.lastSync)}`),
+              ),
+              h('button.icon-btn', {
+                title: 'Jetzt aktualisieren',
+                onclick: (e) => busy(e.currentTarget, async () => {
+                  const r = await api('POST', `/api/subscriptions/${sub.id}/sync`);
+                  await loadAll();
+                  hooks.render();
+                  toast(`Aktualisiert – ${r.count} Termine`);
+                }),
+              }, icon('refresh', 18)),
+              h('button.icon-btn', {
+                title: 'Abo entfernen',
+                onclick: async () => {
+                  const ok = await confirmDialog({ title: 'Abo entfernen?', text: `Alle Termine aus „${sub.name}“ verschwinden aus diesem Kalender.`, ok: 'Entfernen', danger: true });
+                  if (!ok) return;
+                  try {
+                    await api('DELETE', `/api/subscriptions/${sub.id}`);
+                    await loadAll();
+                    hooks.render();
+                  } catch (err) {
+                    errorToast(err);
+                  }
+                },
+              }, icon('trash', 18)),
+            ))) : h('p.muted.small-text', null, 'Hol dir Termine aus Google, Apple oder Outlook – einmalig oder als Abo, das sich selbst aktualisiert.'),
+            h('button.btn.sm', { onclick: () => openImport({ calendarId: cal.id }) }, icon('upload', 16), 'Kalender importieren'),
+          ),
+
+          h('div.section', null,
+            h('h3', null, 'In anderer Kalender-App anzeigen'),
+            h('p.muted.small-text', null, 'Abonniere diesen Link in Apple Kalender, Google Kalender oder Outlook, um die Termine auch dort zu sehen.'),
+            h('div.link-box', null,
+              h('span.link-text', null, feed.replace(/^https?:\/\//, '')),
+              h('button.btn.sm', { onclick: () => copyText(feed, 'Abo-Link kopiert') }, icon('copy', 16), 'Kopieren'),
+            ),
+          ),
+
+          h('div.section.danger-zone', null,
+            cal.members.length > 1 || !isOwner ? h('button.btn.danger.sm', {
+              onclick: async (e) => {
+                const ok = await confirmDialog({
+                  title: 'Kalender verlassen?',
+                  text: isOwner ? 'Jemand anderes aus dem Kalender wird dann zum Besitzer.' : 'Du kannst über den Einladungslink wieder beitreten.',
+                  ok: 'Verlassen',
+                  danger: true,
+                });
+                if (!ok) return;
+                await busy(e.currentTarget, async () => {
+                  await api('POST', `/api/calendars/${cal.id}/leave`);
+                  await loadAll();
+                  hooks.render();
+                  s.close();
+                  toast('Du hast den Kalender verlassen');
+                });
+              },
+            }, icon('logout', 16), 'Kalender verlassen') : null,
+            isOwner ? h('button.btn.danger.sm', {
+              onclick: async (e) => {
+                const ok = await confirmDialog({
+                  title: 'Kalender löschen?',
+                  text: `„${cal.name}“ und alle Termine darin werden für alle Mitglieder gelöscht. Das kann man nicht rückgängig machen.`,
+                  ok: 'Endgültig löschen',
+                  danger: true,
+                });
+                if (!ok) return;
+                await busy(e.currentTarget, async () => {
+                  await api('DELETE', `/api/calendars/${cal.id}`);
+                  await loadAll();
+                  hooks.render();
+                  s.close();
+                  toast('Kalender gelöscht');
+                });
+              },
+            }, icon('trash', 16), 'Kalender löschen') : null,
+          ),
+        ],
+      };
+    },
+  });
+  if (invite) requestAnimationFrame(() => sheet.box.querySelector('#invite')?.classList.add('pulse'));
+}
+
+export function openInvitePicker() {
+  if (state.calendars.length === 1) {
+    openCalendar(state.calendars[0].id, { invite: true });
+    return;
+  }
+  const s = openSheet({
+    className: 'small',
+    render: () => ({
+      title: 'Freunde einladen',
+      body: [
+        h('p.muted', null, 'In welchen Kalender möchtest du jemanden einladen?'),
+        h('div.choices', null,
+          state.calendars.map((c) => h('button.choice', {
+            onclick: () => {
+              s.close();
+              openCalendar(c.id, { invite: true });
+            },
+          }, h('strong', null, `${c.emoji} ${c.name}`), h('span', null, `${c.members.length} ${c.members.length === 1 ? 'Mitglied' : 'Mitglieder'}`))),
+          h('button.choice', {
+            onclick: () => {
+              s.close();
+              openNewCalendar();
+            },
+          }, h('strong', null, '＋ Neuer Kalender für eine Gruppe'), h('span', null, 'z. B. für die WG oder die Familie')),
+        ),
+      ],
+    }),
+  });
+}
+
+// ---------- Import ----------
+
+const HOLIDAYS = [
+  { label: '🇩🇪 Feiertage Deutschland', url: 'https://calendar.google.com/calendar/ical/de.german%23holiday%40group.v.calendar.google.com/public/basic.ics' },
+  { label: '🇦🇹 Feiertage Österreich', url: 'https://calendar.google.com/calendar/ical/de.austrian%23holiday%40group.v.calendar.google.com/public/basic.ics' },
+];
+
+export function openImport({ calendarId = null } = {}) {
+  let mode = 'file';
+  let fileText = null;
+  let fileName = '';
+  let subscribe = true;
+
+  const fileInput = h('input', { type: 'file', accept: '.ics,text/calendar', hidden: true, onchange: () => pick(fileInput.files[0]) });
+  const dropLabel = h('div.drop-text', null, h('strong', null, 'ICS-Datei auswählen'), h('span', null, 'oder hierher ziehen'));
+  const drop = h('label.drop', {
+    ondragover: (e) => {
+      e.preventDefault();
+      drop.classList.add('over');
+    },
+    ondragleave: () => drop.classList.remove('over'),
+    ondrop: (e) => {
+      e.preventDefault();
+      drop.classList.remove('over');
+      pick(e.dataTransfer.files[0]);
+    },
+  }, fileInput, icon('upload', 28), dropLabel);
+
+  async function pick(file) {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      toast('Die Datei ist zu groß (max. 15 MB).', { error: true });
+      return;
+    }
+    fileText = await file.text();
+    drop.classList.add('picked');
+    dropLabel.replaceChildren(h('strong', null, file.name), h('span', null, `${Math.max(1, Math.round(file.size / 1024))} KB · bereit zum Import`));
+    fileName = file.name.replace(/\.(ics|ical|ifb|icalendar)$/i, '');
+  }
+
+  const urlInput = h('input.input', { type: 'url', placeholder: 'https://… oder webcal://…', autocomplete: 'off' });
+  const filePanel = h('div.panel', null,
+    drop,
+    h('details.help', null, h('summary', null, 'Wo bekomme ich die Datei her?'),
+      h('ul', null,
+        h('li', null, h('strong', null, 'Google: '), 'calendar.google.com → Zahnrad → Einstellungen → „Importieren & Exportieren“ → Exportieren. Die ZIP-Datei entpacken.'),
+        h('li', null, h('strong', null, 'Apple: '), 'In der Kalender-App am Mac: Ablage → Exportieren → Exportieren …'),
+        h('li', null, h('strong', null, 'Outlook: '), 'Datei → Kalender speichern (als .ics).'),
+      ),
+    ),
+  );
+  const urlPanel = h('div.panel', { hidden: true },
+    field('Link zum Kalender', urlInput),
+    h('div.chips.wrap', null, HOLIDAYS.map((x) => h('button.chip', {
+      type: 'button',
+      onclick: () => {
+        urlInput.value = x.url;
+        if (!newName.value) newName.value = 'Feiertage';
+      },
+    }, x.label))),
+    h('div.field', null, toggle('Automatisch aktualisieren (Abo)', subscribe, (v) => (subscribe = v))),
+    h('details.help', null, h('summary', null, 'Wo finde ich den Link?'),
+      h('ul', null,
+        h('li', null, h('strong', null, 'Google: '), 'Einstellungen → links deinen Kalender wählen → „Privatadresse im iCal-Format“ kopieren.'),
+        h('li', null, h('strong', null, 'iCloud: '), 'Kalender-App → Kalender teilen → „Öffentlicher Kalender“ einschalten → Link kopieren.'),
+        h('li', null, h('strong', null, 'Outlook: '), 'Einstellungen → Kalender → Freigegebene Kalender → Kalender veröffentlichen → ICS-Link.'),
+      ),
+    ),
+  );
+
+  const newName = h('input.input', { placeholder: 'Leer lassen = Name aus der Datei', maxlength: 60 });
+  const newNameField = field('Name', newName);
+  const targetSel = h('select.input', {
+    onchange: () => (newNameField.hidden = targetSel.value !== '__new'),
+  },
+  state.calendars.map((c) => h('option', { value: c.id, selected: c.id === calendarId }, `${c.emoji} ${c.name}`)),
+  h('option', { value: '__new', selected: !calendarId }, '＋ Neuer Kalender'));
+  newNameField.hidden = !!calendarId;
+
+  const importBtn = h('button.btn.primary', {
+    onclick: () => busy(importBtn, async () => {
+      const payload = { tz: localTz(), subscribe: mode === 'url' && subscribe };
+      if (mode === 'file') {
+        if (!fileText) throw new Error('Bitte wähle zuerst eine .ics-Datei aus.');
+        payload.ics = fileText;
+      } else {
+        if (!urlInput.value.trim()) throw new Error('Bitte gib einen Link ein.');
+        payload.url = urlInput.value.trim();
+        payload.name = newName.value.trim();
+      }
+      if (targetSel.value === '__new') {
+        const color = COLORS[(state.calendars.length * 3 + 2) % COLORS.length].hex;
+        payload.newCalendar = { name: newName.value.trim(), color, emoji: /feiertag/i.test(newName.value) ? '🎉' : '📆' };
+        payload.fallbackName = mode === 'file' ? fileName : '';
+      } else payload.calendarId = targetSel.value;
+      const r = await api('POST', '/api/import', payload);
+      setHidden(r.calendarId, false);
+      await loadAll();
+      hooks.render();
+      sheet.close();
+      toast(r.count === 1 ? '1 Termin importiert' : `${r.count} Termine importiert`);
+    }),
+  }, icon('upload', 18), 'Importieren');
+
+  const sheet = openSheet({
+    className: 'import-sheet',
+    render: () => ({
+      title: 'Kalender importieren',
+      body: [
+        segmented([
+          { value: 'file', label: 'Datei', icon: 'file' },
+          { value: 'url', label: 'Internet-Link', icon: 'globe' },
+        ], mode, (v) => {
+          mode = v;
+          filePanel.hidden = v !== 'file';
+          urlPanel.hidden = v !== 'url';
+        }),
+        filePanel,
+        urlPanel,
+        h('div.grid-2', null, field('Importieren in', targetSel), newNameField),
+      ],
+      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen'), h('span.grow'), importBtn],
+    }),
+  });
+}
+
+// ---------- Profil ----------
+
+export function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
+  else delete root.dataset.theme;
+}
+
+export function openProfile() {
+  let color = state.me.color;
+  const preview = h('span');
+  const nameInput = h('input.input', { value: state.me.name, maxlength: 40, oninput: () => drawPreview() });
+  const drawPreview = () => preview.replaceChildren(avatar({ name: nameInput.value || '?', color }, 64));
+  drawPreview();
+
+  const saveBtn = h('button.btn.primary', {
+    onclick: () => busy(saveBtn, async () => {
+      await api('PATCH', '/api/me', { name: nameInput.value, color });
+      await loadMe();
+      hooks.render();
+      sheet.close();
+      toast('Profil gespeichert');
+    }),
+  }, 'Speichern');
+
+  const sheet = openSheet({
+    className: 'profile-sheet',
+    render: () => ({
+      title: 'Profil & Einstellungen',
+      body: [
+        h('div.profile-top', null, preview, h('div.grow', null, field('Dein Name', nameInput))),
+        field('Deine Farbe', swatches(color, (c) => {
+          color = c;
+          drawPreview();
+        })),
+        field('Darstellung', segmented([
+          { value: 'auto', label: 'Automatisch' },
+          { value: 'light', label: 'Hell' },
+          { value: 'dark', label: 'Dunkel' },
+        ], state.theme, (v) => {
+          state.theme = v;
+          persist('zg.theme', v);
+          applyTheme(v);
+        })),
+        h('div.section', null,
+          h('h3', null, 'Auf anderem Gerät nutzen'),
+          h('p.muted.small-text', null, 'Öffne diesen persönlichen Link auf deinem Handy oder Laptop, um dort mit deinem Profil angemeldet zu sein. Gib ihn niemandem sonst!'),
+          h('button.btn.sm', { onclick: () => copyText(`${location.origin}/login/${auth.token}`, 'Anmelde-Link kopiert') }, icon('phone', 16), 'Anmelde-Link kopieren'),
+        ),
+        h('div.section.danger-zone', null,
+          h('button.btn.danger.sm', {
+            onclick: async () => {
+              const ok = await confirmDialog({
+                title: 'Auf diesem Gerät abmelden?',
+                text: 'Kopiere vorher deinen Anmelde-Link – ohne ihn kommst du nicht mehr in dein Profil.',
+                ok: 'Abmelden',
+                danger: true,
+              });
+              if (!ok) return;
+              auth.set(null);
+              location.href = '/';
+            },
+          }, icon('logout', 16), 'Abmelden'),
+        ),
+      ],
+      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen'), h('span.grow'), saveBtn],
+    }),
+  });
+}
+
+// ---------- Einladung annehmen ----------
+
+export function inviteCard(info) {
+  return h('div.invite-preview', { style: { '--c': info.calendar.color } },
+    h('div.big-emoji', null, info.calendar.emoji),
+    h('div.eyebrow', null, info.owner ? `${info.owner.name} lädt dich ein` : 'Du bist eingeladen'),
+    h('h2', null, info.calendar.name),
+    h('div.row.center', null,
+      avatarStack(info.members, 28, 5),
+      h('span.muted', null, `${info.memberCount} ${info.memberCount === 1 ? 'Mitglied' : 'Mitglieder'}`),
+    ),
+  );
+}
+
+export async function openJoin(code) {
+  let info;
+  try {
+    info = await api('GET', `/api/invites/${encodeURIComponent(code)}`);
+  } catch (e) {
+    errorToast(e);
+    return;
+  }
+  if (calById(info.calendar.id)) {
+    toast(`Du bist schon in „${info.calendar.name}“`);
+    return;
+  }
+  const joinBtn = h('button.btn.primary', {
+    autofocus: true,
+    onclick: () => busy(joinBtn, async () => {
+      await api('POST', `/api/invites/${encodeURIComponent(code)}/accept`);
+      await loadAll();
+      setHidden(info.calendar.id, false);
+      hooks.render();
+      sheet.close();
+      toast(`Willkommen in „${info.calendar.name}“!`);
+    }),
+  }, 'Beitreten');
+  const sheet = openSheet({
+    className: 'small',
+    render: (s) => ({
+      head: h('div.sheet-head', null, h('span.grow'), closeBtn(s)),
+      body: inviteCard(info),
+      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Später'), h('span.grow'), joinBtn],
+    }),
+  });
+}
