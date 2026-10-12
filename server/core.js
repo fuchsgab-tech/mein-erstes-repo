@@ -20,8 +20,14 @@ export class HttpError extends Error {
  * @param {Function} deps.isConnected  (userId) – ist die Person gerade online?
  * @param {Function} deps.fetchCalendarText  (url) – lädt einen Kalender-Link
  * @param {Function} deps.normalizeCalendarUrl  (url) – prüft/normalisiert einen Kalender-Link
+ * @param {object} [deps.caldav]  iPhone/iCloud-Import: { discover(creds), fetchEvents(creds, url) }
+ * @param {Function} [deps.sealSecret]  (text) – verschlüsselt Zugangsdaten zum Speichern
+ * @param {Function} [deps.openSecret]  (sealed) – entschlüsselt sie wieder
  */
-export function createCore({ db, save, newId, hash, push, isConnected, fetchCalendarText, normalizeCalendarUrl }) {
+export function createCore({
+  db, save, newId, hash, push, isConnected, fetchCalendarText, normalizeCalendarUrl,
+  caldav = null, sealSecret = null, openSecret = null,
+}) {
   // ---------- Hilfsfunktionen ----------
 
   const now = () => new Date().toISOString();
@@ -61,6 +67,20 @@ export function createCore({ db, save, newId, hash, push, isConnected, fetchCale
 
   const publicUser = (u) => ({ id: u.id, name: u.name, color: u.color });
 
+  const isIcloudHost = (hostname) => /(^|\.)icloud\.com$/i.test(hostname);
+  // „iCloud“ oder der Name des CalDAV-Servers
+  function caldavHost(server) {
+    if (!server) return 'iCloud';
+    const u = new URL(server);
+    return isIcloudHost(u.hostname) ? 'iCloud' : u.host;
+  }
+
+  // Wie die Zugangsdaten angezeigt werden dürfen: g••••@icloud.com
+  function maskAccount(name) {
+    const [local, domain] = String(name).split(/@(?=[^@]*$)/);
+    return `${local.slice(0, 1)}••••${domain ? `@${domain}` : ''}`;
+  }
+
   function calendarView(cal, user) {
     const subs = Object.values(db.subscriptions).filter((s) => s.calendarId === cal.id);
     const subCounts = {};
@@ -85,7 +105,9 @@ export function createCore({ db, save, newId, hash, push, isConnected, fetchCale
       subscriptions: subs.map((s) => ({
         id: s.id,
         name: s.name,
-        host: new URL(s.url).host,
+        kind: s.type === 'caldav' ? 'caldav' : 'ics',
+        host: s.type === 'caldav' ? caldavHost(s.server) : new URL(s.url).host,
+        account: s.type === 'caldav' ? s.account || null : null,
         lastSync: s.lastSync,
         error: s.error || null,
         count: subCounts[s.id] || 0,
@@ -269,15 +291,44 @@ export function createCore({ db, save, newId, hash, push, isConnected, fetchCale
     return count;
   }
 
+  // CalDAV liefert jeden Termin als eigenen .ics-Text – alles zu einer Liste zusammenführen
+  function parseAll(texts, tz) {
+    const events = [];
+    for (const t of texts) {
+      let parsed;
+      try {
+        parsed = parseIcs(t, tz);
+      } catch {
+        continue; // einzelne kaputte Einträge überspringen
+      }
+      for (const ev of parsed.events) events.push(ev);
+      if (events.length >= 20000) break;
+    }
+    return events;
+  }
+
+  function caldavCreds(sealed) {
+    try {
+      return JSON.parse(openSecret(sealed));
+    } catch {
+      throw new Error('Die gespeicherten Zugangsdaten passen nicht mehr. Bitte verbinde den Kalender neu.');
+    }
+  }
+
+  async function loadSubscription(sub) {
+    if (sub.type !== 'caldav') return parseIcs(await fetchCalendarText(sub.url), sub.tz).events;
+    if (!caldav || !openSecret) throw new Error('Der iPhone-Import ist hier nicht verfügbar.');
+    return parseAll(await caldav.fetchEvents(caldavCreds(sub.creds), sub.url), sub.tz);
+  }
+
   async function syncSubscription(sub) {
     const cal = db.calendars[sub.calendarId];
     if (!cal) return 0;
     sub.lastAttempt = now();
     try {
-      const text = await fetchCalendarText(sub.url);
-      const parsed = parseIcs(text, sub.tz);
+      const events = await loadSubscription(sub);
       if (!db.subscriptions[sub.id]) return 0; // in der Zwischenzeit gelöscht
-      const count = importEvents(cal, parsed.events, { subscription: sub, user: { id: sub.createdBy } });
+      const count = importEvents(cal, events, { subscription: sub, user: { id: sub.createdBy } });
       sub.lastSync = now();
       sub.error = null;
       save();
@@ -290,7 +341,8 @@ export function createCore({ db, save, newId, hash, push, isConnected, fetchCale
     }
   }
 
-  // Abos, die länger als maxAge nicht aktualisiert wurden, neu laden
+  // Abos, die länger als maxAge nicht aktualisiert wurden, neu laden – iPhone-Kalender öfter
+  const CALDAV_SYNC_MS = 30 * 60 * 1000;
   let syncing = false;
   async function syncDue(maxAge) {
     if (syncing) return;
@@ -298,7 +350,8 @@ export function createCore({ db, save, newId, hash, push, isConnected, fetchCale
     try {
       for (const sub of Object.values(db.subscriptions)) {
         const last = Date.parse(sub.lastAttempt || sub.lastSync || 0);
-        if (Date.now() - last > maxAge) await syncSubscription(sub).catch(() => {});
+        const age = sub.type === 'caldav' ? Math.min(maxAge, CALDAV_SYNC_MS) : maxAge;
+        if (Date.now() - last > age) await syncSubscription(sub).catch(() => {});
       }
     } finally {
       syncing = false;
@@ -641,6 +694,153 @@ export function createCore({ db, save, newId, hash, push, isConnected, fetchCale
     notifyCalendar(cal.id, { type: 'calendars' });
     if (!created) logActivity(cal.id, user.id, 'import', { title: cal.name, count });
     return { count, calendarId: cal.id, createdCalendar: created };
+  });
+
+  // ---------- iPhone / iCloud (CalDAV) ----------
+
+  const CALDAV_SESSION_MS = 15 * 60 * 1000;
+  const PALETTE = ['#3d9df2', '#f59440', '#4fb477', '#ec6aa8', '#a46cf0', '#22b3a0', '#f2675b', '#e9b31f', '#6366f1'];
+  const caldavSessions = new Map(); // sessionId -> { userId, server, account, creds (verschlüsselt), calendars, expires }
+  const caldavAttempts = new Map(); // userId -> Zeitpunkte der letzten Anmeldeversuche
+
+  function requireCaldav() {
+    if (!caldav || !sealSecret || !openSecret) fail(501, 'Der iPhone-Import ist hier nicht verfügbar.');
+  }
+
+  function cleanCaldavCreds(body) {
+    const username = str(body.username, 200).trim();
+    // Apple zeigt App-Passwörter als xxxx-xxxx-xxxx-xxxx – beim Kopieren rutschen gern Leerzeichen mit
+    const password = str(body.password, 200).trim();
+    let server = str(body.server, 300).trim() || null;
+    if (server) {
+      if (!/^[a-z][a-z\d+.-]*:\/\//i.test(server)) server = `https://${server}`;
+      try {
+        const u = new URL(server);
+        if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error();
+        server = u.toString();
+      } catch {
+        fail(400, 'Die Server-Adresse ist ungültig.');
+      }
+    }
+    if (!username) fail(400, server ? 'Bitte gib deinen Benutzernamen ein.' : 'Bitte gib deine Apple-ID ein.');
+    if (!password) fail(400, server ? 'Bitte gib dein Passwort ein.' : 'Bitte gib das App-spezifische Passwort ein.');
+    return { server, username, password };
+  }
+
+  // Schutz vor Durchprobieren von Passwörtern über unseren Server
+  function throttleCaldav(userId) {
+    const t = Date.now();
+    const recent = (caldavAttempts.get(userId) || []).filter((x) => t - x < 10 * 60 * 1000);
+    if (recent.length >= 10) fail(429, 'Zu viele Versuche. Warte ein paar Minuten und versuch es dann nochmal.');
+    recent.push(t);
+    caldavAttempts.set(userId, recent);
+  }
+
+  function pruneCaldavSessions() {
+    const t = Date.now();
+    for (const [id, sess] of caldavSessions) if (sess.expires < t) caldavSessions.delete(id);
+  }
+
+  // Kalender-Adressen, die diese Person schon verbunden hat
+  function connectedCaldavUrls(user) {
+    const mine = new Set(calendarIdsOf(user.id));
+    return new Set(Object.values(db.subscriptions)
+      .filter((s) => s.type === 'caldav' && s.createdBy === user.id && mine.has(s.calendarId))
+      .map((s) => s.url));
+  }
+
+  route('POST', '/api/caldav/discover', async ({ user, body }) => {
+    requireCaldav();
+    const creds = cleanCaldavCreds(body);
+    throttleCaldav(user.id);
+    let found;
+    try {
+      found = await caldav.discover(creds);
+    } catch (e) {
+      fail(400, e.message || 'Die Verbindung hat nicht geklappt.');
+    }
+    pruneCaldavSessions();
+    for (const [id, sess] of caldavSessions) if (sess.userId === user.id) caldavSessions.delete(id);
+    const account = maskAccount(creds.username);
+    // Kalender ohne eigene Farbe bekommen eine, die noch nicht vergeben ist
+    const used = new Set(calendarIdsOf(user.id).map((id) => db.calendars[id]?.color));
+    const spare = PALETTE.filter((c) => !used.has(c));
+    const calendars = (Array.isArray(found) ? found : []).slice(0, 100).map((c, i) => ({
+      id: newId(6),
+      url: String(c.url),
+      name: str(c.name, 60).trim() || 'Kalender',
+      color: isColor(c.color) ? c.color.toLowerCase() : spare.shift() || PALETTE[i % PALETTE.length],
+    }));
+    if (!calendars.length) fail(400, 'Es wurden keine Kalender gefunden.');
+    const sessionId = newId(18);
+    caldavSessions.set(sessionId, {
+      userId: user.id,
+      server: creds.server,
+      account,
+      creds: sealSecret(JSON.stringify(creds)),
+      calendars,
+      expires: Date.now() + CALDAV_SESSION_MS,
+    });
+    const connected = connectedCaldavUrls(user);
+    return {
+      sessionId,
+      account,
+      host: caldavHost(creds.server),
+      calendars: calendars.map((c) => ({ id: c.id, name: c.name, color: c.color, connected: connected.has(c.url) })),
+    };
+  });
+
+  route('POST', '/api/caldav/import', async ({ user, body }) => {
+    requireCaldav();
+    pruneCaldavSessions();
+    const sess = caldavSessions.get(str(body.sessionId, 64));
+    if (!sess || sess.userId !== user.id) fail(410, 'Die Anmeldung ist abgelaufen. Bitte verbinde dich noch einmal.');
+    const ids = new Set(Array.isArray(body.calendars) ? body.calendars : []);
+    const chosen = sess.calendars.filter((c) => ids.has(c.id));
+    if (!chosen.length) fail(400, 'Bitte wähle mindestens einen Kalender aus.');
+    const before = connectedCaldavUrls(user);
+    const picked = chosen.filter((c) => !before.has(c.url));
+    if (!picked.length) fail(409, chosen.length === 1 ? 'Dieser Kalender ist schon verbunden.' : 'Diese Kalender sind schon verbunden.');
+    const tz = isValidTz(body.tz) ? body.tz : 'UTC';
+    const creds = caldavCreds(sess.creds);
+    const results = await Promise.allSettled(picked.map((c) => caldav.fetchEvents(creds, c.url)));
+
+    const imported = [];
+    const failed = [];
+    const connected = connectedCaldavUrls(user); // falls parallel schon importiert wurde
+    picked.forEach((c, i) => {
+      const r = results[i];
+      if (connected.has(c.url)) return;
+      if (r.status === 'rejected') {
+        failed.push({ name: c.name, error: r.reason?.message || 'Der Kalender konnte nicht geladen werden.' });
+        return;
+      }
+      const cal = createCalendar(user, { name: c.name, color: c.color, emoji: '📱' });
+      const stamp = now();
+      const sub = {
+        id: newId(9),
+        type: 'caldav',
+        calendarId: cal.id,
+        url: c.url,
+        server: sess.server,
+        account: sess.account,
+        creds: sess.creds,
+        name: c.name,
+        tz,
+        createdBy: user.id,
+        createdAt: stamp,
+        lastSync: stamp,
+        lastAttempt: stamp,
+        error: null,
+      };
+      db.subscriptions[sub.id] = sub;
+      const count = importEvents(cal, parseAll(r.value, tz), { subscription: sub, user });
+      imported.push({ calendarId: cal.id, name: cal.name, count });
+    });
+    if (!imported.length) fail(failed.length ? 400 : 409, failed[0]?.error || 'Diese Kalender sind schon verbunden.');
+    save();
+    push(user.id, { type: 'calendars' });
+    return { imported, failed, total: imported.reduce((n, x) => n + x.count, 0) };
   });
 
   route('POST', '/api/subscriptions/:id/sync', async ({ user, params }) => {

@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { openStore } from './store.js';
 import { buildIcs } from './ics.js';
 import { createCore, HttpError } from './core.js';
-import { fetchCalendarText, normalizeCalendarUrl } from './safe-fetch.js';
+import { fetchCalendarText, normalizeCalendarUrl, safeRequest } from './safe-fetch.js';
+import { discoverCalendars, fetchCalendarEvents, secretBox } from './caldav.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.resolve(ROOT, '..', 'public');
@@ -21,6 +22,26 @@ const ALLOW_PRIVATE_FETCH = process.env.ALLOW_PRIVATE_FETCH === '1';
 const SYNC_EVERY_MS = 6 * 60 * 60 * 1000;
 
 const store = openStore(DATA_FILE);
+
+// Schlüssel für gespeicherte Zugangsdaten (iCloud-App-Passwörter): aus ZEITGARTEN_SECRET
+// oder beim ersten Start zufällig erzeugt und in DATA_DIR/secret.key abgelegt (nur für den Server lesbar).
+function loadSecretKey() {
+  if (process.env.ZEITGARTEN_SECRET) return crypto.scryptSync(process.env.ZEITGARTEN_SECRET, 'zeitgarten-secret', 32);
+  const file = path.join(DATA_DIR, 'secret.key');
+  try {
+    const key = Buffer.from(fs.readFileSync(file, 'utf8').trim(), 'base64');
+    if (key.length !== 32) throw new Error(`${file} ist beschädigt.`);
+    return key;
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  const key = crypto.randomBytes(32);
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(file, `${key.toString('base64')}\n`, { mode: 0o600, flag: 'wx' });
+  return key;
+}
+const secrets = secretBox(loadSecretKey());
+const request = (url, opts) => safeRequest(url, { ...opts, allowPrivate: ALLOW_PRIVATE_FETCH });
 
 // ---------- Live-Verbindungen (Server-Sent Events) ----------
 
@@ -46,6 +67,12 @@ const core = createCore({
   isConnected: (userId) => streams.has(userId),
   fetchCalendarText: (url) => fetchCalendarText(url, { allowPrivate: ALLOW_PRIVATE_FETCH }),
   normalizeCalendarUrl,
+  caldav: {
+    discover: (creds) => discoverCalendars(creds, { request }),
+    fetchEvents: (creds, url) => fetchCalendarEvents(creds, url, { request }),
+  },
+  sealSecret: secrets.seal,
+  openSecret: secrets.open,
 });
 
 setInterval(() => core.syncDue(SYNC_EVERY_MS), 10 * 60 * 1000).unref();

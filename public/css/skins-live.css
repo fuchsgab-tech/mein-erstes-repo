@@ -1,1 +1,849 @@
-/* Zeitgarten – Live-Stile (Jarvis, Synthwave, Cyberpunk, Galaxie) */
+/* Zeitgarten – Live-Stile (Jarvis, Synthwave, Cyberpunk, Galaxie)
+   Den bewegten Hintergrund zeichnet js/bgfx.js in ein Canvas (.bgfx); dessen Farben kommen aus --fx-*.
+   Alles hier ist reine Verzierung: pointer-events: none, keine Größenänderungen,
+   Animationen nur bei data-motion="on". */
+
+/* ---------- Gemeinsam ---------- */
+
+.bgfx {
+  position: fixed; top: 0; left: 0; right: 0; z-index: -1; pointer-events: none;
+  display: block; width: 100%; height: 100vh; height: 100lvh;
+}
+
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) { --live-bf: none; }
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) :is(.month, .wv, .card) {
+  position: relative; isolation: isolate;
+}
+/* Unscharfer Glas-Hintergrund über einem bewegten Bild kostet viel – meist reicht Transparenz */
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) :is(.month, .wv, .card, .sidebar, .search-box) {
+  backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf);
+}
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky-art svg { display: none; }
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky-pill {
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky-art::before,
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky-art::after,
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky::before,
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Jarvis: Hologramm-HUD ---------- */
+
+:root[data-skin="jarvis"] {
+  --bg: #e9f5fa;
+  --wallpaper:
+    radial-gradient(50% 50% at 64% 54%, rgba(0, 170, 220, 0.16), transparent 70%),
+    radial-gradient(35% 35% at 4% 96%, rgba(0, 190, 240, 0.12), transparent 70%),
+    linear-gradient(180deg, #f4fbfe, #e2f0f7);
+  --surface: #fbfeff;
+  --card: rgba(250, 254, 255, 0.8);
+  --sidebar-bg: rgba(246, 252, 255, 0.78);
+  --surface-2: rgba(0, 121, 166, 0.07);
+  --surface-3: rgba(0, 121, 166, 0.14);
+  --line: rgba(0, 105, 145, 0.14);
+  --line-2: rgba(0, 105, 145, 0.28);
+  --text: #04212d;
+  --text-2: #33606f;
+  --text-3: #557a89;
+  --accent: #0079a6;
+  --on-accent: #ffffff;
+  --danger: #d4293f;
+  --online: #0c9c63;
+  --mix: 16%;
+  --mix-text: 66%;
+  --blur: 12px;
+  --ev-glow: 0 0 10px -4px color-mix(in srgb, var(--c) 70%, transparent);
+  --shadow-sm: 0 0 0 1px rgba(0, 121, 166, 0.05);
+  --shadow: 0 0 0 1px rgba(0, 121, 166, 0.04), 0 14px 34px -20px rgba(0, 80, 120, 0.4);
+  --shadow-lg: 0 0 0 1px rgba(0, 121, 166, 0.14), 0 30px 70px -24px rgba(0, 60, 90, 0.45);
+  --toast-bg: #04212d;
+  --toast-text: #dff6ff;
+  --toast-icon: #35e0ff;
+  --scrim: rgba(4, 33, 45, 0.3);
+  --hud-glow: rgba(0, 121, 166, 0.28);
+  --hud-panel: linear-gradient(115deg, #ffffff, #e4f5fc 60%, #d3edf8);
+  --fx-a: var(--accent);
+  --fx-b: #0aa5d6;
+  --fx-k: 0.7;
+}
+:root[data-skin="jarvis"][data-mode="dark"] {
+  --bg: #01070d;
+  --wallpaper:
+    radial-gradient(48% 46% at 64% 54%, rgba(0, 140, 220, 0.2), transparent 70%),
+    radial-gradient(34% 34% at 4% 96%, rgba(0, 180, 255, 0.1), transparent 70%),
+    linear-gradient(180deg, #031120, #01060c);
+  --surface: #061624;
+  --card: rgba(4, 19, 33, 0.68);
+  --sidebar-bg: rgba(3, 14, 25, 0.74);
+  --surface-2: rgba(70, 200, 255, 0.07);
+  --surface-3: rgba(70, 200, 255, 0.14);
+  --line: rgba(80, 210, 255, 0.12);
+  --line-2: rgba(80, 210, 255, 0.28);
+  --text: #e3f8ff;
+  --text-2: #92c8dd;
+  --text-3: #6596ac;
+  --accent: #35e0ff;
+  --on-accent: #00222c;
+  --danger: #ff4d64;
+  --online: #3dffb2;
+  --mix: 16%;
+  --mix-text: 42%;
+  --ev-glow: 0 0 14px -3px color-mix(in srgb, var(--c) 75%, transparent);
+  --shadow-sm: 0 0 0 1px rgba(53, 224, 255, 0.06);
+  --shadow: 0 0 0 1px rgba(53, 224, 255, 0.05), 0 0 36px -16px rgba(53, 224, 255, 0.4), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 0 0 1px rgba(53, 224, 255, 0.16), 0 0 70px -20px rgba(53, 224, 255, 0.35), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #062436;
+  --toast-text: #e3f8ff;
+  --toast-icon: var(--accent);
+  --scrim: rgba(0, 6, 14, 0.62);
+  --hud-glow: rgba(53, 224, 255, 0.55);
+  --hud-panel: linear-gradient(115deg, #041a2c, #062a42 55%, #031524);
+  --fx-a: var(--accent);
+  --fx-b: #a5f3ff;
+  --fx-k: 1;
+}
+:root[data-skin="jarvis"]:not([data-corners="pill"]) { --r-xs: 2px; --r-sm: 3px; --r-md: 4px; --r-lg: 5px; --r-xl: 6px; }
+:root[data-skin="jarvis"][data-font="modern"] { --font-display: "Avenir Next", Avenir, "Segoe UI Variable Display", "Segoe UI", var(--font); }
+
+/* Klammern an den Ecken – wie Markierungen auf einem Helmdisplay */
+:root[data-skin="jarvis"] .sheet { position: relative; }
+:root[data-skin="jarvis"] :is(.month, .wv, .card, .sheet)::after,
+:root[data-skin="jarvis"] .day.today::after {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  --hk: 16px;
+  --ht: 2px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) left top / var(--hk) var(--ht),
+    linear-gradient(var(--accent), var(--accent)) left top / var(--ht) var(--hk),
+    linear-gradient(var(--accent), var(--accent)) right top / var(--hk) var(--ht),
+    linear-gradient(var(--accent), var(--accent)) right top / var(--ht) var(--hk),
+    linear-gradient(var(--accent), var(--accent)) left bottom / var(--hk) var(--ht),
+    linear-gradient(var(--accent), var(--accent)) left bottom / var(--ht) var(--hk),
+    linear-gradient(var(--accent), var(--accent)) right bottom / var(--hk) var(--ht),
+    linear-gradient(var(--accent), var(--accent)) right bottom / var(--ht) var(--hk);
+  background-repeat: no-repeat;
+  opacity: 0.9;
+}
+/* Scanner, der über Monat und Woche wandert (unter dem Inhalt) */
+:root[data-skin="jarvis"] :is(.month, .wv)::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -180px; height: 180px; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 6%, transparent) 80%, color-mix(in srgb, var(--accent) 26%, transparent) 99%, transparent);
+  opacity: 0;
+}
+:root[data-skin="jarvis"][data-motion="on"] :is(.month, .wv)::before { animation: hud-scan 11s linear infinite; }
+
+:root[data-skin="jarvis"] :is(.dow, .wv-dayhead .wd) { color: color-mix(in srgb, var(--accent) 55%, var(--text-2)); letter-spacing: 0.18em; }
+:root[data-skin="jarvis"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: color-mix(in srgb, var(--accent) 50%, var(--text-2)); letter-spacing: 0.16em; }
+:root[data-skin="jarvis"] .topbar .title { text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; text-shadow: 0 0 22px var(--hud-glow); }
+:root[data-skin="jarvis"] .topbar .title .year { color: var(--accent); }
+:root[data-skin="jarvis"][data-motion="on"] .topbar .title { animation: hud-flicker 7s steps(1, end) infinite; }
+:root[data-skin="jarvis"] .brand { text-transform: uppercase; letter-spacing: 0.16em; font-weight: 700; }
+:root[data-skin="jarvis"] .sidebar { border-right-color: var(--line-2); }
+:root[data-skin="jarvis"] .seg button.on { box-shadow: inset 0 -2px 0 var(--accent), 0 0 0 1px var(--line-2); }
+:root[data-skin="jarvis"] .mini-grid button.today { text-shadow: 0 0 10px var(--hud-glow); }
+
+/* Heute: Zielerfassung im Monatsraster */
+:root[data-skin="jarvis"] .day.today {
+  position: relative;
+  background: radial-gradient(90% 80% at 50% 38%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 75%);
+}
+:root[data-skin="jarvis"] .day.today::after { inset: 5px; --hk: 10px; --ht: 1.5px; z-index: 0; }
+:root[data-skin="jarvis"][data-motion="on"] .day.today::after { animation: hud-lock 2.8s ease-in-out infinite; }
+:root[data-skin="jarvis"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  position: relative;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+:root[data-skin="jarvis"] .day.today .num::after,
+:root[data-skin="jarvis"] .wv-dayhead.today .dn::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; border: 1px dashed var(--accent);
+}
+:root[data-skin="jarvis"][data-motion="on"] .day.today .num::after,
+:root[data-skin="jarvis"][data-motion="on"] .wv-dayhead.today .dn::after { animation: spin 7s linear infinite; }
+:root[data-skin="jarvis"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 3%, transparent)); }
+:root[data-skin="jarvis"] .now-line { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+:root[data-skin="jarvis"] .now-line::before { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); }
+
+/* Termine als leuchtende Holo-Chips */
+:root[data-skin="jarvis"][data-events="tint"] .bar.block { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent), var(--ev-glow); }
+:root[data-skin="jarvis"][data-events="tint"] .wv-ev { box-shadow: inset 2px 0 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), var(--ev-glow); }
+
+/* Knöpfe mit abgeschrägten Ecken, Plus-Knopf als Sechseck */
+:root[data-skin="jarvis"] .btn.primary {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, white), var(--accent));
+}
+:root[data-skin="jarvis"] .fab { clip-path: polygon(50% 0, 96% 25%, 96% 75%, 50% 100%, 4% 75%, 4% 25%); }
+:root[data-skin="jarvis"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--on-accent); outline-offset: -6px; }
+:root[data-skin="jarvis"] .cd-num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: -0.06em; text-shadow: 0 0 22px var(--hud-glow); }
+:root[data-skin="jarvis"] .meter > i { box-shadow: 0 0 12px var(--c); }
+
+/* Übersicht: Kopfbereich als Hologramm mit drehenden Ringen */
+:root[data-skin="jarvis"] .sky {
+  --rs: 300px;
+  --sky:
+    radial-gradient(circle at calc(100% - 190px) 50%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 170px),
+    linear-gradient(color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px) 0 0 / 100% 24px,
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px) 0 0 / 24px 100%,
+    var(--hud-panel);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line-2), var(--shadow);
+}
+:root[data-skin="jarvis"] .sky .greet { text-shadow: 0 0 26px var(--hud-glow); }
+:root[data-skin="jarvis"] .sky .date { color: var(--text-2); opacity: 1; }
+:root[data-skin="jarvis"] .sky-pill {
+  border-radius: var(--r-sm); background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+:root[data-skin="jarvis"] .sky::before,
+:root[data-skin="jarvis"] .sky::after,
+:root[data-skin="jarvis"] .sky-art::before,
+:root[data-skin="jarvis"] .sky-art::after {
+  width: var(--rs); height: var(--rs); top: 50%; right: calc(190px - var(--rs) / 2); margin-top: calc(var(--rs) / -2); border-radius: 50%;
+}
+:root[data-skin="jarvis"] .sky::before {
+  background: repeating-conic-gradient(var(--accent) 0 0.7deg, transparent 0.7deg 4deg);
+  -webkit-mask: radial-gradient(closest-side, transparent 90%, #000 90.5% 97%, transparent 97.5%);
+  mask: radial-gradient(closest-side, transparent 90%, #000 90.5% 97%, transparent 97.5%);
+  opacity: 0.75;
+}
+:root[data-skin="jarvis"] .sky::after {
+  background: conic-gradient(var(--accent) 0 70deg, transparent 0 110deg, var(--accent) 0 200deg, transparent 0 228deg, var(--accent) 0 250deg, transparent 0);
+  -webkit-mask: radial-gradient(closest-side, transparent 79%, #000 79.5% 82.5%, transparent 83%);
+  mask: radial-gradient(closest-side, transparent 79%, #000 79.5% 82.5%, transparent 83%);
+  opacity: 0.85;
+}
+:root[data-skin="jarvis"] .sky-art::before {
+  background: conic-gradient(transparent 0 290deg, color-mix(in srgb, var(--accent) 50%, transparent) 360deg);
+  -webkit-mask: radial-gradient(closest-side, #000 73%, transparent 73.5%);
+  mask: radial-gradient(closest-side, #000 73%, transparent 73.5%);
+}
+:root[data-skin="jarvis"] .sky-art::after {
+  background:
+    radial-gradient(closest-side, transparent 55%, var(--accent) 55.5% 56.2%, transparent 56.7%),
+    radial-gradient(closest-side, transparent 28%, var(--accent) 28.5% 29.5%, transparent 30%),
+    radial-gradient(closest-side, var(--accent) 0 4%, transparent 4.5%),
+    linear-gradient(var(--accent), var(--accent)) center / 100% 1px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) center / 1px 100% no-repeat;
+  opacity: 0.5;
+}
+:root[data-skin="jarvis"][data-motion="on"] .sky::before { animation: spin 40s linear infinite; }
+:root[data-skin="jarvis"][data-motion="on"] .sky::after { animation: spin 16s linear infinite reverse; }
+:root[data-skin="jarvis"][data-motion="on"] .sky-art::before { animation: spin 4s linear infinite; }
+
+/* ---------- Synthwave: Retro-Neon 1984 ---------- */
+
+:root[data-skin="synthwave"] {
+  --bg: #f8eeff;
+  --wallpaper: linear-gradient(180deg, #dccbff 0%, #f8c9ec 50%, #ffd8c6 62%, #e3f4ff 62.2%, #f3e9ff 100%);
+  --surface: #fffaff;
+  --card: rgba(255, 252, 255, 0.76);
+  --sidebar-bg: rgba(255, 250, 255, 0.72);
+  --surface-2: rgba(150, 60, 200, 0.07);
+  --surface-3: rgba(150, 60, 200, 0.14);
+  --line: rgba(110, 40, 150, 0.12);
+  --line-2: rgba(110, 40, 150, 0.22);
+  --text: #2b1145;
+  --text-2: #64457f;
+  --text-3: #84669e;
+  --accent: #c2189a;
+  --on-accent: #ffffff;
+  --neon-2: #0a7a9c;
+  --danger: #d6264a;
+  --online: #10a37f;
+  --mix: 22%;
+  --mix-text: 64%;
+  --blur: 12px;
+  --ev-glow: 0 0 12px -4px color-mix(in srgb, var(--c) 80%, transparent);
+  --shadow-sm: 0 1px 2px rgba(120, 30, 120, 0.06);
+  --shadow: 0 0 0 1px rgba(194, 24, 154, 0.08), 0 14px 36px -18px rgba(194, 24, 154, 0.4);
+  --shadow-lg: 0 0 0 1px rgba(194, 24, 154, 0.12), 0 30px 80px -24px rgba(110, 20, 120, 0.45);
+  --toast-bg: #2b1145;
+  --toast-text: #fff0fd;
+  --toast-icon: #ff7ad9;
+  --scrim: rgba(43, 17, 69, 0.3);
+  --chrome: linear-gradient(180deg, #5b22b8 0%, #8f2bbf 47%, #c2189a 53%, #d9336f 100%);
+  --sun: linear-gradient(180deg, #ffb86b, #ff6fa8 55%, #c2189a);
+  --on-sun: #2b1145;
+  --btn: linear-gradient(135deg, #c2189a, #8f2bbf);
+  --neon-glow: rgba(194, 24, 154, 0.35);
+  --fx-a: #ffd9a0;
+  --fx-b: #ff8fcf;
+  --fx-c: #e05bc2;
+  --fx-d: #ffffff;
+  --fx-s1: #d9c8ff;
+  --fx-s2: #f6c4ea;
+  --fx-s3: #ffcfb8;
+  --fx-s4: #e8f5ff;
+  --fx-k: 0.75;
+}
+:root[data-skin="synthwave"][data-mode="dark"] {
+  --bg: #0b0320;
+  --wallpaper: linear-gradient(180deg, #0b0320 0%, #3a0b5e 45%, #b0207a 62%, #12022b 62.2%, #0b0320 100%);
+  --surface: #170834;
+  --card: rgba(22, 7, 48, 0.76);
+  --sidebar-bg: rgba(16, 4, 38, 0.74);
+  --surface-2: rgba(255, 110, 230, 0.08);
+  --surface-3: rgba(255, 110, 230, 0.15);
+  --line: rgba(255, 110, 230, 0.13);
+  --line-2: rgba(255, 110, 230, 0.27);
+  --text: #fff0fd;
+  --text-2: #d9b2ea;
+  --text-3: #a682c2;
+  --accent: #ff3dcf;
+  --on-accent: #1d0019;
+  --neon-2: #2de2ff;
+  --danger: #ff4f6d;
+  --online: #2dffc4;
+  --mix: 22%;
+  --mix-text: 42%;
+  --ev-glow: 0 0 16px -3px color-mix(in srgb, var(--c) 85%, transparent);
+  --shadow-sm: 0 0 0 1px rgba(255, 61, 207, 0.08);
+  --shadow: 0 0 0 1px rgba(255, 61, 207, 0.14), 0 0 40px -16px rgba(255, 61, 207, 0.55), 0 20px 50px -24px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 0 0 1px rgba(255, 61, 207, 0.25), 0 0 80px -20px rgba(255, 61, 207, 0.45), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #2a0b4d;
+  --toast-text: #fff0fd;
+  --toast-icon: var(--accent);
+  --scrim: rgba(8, 0, 22, 0.6);
+  --chrome: linear-gradient(180deg, #ffffff 0%, #d9f6ff 40%, #8e74ff 49%, #3a1366 51%, #ff5fd2 74%, #ffd36b 100%);
+  --sun: linear-gradient(180deg, #ffe66d, #ff8a3d 50%, #ff2fa6);
+  --on-sun: #1d0019;
+  --btn: linear-gradient(135deg, #ff3dcf, #ff8a3d);
+  --neon-glow: rgba(255, 61, 207, 0.6);
+  --fx-a: #ffe66d;
+  --fx-b: #ff2fa6;
+  --fx-c: #ff3dcf;
+  --fx-d: #ffffff;
+  --fx-s1: #0b0320;
+  --fx-s2: #3a0b5e;
+  --fx-s3: #ff4f9a;
+  --fx-s4: #12022b;
+  --fx-k: 1;
+}
+:root[data-skin="synthwave"]:not([data-corners="pill"]) { --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 14px; }
+
+/* Chrom-Schrift und Neonkanten */
+:root[data-skin="synthwave"] .topbar .title {
+  font-style: italic; font-weight: 900;
+  background: var(--chrome); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 10px var(--neon-glow));
+  padding-right: 0.12em;
+}
+:root[data-skin="synthwave"] .topbar .title .year { color: var(--neon-2); }
+:root[data-skin="synthwave"] .brand { font-style: italic; }
+:root[data-skin="synthwave"] :is(.month, .wv, .card)::before,
+:root[data-skin="synthwave"] .sheet::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 4; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--accent) 18%, #ffb35c 50%, var(--neon-2) 82%, transparent);
+  box-shadow: 0 0 14px var(--neon-glow);
+}
+:root[data-skin="synthwave"] .sheet { position: relative; }
+:root[data-skin="synthwave"] :is(.dow, .wv-dayhead .wd) { color: var(--neon-2); text-shadow: 0 0 10px color-mix(in srgb, var(--neon-2) 55%, transparent); letter-spacing: 0.16em; }
+:root[data-skin="synthwave"] :is(.side-title, .card-head h3, .section h3, .cd-lbl) { color: color-mix(in srgb, var(--accent) 55%, var(--text-2)); }
+:root[data-skin="synthwave"] .day.we { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+:root[data-skin="synthwave"] .day.today {
+  background: linear-gradient(0deg, color-mix(in srgb, var(--accent) 24%, transparent), transparent 72%);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+:root[data-skin="synthwave"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: var(--sun); color: var(--on-sun); box-shadow: 0 0 18px var(--neon-glow);
+}
+:root[data-skin="synthwave"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--neon-2) 4%, transparent)); }
+:root[data-skin="synthwave"] .now-line { background: var(--neon-2); box-shadow: 0 0 10px var(--neon-2); }
+:root[data-skin="synthwave"] .now-line::before { background: var(--neon-2); }
+:root[data-skin="synthwave"] :is(.btn.primary, .fab) { background: var(--btn); }
+:root[data-skin="synthwave"] .btn.primary:hover { filter: brightness(1.08); }
+:root[data-skin="synthwave"] .cd-num { font-style: italic; text-shadow: 0 0 22px var(--neon-glow); }
+:root[data-skin="synthwave"] .mini-grid button.today { color: var(--accent); text-shadow: 0 0 10px var(--neon-glow); }
+
+/* Übersicht: Sonnenuntergang mit Gitterboden */
+:root[data-skin="synthwave"] .sky {
+  --hz: 30%;
+  --sky:
+    radial-gradient(36% 70% at 80% 70%, rgba(255, 110, 90, 0.5), transparent 70%),
+    linear-gradient(180deg, #12042e 0%, #2d0a52 42%, #6a1670 70%, #1a0538 70.4%, #0d0221 100%);
+}
+:root[data-skin="synthwave"] .sky .greet { text-shadow: 0 0 18px var(--neon-glow), 0 2px 0 rgba(20, 0, 40, 0.6); }
+:root[data-skin="synthwave"] .sky-pill { border-radius: var(--r-sm); background: rgba(20, 2, 44, 0.55); border-color: rgba(255, 95, 210, 0.45); }
+:root[data-skin="synthwave"] .sky-art::before {
+  --d: 150px;
+  right: 9%; bottom: var(--hz); width: var(--d); height: calc(var(--d) * 0.8);
+  background: linear-gradient(180deg, #ffe66d 10%, #ff8a3d 50%, #ff2fa6 92%) 50% 0 / var(--d) var(--d) no-repeat;
+  clip-path: circle(calc(var(--d) / 2) at 50% calc(var(--d) / 2));
+  -webkit-mask: linear-gradient(#000 52%, transparent 0 56%, #000 0 64%, transparent 0 69%, #000 0 76%, transparent 0 82%, #000 0 88%, transparent 0 94%, #000 0);
+  mask: linear-gradient(#000 52%, transparent 0 56%, #000 0 64%, transparent 0 69%, #000 0 76%, transparent 0 82%, #000 0 88%, transparent 0 94%, #000 0);
+}
+:root[data-skin="synthwave"] .sky-art::after {
+  left: -60%; right: -60%; top: calc(100% - var(--hz)); height: calc(var(--hz) * 1.6);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 61, 207, 0.75) 0 2px, transparent 2px 54px) 50% 0,
+    repeating-linear-gradient(180deg, rgba(255, 61, 207, 0.75) 0 2px, transparent 2px 26px) 0 0;
+  transform: perspective(160px) rotateX(58deg); transform-origin: 50% 0;
+}
+:root[data-skin="synthwave"][data-motion="on"] .sky-art::after { animation: sw-floor 1.4s linear infinite; }
+:root[data-skin="synthwave"] .sky::before {
+  inset: 0 0 var(--hz) 0;
+  background:
+    radial-gradient(1.2px 1.2px at 12px 18px, var(--sky-star, #fff) 50%, transparent 52%) 0 0 / 97px 61px,
+    radial-gradient(1px 1px at 40px 44px, var(--sky-star, #fff) 50%, transparent 52%) 0 0 / 131px 83px,
+    radial-gradient(1.6px 1.6px at 70px 10px, var(--sky-star, #ffd6f6) 50%, transparent 52%) 0 0 / 173px 97px;
+  -webkit-mask: linear-gradient(#000 30%, transparent 85%);
+  mask: linear-gradient(#000 30%, transparent 85%);
+}
+:root[data-skin="synthwave"][data-motion="on"] .sky::before { animation: twinkle 3.4s ease-in-out infinite; }
+:root[data-skin="synthwave"] .sky::after {
+  left: 0; right: 0; bottom: var(--hz); height: 2px;
+  background: linear-gradient(90deg, transparent, #ff5fd2 25%, #ffd36b 72%, transparent);
+  box-shadow: 0 0 16px 2px rgba(255, 95, 210, 0.6);
+}
+
+/* ---------- Cyberpunk: Night City ---------- */
+
+:root[data-skin="cyberpunk"] {
+  --bg: #f3e600;
+  --wallpaper:
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 0 2px, transparent 2px 14px),
+    linear-gradient(180deg, #f6ea1a, #e9d900);
+  --surface: #fffbd0;
+  --card: rgba(255, 251, 205, 0.9);
+  --sidebar-bg: rgba(255, 247, 160, 0.84);
+  --surface-2: rgba(11, 11, 11, 0.06);
+  --surface-3: rgba(11, 11, 11, 0.12);
+  --line: rgba(11, 11, 11, 0.14);
+  --line-2: rgba(11, 11, 11, 0.32);
+  --text: #0b0b0b;
+  --text-2: #3d3a14;
+  --text-3: #625d27;
+  --accent: #0b0b0b;
+  --on-accent: #fcee0a;
+  --cp-2: #00727d;
+  --cp-3: #d1002c;
+  --danger: #d1002c;
+  --online: #00805e;
+  --mix: 24%;
+  --mix-text: 70%;
+  --blur: 10px;
+  --ev-glow: 0 0 0 transparent;
+  --shadow-sm: 0 0 0 1px rgba(11, 11, 11, 0.1);
+  --shadow: 0 0 0 1px rgba(11, 11, 11, 0.16);
+  --shadow-lg: 0 0 0 1px rgba(11, 11, 11, 0.3), 0 30px 70px -24px rgba(40, 36, 0, 0.5);
+  --toast-bg: #0b0b0b;
+  --toast-text: #fcee0a;
+  --toast-icon: #fcee0a;
+  --scrim: rgba(20, 18, 0, 0.35);
+  --hero-bg: #0b0b0b;
+  --hero-fg: #fcee0a;
+  --fx-a: #fcee0a;
+  --fx-b: #00a0b0;
+  --fx-c: #e4002b;
+  --fx-d: #0b0b0b;
+  --fx-s1: #f3e600;
+  --fx-s2: #fff27a;
+  --fx-s3: #cdbd00;
+  --fx-s4: #0e0e0a;
+  --fx-k: 0.85;
+}
+:root[data-skin="cyberpunk"][data-mode="dark"] {
+  --bg: #050507;
+  --wallpaper: linear-gradient(180deg, #050507 40%, #2a0718);
+  --surface: #0e0e13;
+  --card: rgba(10, 10, 14, 0.84);
+  --sidebar-bg: rgba(8, 8, 11, 0.84);
+  --surface-2: rgba(252, 238, 10, 0.06);
+  --surface-3: rgba(252, 238, 10, 0.12);
+  --line: rgba(252, 238, 10, 0.12);
+  --line-2: rgba(252, 238, 10, 0.26);
+  --text: #f4f1de;
+  --text-2: #bdb894;
+  --text-3: #8c8768;
+  --accent: #fcee0a;
+  --on-accent: #0a0a00;
+  --cp-2: #00f0ff;
+  --cp-3: #ff2a55;
+  --danger: #ff2a55;
+  --online: #00ffa3;
+  --mix: 20%;
+  --mix-text: 42%;
+  --ev-glow: 0 0 12px -4px color-mix(in srgb, var(--c) 75%, transparent);
+  --shadow-sm: 0 0 0 1px rgba(252, 238, 10, 0.06);
+  --shadow: 0 0 0 1px rgba(252, 238, 10, 0.08), 0 20px 40px -20px rgba(0, 0, 0, 0.9);
+  --shadow-lg: 0 0 0 1px rgba(252, 238, 10, 0.2), 0 30px 80px -24px rgba(0, 0, 0, 0.95);
+  --toast-bg: #0e0e13;
+  --toast-text: #f4f1de;
+  --toast-icon: var(--accent);
+  --scrim: rgba(0, 0, 0, 0.62);
+  --hero-bg: #fcee0a;
+  --hero-fg: #0a0a00;
+  --fx-a: #fcee0a;
+  --fx-b: #00f0ff;
+  --fx-c: #ff003c;
+  --fx-d: #8fdcff;
+  --fx-s1: #050507;
+  --fx-s2: #2a0718;
+  --fx-s3: #160c22;
+  --fx-s4: #060609;
+  --fx-k: 1;
+}
+:root[data-skin="cyberpunk"]:not([data-corners="pill"]) { --r-xs: 1px; --r-sm: 2px; --r-md: 2px; --r-lg: 3px; --r-xl: 3px; }
+:root[data-skin="cyberpunk"][data-font="modern"] { --font-display: "DIN Condensed", "DIN Alternate", Bahnschrift, "Roboto Condensed", "Arial Narrow", var(--font); }
+
+/* Abgeschnittene Ecken, gelbe Reiter und Warnstreifen */
+:root[data-skin="cyberpunk"] :is(.month, .wv, .card) {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+}
+:root[data-skin="cyberpunk"] .card:focus-visible { outline-offset: -4px; }
+:root[data-skin="cyberpunk"] :is(.month, .wv, .card)::after {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 1.5px), var(--accent) calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px)) right top / 18px 18px,
+    linear-gradient(to top right, transparent calc(50% - 1.5px), var(--accent) calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px)) left bottom / 18px 18px,
+    linear-gradient(var(--accent), var(--accent)) left top / 64px 3px,
+    linear-gradient(var(--accent), var(--accent)) left top / 3px 22px,
+    repeating-linear-gradient(-45deg, var(--accent) 0 3px, transparent 3px 7px) right 14px bottom 6px / 52px 5px;
+  background-repeat: no-repeat;
+}
+:root[data-skin="cyberpunk"] :is(.dow, .wv-dayhead .wd) { color: var(--accent); letter-spacing: 0.16em; font-weight: 800; }
+:root[data-skin="cyberpunk"] :is(.side-title, .card-head h3, .section h3, .cd-lbl) { color: var(--text); letter-spacing: 0.14em; }
+:root[data-skin="cyberpunk"] .card-head h3::before {
+  content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 8px; background: var(--cp-3);
+  clip-path: polygon(0 0, 100% 0, 100% 55%, 55% 100%, 0 100%);
+}
+:root[data-skin="cyberpunk"] :is(.topbar .title, .sheet-head h2, .brand) { text-transform: uppercase; letter-spacing: 0.02em; }
+:root[data-skin="cyberpunk"] .topbar .title .year { color: var(--cp-2); }
+:root[data-skin="cyberpunk"][data-motion="on"] :is(.topbar .title, .sky .greet) { animation: cp-glitch 4.6s steps(1, end) infinite; }
+:root[data-skin="cyberpunk"][data-motion="on"] .sky .greet { animation-delay: -2.3s; }
+:root[data-skin="cyberpunk"] .sidebar { border-right: 1px solid var(--line-2); }
+:root[data-skin="cyberpunk"] .seg button.on { background: var(--accent); color: var(--on-accent); }
+:root[data-skin="cyberpunk"] .day.today {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+:root[data-skin="cyberpunk"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  border-radius: 0; box-shadow: none;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);
+}
+:root[data-skin="cyberpunk"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%); }
+:root[data-skin="cyberpunk"] .now-line { background: var(--cp-3); box-shadow: 0 0 10px var(--cp-3); }
+:root[data-skin="cyberpunk"] .now-line::before { background: var(--cp-3); border-radius: 0; }
+:root[data-skin="cyberpunk"] .btn.primary {
+  font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%);
+}
+:root[data-skin="cyberpunk"] .fab { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%); }
+:root[data-skin="cyberpunk"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--on-accent); outline-offset: -6px; }
+:root[data-skin="cyberpunk"][data-events="tint"] .bar.block { box-shadow: inset 2px 0 0 var(--c), var(--ev-glow); }
+:root[data-skin="cyberpunk"] .toast { box-shadow: inset 3px 0 0 var(--toast-icon), var(--shadow-lg); }
+:root[data-skin="cyberpunk"] .cd-num { text-shadow: 3px 0 color-mix(in srgb, var(--cp-3) 55%, transparent), -3px 0 color-mix(in srgb, var(--cp-2) 45%, transparent); }
+
+/* Übersicht: Kopfbereich wie ein Spielmenü – gelb auf schwarz (hell: umgekehrt) */
+:root[data-skin="cyberpunk"] .sky {
+  --sky:
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--hero-fg) 7%, transparent) 0 2px, transparent 2px 10px),
+    linear-gradient(100deg, var(--hero-bg) 55%, color-mix(in srgb, var(--hero-bg) 88%, var(--hero-fg)));
+  color: var(--hero-fg);
+  box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 28px 100%, 0 calc(100% - 28px));
+}
+:root[data-skin="cyberpunk"] .sky .greet { text-transform: uppercase; text-shadow: none; }
+:root[data-skin="cyberpunk"] .sky .date { font-weight: 700; letter-spacing: 0.04em; opacity: 1; }
+:root[data-skin="cyberpunk"] .sky-pill {
+  border-radius: 0; border: 0; background: var(--hero-fg); color: var(--hero-bg);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+}
+:root[data-skin="cyberpunk"] .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--hero-fg); }
+:root[data-skin="cyberpunk"] .sky-art::before {
+  right: 0; bottom: 0; width: min(560px, 72%); height: 82%; opacity: 0.17;
+  background:
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 0% 100% / 7% 34%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 9% 100% / 6% 58%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 11% 100% / 1% 76%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 17% 100% / 9% 44%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 27% 100% / 6% 70%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 35% 100% / 10% 92%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 37% 100% / 1% 100%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 47% 100% / 7% 52%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 57% 100% / 9% 80%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 68% 100% / 6% 40%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 78% 100% / 11% 66%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 90% 100% / 7% 48%,
+    linear-gradient(var(--hero-fg), var(--hero-fg)) 100% 100% / 6% 30%;
+  background-repeat: no-repeat;
+}
+:root[data-skin="cyberpunk"] .sky-art::after {
+  top: 0; left: 0; width: 46%; height: 7px;
+  background: repeating-linear-gradient(-45deg, var(--hero-fg) 0 7px, transparent 7px 14px);
+}
+:root[data-skin="cyberpunk"] .sky::before {
+  top: 20px; right: 44px; width: 96px; height: 24px; opacity: 0.85;
+  background: repeating-linear-gradient(90deg, var(--hero-fg) 0 2px, transparent 2px 4px, var(--hero-fg) 4px 5px, transparent 5px 9px, var(--hero-fg) 9px 12px, transparent 12px 14px);
+}
+:root[data-skin="cyberpunk"] .sky::after {
+  left: -5%; right: 30%; top: 42%; height: 7px; opacity: 0;
+  background: linear-gradient(90deg, var(--cp-3), var(--cp-2));
+}
+:root[data-skin="cyberpunk"][data-motion="on"] .sky::after { animation: cp-bar 4.6s steps(1, end) infinite; animation-delay: -2.3s; }
+
+/* ---------- Galaxie: Sterne & Nebel ---------- */
+
+:root[data-skin="galaxie"] {
+  --bg: #f3ecfb;
+  --wallpaper:
+    radial-gradient(45% 40% at 20% 25%, rgba(249, 168, 212, 0.45), transparent 70%),
+    radial-gradient(45% 40% at 85% 75%, rgba(165, 180, 252, 0.5), transparent 70%),
+    linear-gradient(180deg, #e0e4ff, #f6e8fb 55%, #ffe4ea);
+  --surface: #fdfbff;
+  --card: rgba(255, 255, 255, 0.68);
+  --sidebar-bg: rgba(255, 255, 255, 0.58);
+  --surface-2: rgba(90, 70, 180, 0.07);
+  --surface-3: rgba(90, 70, 180, 0.14);
+  --line: rgba(60, 40, 130, 0.1);
+  --line-2: rgba(60, 40, 130, 0.2);
+  --text: #1c1838;
+  --text-2: #554e7c;
+  --text-3: #6f6890;
+  --accent: #6b4dff;
+  --on-accent: #ffffff;
+  --danger: #e0355a;
+  --online: #10b981;
+  --mix: 20%;
+  --mix-text: 62%;
+  --blur: 16px;
+  --live-bf: blur(10px) saturate(1.3);
+  --ev-glow: 0 0 14px -4px color-mix(in srgb, var(--c) 70%, transparent);
+  --shadow-sm: 0 1px 2px rgba(60, 40, 130, 0.06);
+  --shadow: 0 1px 2px rgba(60, 40, 130, 0.05), 0 16px 40px -20px rgba(80, 60, 180, 0.4);
+  --shadow-lg: 0 30px 80px -24px rgba(60, 40, 140, 0.45);
+  --toast-bg: #1c1838;
+  --toast-text: #f6f3ff;
+  --toast-icon: #b3a5ff;
+  --scrim: rgba(28, 24, 56, 0.28);
+  --star-glow: rgba(107, 77, 255, 0.35);
+  --star: #6b4dff;
+  --title: linear-gradient(90deg, #2a1f6b, #6b4dff 55%, #b8337f);
+  --orb: var(--accent);
+  --fx-a: #f9a8d4;
+  --fx-b: #a5b4fc;
+  --fx-c: #fdba8c;
+  --fx-d: #7c6ad6;
+  --fx-s1: #99f6e4;
+  --fx-k: 0.75;
+}
+:root[data-skin="galaxie"][data-mode="dark"] {
+  --bg: #04030f;
+  --wallpaper:
+    radial-gradient(60% 50% at 30% 20%, rgba(60, 30, 140, 0.35), transparent 70%),
+    radial-gradient(60% 50% at 80% 90%, rgba(120, 20, 90, 0.25), transparent 70%),
+    linear-gradient(180deg, #06051a, #030209);
+  --surface: #110f2c;
+  --card: rgba(14, 12, 38, 0.66);
+  --sidebar-bg: rgba(9, 8, 28, 0.64);
+  --surface-2: rgba(180, 170, 255, 0.07);
+  --surface-3: rgba(180, 170, 255, 0.14);
+  --line: rgba(190, 180, 255, 0.1);
+  --line-2: rgba(190, 180, 255, 0.2);
+  --text: #f1efff;
+  --text-2: #b8b2e3;
+  --text-3: #8b84c0;
+  --accent: #a594ff;
+  --on-accent: #120a3a;
+  --danger: #ff5c7a;
+  --online: #34f5b5;
+  --mix: 24%;
+  --mix-text: 44%;
+  --ev-glow: 0 0 16px -4px color-mix(in srgb, var(--c) 80%, transparent);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 40px -18px rgba(165, 148, 255, 0.45), 0 20px 50px -24px rgba(0, 0, 0, 0.8);
+  --shadow-lg: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 80px -24px rgba(165, 148, 255, 0.4), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #1b1745;
+  --toast-text: #f1efff;
+  --toast-icon: var(--accent);
+  --scrim: rgba(2, 1, 10, 0.55);
+  --star-glow: rgba(190, 175, 255, 0.6);
+  --star: #ffffff;
+  --title: linear-gradient(90deg, #ffffff, #d9d0ff 55%, #ffc4e8);
+  --orb: radial-gradient(circle at 35% 30%, #ffffff, var(--accent) 58%);
+  --fx-a: #7c3aed;
+  --fx-b: #2563eb;
+  --fx-c: #db2777;
+  --fx-d: #ffffff;
+  --fx-s1: #0d9488;
+  --fx-k: 1;
+}
+:root[data-skin="galaxie"]:not([data-corners="sharp"]) { --r-lg: 20px; --r-xl: 28px; }
+
+:root[data-skin="galaxie"] .topbar .title {
+  background: var(--title); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 14px var(--star-glow));
+}
+:root[data-skin="galaxie"] .topbar .title .year { color: var(--text-3); }
+:root[data-skin="galaxie"] :is(.dow, .wv-dayhead .wd) { color: color-mix(in srgb, var(--accent) 45%, var(--text-2)); }
+:root[data-skin="galaxie"] .day.today { background: radial-gradient(70% 70% at 22% 22%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 75%); }
+:root[data-skin="galaxie"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  position: relative; background: var(--orb);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 24px var(--star-glow);
+}
+:root[data-skin="galaxie"] .day.today .num::after,
+:root[data-skin="galaxie"] .wv-dayhead.today .dn::after {
+  content: ""; position: absolute; top: -6px; right: -7px; width: 11px; height: 11px; pointer-events: none;
+  background: var(--star);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+}
+:root[data-skin="galaxie"][data-motion="on"] .day.today .num::after,
+:root[data-skin="galaxie"][data-motion="on"] .wv-dayhead.today .dn::after { animation: gx-twinkle 2.6s ease-in-out infinite; }
+:root[data-skin="galaxie"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%); }
+:root[data-skin="galaxie"] :is(.btn.primary, .fab) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent), 0 10px 30px -8px var(--star-glow), 0 0 24px -6px var(--star-glow); }
+:root[data-skin="galaxie"] .fab { border-radius: 50%; }
+:root[data-skin="galaxie"] .cd-num { text-shadow: 0 0 24px var(--star-glow); }
+:root[data-skin="galaxie"] .mini-grid button.today { text-shadow: 0 0 10px var(--star-glow); }
+
+/* Übersicht: Blick ins All mit Ringplanet */
+:root[data-skin="galaxie"] .sky {
+  --sky:
+    radial-gradient(60% 90% at 18% 15%, rgba(124, 58, 237, 0.55), transparent 70%),
+    radial-gradient(50% 80% at 62% 110%, rgba(219, 39, 119, 0.42), transparent 70%),
+    radial-gradient(40% 70% at 100% 0%, rgba(37, 99, 235, 0.5), transparent 70%),
+    #070520;
+}
+:root[data-skin="galaxie"] .sky .greet { text-shadow: 0 0 26px var(--star-glow); }
+:root[data-skin="galaxie"] .sky-pill { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.22); }
+:root[data-skin="galaxie"] .sky::before {
+  inset: 0;
+  background:
+    radial-gradient(1.2px 1.2px at 12px 18px, var(--sky-star, #fff) 50%, transparent 52%) 0 0 / 97px 61px,
+    radial-gradient(1px 1px at 40px 44px, var(--sky-star, #fff) 50%, transparent 52%) 0 0 / 131px 83px,
+    radial-gradient(1.6px 1.6px at 70px 10px, var(--sky-star, #e6dcff) 50%, transparent 52%) 0 0 / 173px 97px,
+    radial-gradient(1px 1px at 20px 70px, var(--sky-star, #ffd6f0) 50%, transparent 52%) 0 0 / 211px 113px;
+}
+:root[data-skin="galaxie"][data-motion="on"] .sky::before { animation: twinkle 4s ease-in-out infinite; }
+:root[data-skin="galaxie"] .sky::after {
+  top: 18%; left: 58%; width: 130px; height: 2px; border-radius: 2px; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95));
+  transform: rotate(-24deg);
+}
+:root[data-skin="galaxie"][data-motion="on"] .sky::after { animation: gx-shoot 7s ease-in infinite 1.5s; }
+:root[data-skin="galaxie"] .sky-art::before {
+  --p: 124px;
+  top: 50%; right: 9%; width: var(--p); height: var(--p); margin-top: calc(var(--p) / -2); border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ffe2f5 0, #c08bff 22%, #6a3fd6 52%, #241063 78%, #0b0526);
+  box-shadow: 0 0 44px rgba(165, 148, 255, 0.45), inset -14px -10px 30px rgba(0, 0, 0, 0.45);
+}
+:root[data-skin="galaxie"] .sky-art::after {
+  top: 50%; right: calc(9% - 52px); width: 228px; height: 62px; margin-top: -31px; border-radius: 50%;
+  border: 2px solid rgba(255, 214, 240, 0.6); border-top-color: rgba(255, 214, 240, 0.12);
+  box-shadow: 0 0 14px rgba(255, 180, 230, 0.3);
+  transform: rotate(-16deg);
+}
+:root[data-skin="galaxie"][data-motion="on"] .sky-art { animation: gx-float 9s ease-in-out infinite; }
+
+/* ---------- Hell-Varianten der Übersicht ---------- */
+
+:root[data-skin="jarvis"]:not([data-mode="dark"]) .sky-pill .avatars .avatar,
+:root[data-skin="synthwave"]:not([data-mode="dark"]) .sky-pill .avatars .avatar,
+:root[data-skin="galaxie"]:not([data-mode="dark"]) .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
+:root[data-skin="synthwave"]:not([data-mode="dark"]) .sky {
+  --sky:
+    radial-gradient(36% 70% at 80% 70%, rgba(255, 180, 140, 0.6), transparent 70%),
+    linear-gradient(180deg, #cdb8ff 0%, #f5c3ea 52%, #ffd6c4 70%, #dff3ff 70.4%, #eaf6ff 100%);
+  color: var(--text);
+}
+:root[data-skin="synthwave"]:not([data-mode="dark"]) .sky .greet { text-shadow: 0 0 18px rgba(255, 255, 255, 0.8); }
+:root[data-skin="synthwave"]:not([data-mode="dark"]) .sky-pill { background: rgba(255, 255, 255, 0.55); border-color: rgba(194, 24, 154, 0.3); }
+:root[data-skin="synthwave"]:not([data-mode="dark"]) .sky-art::before { background-image: linear-gradient(180deg, #ffc98a 10%, #ff9cc4 55%, #e05bc2 92%); }
+:root[data-skin="synthwave"]:not([data-mode="dark"]) .sky-art::after {
+  background:
+    repeating-linear-gradient(90deg, rgba(214, 51, 170, 0.45) 0 2px, transparent 2px 54px) 50% 0,
+    repeating-linear-gradient(180deg, rgba(10, 122, 156, 0.4) 0 2px, transparent 2px 26px) 0 0;
+}
+:root[data-skin="galaxie"]:not([data-mode="dark"]) .sky {
+  --sky:
+    radial-gradient(60% 90% at 18% 15%, rgba(249, 168, 212, 0.6), transparent 70%),
+    radial-gradient(50% 80% at 62% 110%, rgba(253, 186, 140, 0.45), transparent 70%),
+    radial-gradient(40% 70% at 100% 0%, rgba(165, 180, 252, 0.7), transparent 70%),
+    #ece8ff;
+  color: var(--text);
+}
+:root[data-skin="galaxie"]:not([data-mode="dark"]) .sky-pill { background: rgba(255, 255, 255, 0.55); border-color: rgba(107, 77, 255, 0.22); }
+:root[data-skin="galaxie"]:not([data-mode="dark"]) .sky { --sky-star: #7c6ad6; }
+:root[data-skin="galaxie"]:not([data-mode="dark"]) .sky::after { background: linear-gradient(90deg, transparent, rgba(107, 77, 255, 0.8)); }
+:root[data-skin="galaxie"]:not([data-mode="dark"]) .sky-art::before {
+  background: radial-gradient(circle at 34% 30%, #ffffff 0, #ffd1ec 24%, #c4b5fd 58%, #8b7cf6 90%);
+  box-shadow: 0 0 40px rgba(167, 139, 250, 0.45), inset -12px -10px 26px rgba(80, 60, 160, 0.25);
+}
+:root[data-skin="galaxie"]:not([data-mode="dark"]) .sky-art::after { border-color: rgba(107, 77, 255, 0.45); border-top-color: rgba(107, 77, 255, 0.1); box-shadow: none; }
+
+/* ---------- Animationen ---------- */
+
+@keyframes hud-scan {
+  0% { opacity: 1; transform: translateY(0); }
+  55% { opacity: 1; transform: translateY(calc(100vh + 180px)); }
+  55.1%, 100% { opacity: 0; transform: translateY(calc(100vh + 180px)); }
+}
+@keyframes hud-lock {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(0.94); opacity: 0.45; }
+}
+@keyframes hud-flicker {
+  0%, 100% { opacity: 1; }
+  90% { opacity: 0.55; }
+  91% { opacity: 1; }
+  93% { opacity: 0.75; }
+  94% { opacity: 1; }
+}
+@keyframes sw-floor { to { background-position: 50% 0, 0 26px; } }
+@keyframes cp-glitch {
+  0%, 88%, 100% { transform: none; text-shadow: none; clip-path: none; }
+  89% { transform: translate(-3px, 0) skewX(-10deg); text-shadow: 3px 0 var(--cp-2), -3px 0 var(--cp-3); }
+  90% { transform: translate(4px, 0); clip-path: inset(12% 0 50% 0); text-shadow: -4px 0 var(--cp-2), 4px 0 var(--cp-3); }
+  91% { transform: translate(-2px, 0); clip-path: inset(58% 0 4% 0); text-shadow: 2px 0 var(--cp-3); }
+  92% { transform: translate(2px, 0) skewX(8deg); clip-path: none; text-shadow: -2px 0 var(--cp-2), 2px 0 var(--cp-3); }
+  93% { transform: none; text-shadow: none; }
+}
+@keyframes cp-bar {
+  0%, 88%, 100% { opacity: 0; transform: none; }
+  89% { opacity: 0.9; transform: translateX(12%); }
+  90% { opacity: 0.7; transform: translate(-6%, 26px) scaleY(0.5); }
+  92% { opacity: 0.9; transform: translate(20%, -18px); }
+  93% { opacity: 0; }
+}
+@keyframes gx-twinkle {
+  0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.35; transform: scale(0.6) rotate(45deg); }
+}
+@keyframes gx-shoot {
+  0%, 82% { opacity: 0; transform: rotate(-24deg) translateX(0); }
+  84% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(-24deg) translateX(-260px); }
+}
+@keyframes gx-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) { --live-bf: none; --blur: 0px; }
+  :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sheet {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  :root[data-skin="jarvis"] .sky { --rs: 230px; }
+  :root[data-skin="jarvis"] .sky::before,
+  :root[data-skin="jarvis"] .sky::after,
+  :root[data-skin="jarvis"] .sky-art::before,
+  :root[data-skin="jarvis"] .sky-art::after { right: calc(70px - var(--rs) / 2); }
+  :root[data-skin="jarvis"] .sheet::after { --hk: 14px; }
+  :root[data-skin="jarvis"] .tabbar { box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 40%, transparent), 0 -12px 30px -20px var(--accent); }
+  :root[data-skin="synthwave"] .tabbar { box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 45%, transparent), 0 -12px 30px -18px var(--neon-glow); }
+  :root[data-skin="synthwave"] .sky-art::before { --d: 112px; right: 6%; }
+  :root[data-skin="cyberpunk"] :is(.month, .wv) { clip-path: none; }
+  :root[data-skin="cyberpunk"] :is(.month, .wv)::after { background: linear-gradient(var(--accent), var(--accent)) left top / 64px 3px no-repeat; }
+  :root[data-skin="cyberpunk"] .tabbar::before {
+    content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 3px; pointer-events: none;
+    background: repeating-linear-gradient(-45deg, var(--accent) 0 6px, transparent 6px 12px);
+  }
+  :root[data-skin="cyberpunk"] .sky::before { display: none; }
+  :root[data-skin="galaxie"] .sky-art::before { --p: 92px; right: 5%; }
+  :root[data-skin="galaxie"] .sky-art::after { right: calc(5% - 40px); width: 172px; height: 48px; margin-top: -24px; }
+}

@@ -82,6 +82,21 @@ const core = createCore({
     }
     return url;
   },
+  // iPhone-Import: In der Demo wird nichts an Apple gesendet – es gibt Beispiel-Kalender
+  caldav: {
+    async discover() {
+      await wait(900);
+      return ICLOUD.map((c) => ({ url: `${ICLOUD_BASE}${c.id}/`, name: c.name, color: c.color }));
+    },
+    async fetchEvents(_, url) {
+      await wait(500);
+      const cal = ICLOUD.find((c) => url === `${ICLOUD_BASE}${c.id}/`);
+      return cal ? cal.events().map(icsOf) : [];
+    },
+  },
+  // Die Demo legt keine Passwörter ab, nicht einmal auf diesem Gerät
+  sealSecret: () => '{}',
+  openSecret: (sealed) => sealed,
 });
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -156,6 +171,76 @@ const nextWeekday = (wd) => {
   for (let i = 1; i <= 7; i++) if (day(i).getDay() === wd) return i;
   return 7;
 };
+
+// ---------- Beispiel-Kalender „vom iPhone“ ----------
+
+const ICLOUD_BASE = 'https://p42-caldav.icloud.com/1234567890/calendars/';
+const BYDAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+const wall = (d) => `${ymd(d).replace(/-/g, '')}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+const icsText = (v) => v.replace(/[\\;,]/g, (c) => `\\${c}`);
+// letzter Wochentag wd vor heute (Beginn einer Serie)
+const lastWeekday = (wd) => nextWeekday(wd) - 7;
+
+// Ein Termin, wie ihn iCloud liefert: eigener VCALENDAR mit Ortszeit (TZID)
+function icsOf(e) {
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Apple Inc.//iPhone OS 18.0//EN', 'BEGIN:VEVENT', `UID:${e.uid}@demo.icloud`];
+  if (e.from) {
+    lines.push(`DTSTART;TZID=${tz}:${wall(new Date(at(e.off, e.from)))}`, `DTEND;TZID=${tz}:${wall(new Date(at(e.off, e.to)))}`);
+  } else {
+    const start = day(e.off);
+    if (e.born) start.setFullYear(e.born);
+    const end = new Date(start);
+    end.setDate(end.getDate() + (e.days || 1));
+    lines.push(`DTSTART;VALUE=DATE:${ymd(start).replace(/-/g, '')}`, `DTEND;VALUE=DATE:${ymd(end).replace(/-/g, '')}`);
+  }
+  if (e.weekly) lines.push(`RRULE:FREQ=WEEKLY;BYDAY=${BYDAY[day(e.off).getDay()]}`);
+  if (e.born) lines.push('RRULE:FREQ=YEARLY');
+  if (e.location) lines.push(`LOCATION:${icsText(e.location)}`);
+  lines.push(`SUMMARY:${icsText(e.title)}`, 'END:VEVENT', 'END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+const ICLOUD = [
+  {
+    id: 'home', name: 'Privat', color: '#3d9df2',
+    events: () => [
+      { uid: 'friseur', title: 'Friseur ✂️', off: 3, from: '17:30', to: '18:15', location: 'Salon Schnittig' },
+      { uid: 'brunch', title: 'Brunch mit Jana 🥐', off: nextWeekday(6), from: '11:00', to: '13:00', location: 'Café Kranz' },
+      { uid: 'laufen', title: 'Laufgruppe 🏃‍♀️', off: lastWeekday(2), from: '18:30', to: '19:30', weekly: true, location: 'Volkspark, Haupteingang' },
+      { uid: 'markt', title: 'Wochenmarkt 🧺', off: 6, from: '10:00', to: '11:00' },
+      { uid: 'wellness', title: 'Wellness-Wochenende 🧖', off: 19, days: 2 },
+    ],
+  },
+  {
+    id: 'work', name: 'Arbeit', color: '#f59440',
+    events: () => [
+      { uid: 'weekly', title: 'Team-Weekly', off: lastWeekday(1), from: '09:30', to: '10:15', weekly: true, location: 'Raum 4.12' },
+      { uid: 'kunde', title: 'Kundentermin Müller GmbH', off: 2, from: '14:00', to: '15:30', location: 'Konferenzraum 3' },
+      { uid: 'one-on-one', title: '1:1 mit Sarah', off: 1, from: '16:00', to: '16:30' },
+      { uid: 'deadline', title: 'Projekt-Deadline 🚀', off: 8 },
+      { uid: 'sprint', title: 'Workshop Design-Sprint', off: 14, days: 2, location: 'Coworking Space, Etage 2' },
+    ],
+  },
+  {
+    id: 'family', name: 'Familie', color: '#ec6aa8',
+    events: () => [
+      { uid: 'oma', title: 'Sonntagsessen bei Oma 🍲', off: nextWeekday(0), from: '12:30', to: '15:00' },
+      { uid: 'eltern', title: 'Elternabend', off: 4, from: '19:00', to: '20:30', location: 'Grundschule am Park' },
+      { uid: 'turnen', title: 'Kinderturnen', off: lastWeekday(4), from: '16:00', to: '17:00', weekly: true },
+      { uid: 'ostsee', title: 'Herbsturlaub an der Ostsee 🌊', off: 21, days: 6 },
+    ],
+  },
+  {
+    id: 'birthdays', name: 'Geburtstage', color: '#a46cf0',
+    events: () => [
+      { uid: 'mama', title: 'Mama 🎂', off: 5, born: 1966 },
+      { uid: 'tim', title: 'Tim 🎈', off: 12, born: 1994 },
+      { uid: 'rosi', title: 'Oma Rosi 🌷', off: 27, born: 1941 },
+      { uid: 'jana', title: 'Jana 🥳', off: -9, born: 1996 },
+      { uid: 'papa', title: 'Papa 🎂', off: 45, born: 1963 },
+    ],
+  },
+];
 
 const as = (who) => ({
   post: (path, body) => core.handle('POST', path, { token: who.token, body }),

@@ -37,6 +37,27 @@ export const SKINS = [
     light: { bg: '#ffffff', surface: '#ffffff', accent: '#09090b', text: '#09090b', outline: true },
     dark: { bg: '#000000', surface: '#0a0a0a', accent: '#fafafa', text: '#fafafa', outline: true },
   },
+  // Live-Stile: bewegter Hintergrund aus bgfx.js, Verzierungen aus skins-live.css
+  {
+    id: 'jarvis', name: 'Jarvis', desc: 'Live · Hologramm-HUD', live: true,
+    light: { bg: 'radial-gradient(circle at 72% 50%, transparent 30%, rgba(0,121,166,.45) 31%, transparent 32.5%, transparent 41%, rgba(0,121,166,.3) 42%, transparent 43.5%), linear-gradient(rgba(0,121,166,.09) 1px, transparent 1px) 0 0/9px 9px, linear-gradient(90deg, rgba(0,121,166,.09) 1px, transparent 1px) 0 0/9px 9px, #eaf5fa', surface: 'rgba(251,254,255,.82)', accent: '#0079a6', text: '#04212d' },
+    dark: { bg: 'radial-gradient(circle at 72% 50%, rgba(53,224,255,.38), transparent 22%), radial-gradient(circle at 72% 50%, transparent 30%, rgba(53,224,255,.6) 31%, transparent 32.5%, transparent 41%, rgba(53,224,255,.4) 42%, transparent 43.5%), linear-gradient(rgba(53,224,255,.08) 1px, transparent 1px) 0 0/9px 9px, #01070d', surface: 'rgba(4,20,34,.72)', accent: '#35e0ff', text: '#e3f8ff', glow: true },
+  },
+  {
+    id: 'synthwave', name: 'Synthwave', desc: 'Live · Retro-Neon 1984', live: true,
+    light: { bg: 'repeating-linear-gradient(90deg, rgba(214,51,170,.4) 0 1px, transparent 1px 11px) 0 100%/100% 34% no-repeat, radial-gradient(circle at 50% 66%, #ffd9a8 0 13%, #ff9ccf 20%, transparent 21%), linear-gradient(180deg, #d9c8ff 0%, #f8c6ec 52%, #ffd6c4 65.5%, #e2f4ff 66%, #f6e9ff)', surface: 'rgba(255,255,255,.72)', accent: '#c2189a', text: '#2b1145' },
+    dark: { bg: 'repeating-linear-gradient(90deg, rgba(255,61,207,.6) 0 1px, transparent 1px 11px) 0 100%/100% 34% no-repeat, radial-gradient(circle at 50% 66%, #ffe66d 0 9%, #ff8a3d 15%, #ff2fa6 20%, transparent 21%), linear-gradient(180deg, #0b0320 0%, #3a0b5e 45%, #b0207a 65.5%, #12022b 66%, #0b0320)', surface: 'rgba(22,8,48,.72)', accent: '#ff3dcf', text: '#fff0fd', glow: true },
+  },
+  {
+    id: 'cyberpunk', name: 'Cyberpunk', desc: 'Live · Night City', live: true,
+    light: { bg: 'repeating-linear-gradient(-45deg, #0b0b0b 0 4px, transparent 4px 8px) 0 100%/100% 6px no-repeat, linear-gradient(180deg, transparent 62%, rgba(11,11,11,.85) 62%) 0 0/23px 100%, #f3e600', surface: 'rgba(255,250,190,.9)', accent: '#0b0b0b', text: '#0b0b0b' },
+    dark: { bg: 'repeating-linear-gradient(-45deg, #fcee0a 0 4px, transparent 4px 8px) 0 100%/100% 6px no-repeat, linear-gradient(180deg, transparent 58%, rgba(0,240,255,.22) 58% 59%, #120a1a 59%) 0 0/19px 100%, linear-gradient(180deg, #050507 40%, #2a0718), #050507', surface: 'rgba(12,12,16,.86)', accent: '#fcee0a', text: '#f4f1de', glow: true },
+  },
+  {
+    id: 'galaxie', name: 'Galaxie', desc: 'Live · Sterne & Nebel', live: true,
+    light: { bg: 'radial-gradient(1px 1px at 18% 24%, #6d5bd0, transparent), radial-gradient(1px 1px at 72% 16%, #6d5bd0, transparent), radial-gradient(1.5px 1.5px at 86% 64%, #6d5bd0, transparent), radial-gradient(50% 50% at 22% 30%, rgba(249,168,212,.75), transparent 70%), radial-gradient(50% 50% at 82% 76%, rgba(165,180,252,.8), transparent 70%), linear-gradient(180deg, #e0e4ff, #f6e8fb 55%, #ffe4ea), #f4ecfb', surface: 'rgba(255,255,255,.7)', accent: '#6b4dff', text: '#1c1838' },
+    dark: { bg: 'radial-gradient(1px 1px at 18% 24%, #fff, transparent), radial-gradient(1px 1px at 72% 16%, #fff, transparent), radial-gradient(1.5px 1.5px at 86% 64%, #fff, transparent), radial-gradient(1px 1px at 40% 82%, #fff, transparent), radial-gradient(50% 50% at 24% 30%, rgba(124,58,237,.6), transparent 70%), radial-gradient(50% 50% at 80% 76%, rgba(219,39,119,.45), transparent 70%), radial-gradient(40% 40% at 72% 18%, rgba(37,99,235,.5), transparent 70%), #04030f', surface: 'rgba(14,12,38,.62)', accent: '#a594ff', text: '#f1efff', glow: true },
+  },
 ];
 
 export const DEFAULT_PREFS = {

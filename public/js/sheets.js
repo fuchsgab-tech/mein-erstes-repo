@@ -1,5 +1,5 @@
 // Alle Fenster der App: Tag, Termin, Editor, Kalender, Import, Profil, Einladung
-import { api, auth } from './api.js';
+import { api, auth, isDemo } from './api.js';
 import { h, icon, linkify } from './h.js';
 import { ago, dayLong, dayMonth, relDay, shortDate, untilText, weekdayName, whenLong, whenShort } from './fmt.js';
 import { burst, burstFrom } from './fx.js';
@@ -12,7 +12,7 @@ import { DEFAULT_PREFS, SKINS, prefs, resolvedMode, setPrefs } from './themes.js
 import { addDays, daysBetween, localTz, pad, parseYmd, startOfDay, ymd } from './time.js';
 import {
   avatar, avatarStack, busy, chooseDialog, confirmDialog, copyText, errorToast, field, openSheet, segmented,
-  swatches, toast,
+  swatches, textOn, toast,
 } from './ui.js';
 
 const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -251,7 +251,11 @@ export function openEvent(occ) {
           ev.rrule ? meta('repeat', describeRrule(ev.rrule, o.start)) : null,
           ev.location ? meta('pin', h('a', { href: mapsUrl, target: '_blank', rel: 'noopener noreferrer' }, ev.location)) : null,
           ev.notes ? meta('notes', h('div.notes', null, linkify(ev.notes))) : null,
-          sub ? meta('feed', h('span.muted', null, `Aus dem Abo „${sub.name}“ – wird automatisch aktualisiert.`)) : null,
+          sub ? meta(sub.kind === 'caldav' ? 'phone' : 'feed', h('span.muted', null, sub.kind !== 'caldav'
+            ? `Aus dem Abo „${sub.name}“ – wird automatisch aktualisiert.`
+            : sub.host === 'iCloud'
+              ? `Vom iPhone (iCloud-Kalender „${sub.name}“) – ändern kannst du ihn dort, hier aktualisiert er sich von selbst.`
+              : `Aus „${sub.name}“ (${sub.host}) – wird automatisch aktualisiert.`)) : null,
           meta('user', h('span.muted', null, `Eingetragen von ${person(ev.createdBy).name}`)),
 
           h('div.section', null,
@@ -848,36 +852,49 @@ export function openCalendar(calId, { invite = false } = {}) {
 
           h('div.section', null,
             h('h3', null, 'Importierte Kalender'),
-            cal.subscriptions.length ? h('div.subs', null, cal.subscriptions.map((sub) => h('div.member', null,
-              h('span.sub-icon', null, icon('feed', 18)),
-              h('div.m-main', null,
-                h('strong', null, sub.name),
-                h('span', { class: sub.error ? 'err' : '' }, sub.error ? `Fehler: ${sub.error}` : `${sub.count} Termine · ${sub.host} · aktualisiert ${ago(sub.lastSync)}`),
-              ),
-              h('button.icon-btn', {
-                title: 'Jetzt aktualisieren',
-                onclick: (e) => busy(e.currentTarget, async () => {
-                  const r = await api('POST', `/api/subscriptions/${sub.id}/sync`);
-                  await loadAll();
-                  hooks.render();
-                  toast(`Aktualisiert – ${r.count} Termine`);
-                }),
-              }, icon('refresh', 18)),
-              h('button.icon-btn', {
-                title: 'Abo entfernen',
-                onclick: async () => {
-                  const ok = await confirmDialog({ title: 'Abo entfernen?', text: `Alle Termine aus „${sub.name}“ verschwinden aus diesem Kalender.`, ok: 'Entfernen', danger: true });
-                  if (!ok) return;
-                  try {
-                    await api('DELETE', `/api/subscriptions/${sub.id}`);
+            cal.subscriptions.length ? h('div.subs', null, cal.subscriptions.map((sub) => {
+              const phone = sub.kind === 'caldav';
+              return h('div.member', null,
+                h('span.sub-icon', { class: phone ? 'phone' : '', style: { '--c': cal.color } }, icon(phone ? 'phone' : 'feed', 18)),
+                h('div.m-main', null,
+                  h('strong', null, sub.name),
+                  phone ? h('span.sub-account', null, [sub.host, sub.account].filter(Boolean).join(' · ')) : null,
+                  h('span', { class: sub.error ? 'err' : '' }, sub.error
+                    ? `Fehler: ${sub.error}`
+                    : `${sub.count} Termine · ${phone ? '' : `${sub.host} · `}aktualisiert ${ago(sub.lastSync)}`),
+                ),
+                h('button.icon-btn', {
+                  title: 'Jetzt aktualisieren',
+                  'aria-label': 'Jetzt aktualisieren',
+                  onclick: (e) => busy(e.currentTarget, async () => {
+                    const r = await api('POST', `/api/subscriptions/${sub.id}/sync`);
                     await loadAll();
                     hooks.render();
-                  } catch (err) {
-                    errorToast(err);
-                  }
-                },
-              }, icon('trash', 18)),
-            ))) : h('p.muted.small-text', null, 'Hol dir Termine aus Google, Apple oder Outlook – einmalig oder als Abo, das sich selbst aktualisiert.'),
+                    toast(`Aktualisiert – ${r.count} Termine`);
+                  }),
+                }, icon('refresh', 18)),
+                h('button.icon-btn', {
+                  title: phone ? 'Verbindung trennen' : 'Abo entfernen',
+                  'aria-label': phone ? 'Verbindung trennen' : 'Abo entfernen',
+                  onclick: async () => {
+                    const ok = await confirmDialog(phone ? {
+                      title: 'Verbindung trennen?',
+                      text: `Alle Termine aus „${sub.name}“ verschwinden aus diesem Kalender. Auf deinem iPhone bleibt alles, wie es ist.`,
+                      ok: 'Trennen',
+                      danger: true,
+                    } : { title: 'Abo entfernen?', text: `Alle Termine aus „${sub.name}“ verschwinden aus diesem Kalender.`, ok: 'Entfernen', danger: true });
+                    if (!ok) return;
+                    try {
+                      await api('DELETE', `/api/subscriptions/${sub.id}`);
+                      await loadAll();
+                      hooks.render();
+                    } catch (err) {
+                      errorToast(err);
+                    }
+                  },
+                }, icon('trash', 18)),
+              );
+            })) : h('p.muted.small-text', null, 'Hol dir Termine vom iPhone, aus Google oder Outlook – einmalig oder als Abo, das sich selbst aktualisiert.'),
             h('button.btn.sm', { onclick: () => openImport({ calendarId: cal.id }) }, icon('upload', 16), 'Kalender importieren'),
           ),
 
@@ -972,8 +989,240 @@ const HOLIDAYS = [
   { label: '🇦🇹 Feiertage Österreich', url: 'https://calendar.google.com/calendar/ical/de.austrian%23holiday%40group.v.calendar.google.com/public/basic.ics' },
 ];
 
+// Ein Schloss gibt es nicht als Symbol – feste Grafik, kein Nutzerinhalt
+function lockIcon() {
+  const span = h('span.icon');
+  span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  return span;
+}
+
+// iPhone-Kalender über iCloud (CalDAV): 1. Verbinden, 2. Kalender auswählen
+function iphoneImport({ refresh, close }) {
+  let step = 1;
+  let back = false;
+  let found = null;
+  const chosen = new Set();
+
+  const input = (id, props) => h('input.input', { id, autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', ...props });
+  const userInput = input('cd-user', {
+    type: 'email', inputmode: 'email', autocomplete: 'username', placeholder: 'name@icloud.com', maxlength: 200,
+    value: isDemo ? 'beispiel@icloud.com' : '',
+    onkeydown: (e) => e.key === 'Enter' && !e.isComposing && passInput.focus(),
+  });
+  const passInput = input('cd-pass', {
+    type: 'password', autocomplete: 'off', placeholder: 'xxxx-xxxx-xxxx-xxxx', maxlength: 200,
+    value: isDemo ? 'abcd-efgh-ijkl-mnop' : '',
+    onkeydown: (e) => e.key === 'Enter' && !e.isComposing && connect(),
+  });
+  const showBtn = h('button.cd-show', {
+    type: 'button',
+    'aria-pressed': 'false',
+    'aria-controls': 'cd-pass',
+    onclick: () => {
+      const show = passInput.type === 'password';
+      passInput.type = show ? 'text' : 'password';
+      showBtn.textContent = show ? 'Verbergen' : 'Zeigen';
+      showBtn.setAttribute('aria-pressed', String(show));
+    },
+  }, 'Zeigen');
+  const userLabel = h('label.label', { for: 'cd-user' }, 'Apple-ID');
+  const passLabel = h('label.label', { for: 'cd-pass' }, 'App-spezifisches Passwort');
+  const serverInput = input('cd-server', {
+    type: 'url', inputmode: 'url', autocomplete: 'off', maxlength: 300, placeholder: 'https://cloud.example.com/remote.php/dav',
+    // Bei einem eigenen Server heißt es nicht mehr Apple-ID
+    oninput: () => {
+      const other = !!serverInput.value.trim();
+      userLabel.textContent = other ? 'Benutzername' : 'Apple-ID';
+      passLabel.textContent = other ? 'Passwort oder App-Passwort' : 'App-spezifisches Passwort';
+    },
+  });
+  const error = h('div.cd-error', { role: 'alert', hidden: true });
+  const showError = (msg) => {
+    error.replaceChildren(icon('x', 16), h('span', null, msg));
+    error.hidden = false;
+    error.scrollIntoView({ block: 'nearest' });
+  };
+
+  const steps = () => h('ol.cd-steps', { 'aria-label': 'Fortschritt' },
+    h('li', { class: step === 1 ? 'on' : 'done', 'aria-current': step === 1 ? 'step' : null }, h('b', null, step > 1 ? icon('check', 13) : '1'), 'Verbinden'),
+    h('li', { class: step === 2 ? 'on' : '', 'aria-current': step === 2 ? 'step' : null }, h('b', null, '2'), 'Auswählen'),
+  );
+
+  const connectBtn = h('button.btn.primary', { onclick: () => connect() }, 'Kalender anzeigen', icon('arrowR', 18));
+  const connectFoot = [h('button.btn.ghost', { onclick: () => close() }, 'Abbrechen'), h('span.grow'), connectBtn];
+
+  const connectBody = h('div.cd-step', { tabindex: '-1' },
+    h('div.cd-hero', null,
+      h('div.cd-art', { 'aria-hidden': 'true' },
+        h('span.cd-phone', null, [5, 1, 8].map((i) => h('i', { style: { '--c': COLORS[i].hex } }))),
+        h('span.cd-beam', null, h('i'), h('i'), h('i')),
+        h('span.cd-tile', null, icon('calendar', 22)),
+      ),
+      h('div.cd-hero-text', null,
+        h('strong', null, 'Deine iPhone-Kalender, direkt hier'),
+        h('p', null, 'Einmal verbinden, Kalender antippen – Neues vom iPhone kommt dann von selbst.'),
+      ),
+    ),
+    isDemo ? h('p.cd-demo', null, icon('sparkle', 16), 'Demo: Es wird nichts an Apple gesendet – du siehst Beispiel-Kalender.') : null,
+    h('div.field', null, userLabel, userInput),
+    h('div.field', null, passLabel, h('div.cd-pass', null, passInput, showBtn)),
+    error,
+    h('section.cd-howto', { 'aria-labelledby': 'cd-howto-title' },
+      h('h3', { id: 'cd-howto-title' }, 'Noch kein App-Passwort? So geht’s'),
+      h('ol', null,
+        h('li', null, h('b', null, '1'), h('span', null, 'Öffne ', h('a', { href: 'https://account.apple.com', target: '_blank', rel: 'noopener noreferrer' }, 'account.apple.com'), ' und melde dich an.')),
+        h('li', null, h('b', null, '2'), h('span', null, 'Tippe auf „Anmelden und Sicherheit“ und dann auf „App-spezifische Passwörter“.')),
+        h('li', null, h('b', null, '3'), h('span', null, 'Erstelle ein neues Passwort, z. B. „Zeitgarten“, und kopiere es hierher.')),
+      ),
+    ),
+    h('details.help.cd-other', null,
+      h('summary', null, 'Anderer Kalender-Server (CalDAV)'),
+      h('div.field', null, h('label.label', { for: 'cd-server' }, 'Server-Adresse'), serverInput),
+      h('p.cd-hint', null, 'Für Nextcloud, mailbox.org, Fastmail & Co. Bei iCloud einfach leer lassen.'),
+    ),
+    h('p.cd-privacy', null, h('span.cd-lock', null, lockIcon()),
+      h('span', null, 'Dein App-Passwort wird verschlüsselt gespeichert – nur damit sich deine Kalender automatisch aktualisieren. Du kannst es bei Apple jederzeit widerrufen.')),
+  );
+
+  // ---- Schritt 2 ----
+  const importBtn = h('button.btn.primary', { onclick: () => importChosen() });
+  const pickFoot = [h('button.btn.ghost', { onclick: () => go(1) }, icon('chevL', 18), 'Zurück'), h('span.grow'), importBtn];
+  const allBtn = h('button.cd-all', { type: 'button', onclick: () => toggleAll() });
+  let rows = [];
+  let pickBody = null;
+
+  const selectable = () => found.calendars.filter((c) => !c.connected);
+  function updateSelection() {
+    for (const { c, row, box } of rows) {
+      box.checked = chosen.has(c.id);
+      row.classList.toggle('on', box.checked);
+    }
+    const n = chosen.size;
+    importBtn.disabled = n === 0;
+    importBtn.replaceChildren(icon('check', 18), `${n} Kalender übernehmen`);
+    const all = selectable().every((c) => chosen.has(c.id));
+    allBtn.textContent = all ? 'Keine auswählen' : 'Alle auswählen';
+    allBtn.hidden = !selectable().length;
+  }
+  function toggleAll() {
+    const all = selectable().every((c) => chosen.has(c.id));
+    for (const c of selectable()) {
+      if (all) chosen.delete(c.id);
+      else chosen.add(c.id);
+    }
+    updateSelection();
+  }
+
+  function buildPick() {
+    rows = found.calendars.map((c) => {
+      const box = h('input.cd-box', {
+        type: 'checkbox',
+        disabled: c.connected,
+        onchange: () => {
+          if (box.checked) chosen.add(c.id);
+          else chosen.delete(c.id);
+          updateSelection();
+        },
+      });
+      const row = h('label.cd-row', { class: c.connected ? 'connected' : '', style: { '--c': c.color, '--on-c': textOn(c.color) } },
+        box,
+        h('span.cd-dot'),
+        h('span.cd-name', null, c.name),
+        c.connected ? h('span.cd-linked', null, icon('check', 14), 'Schon verbunden') : h('span.cd-check', null, icon('check', 16)),
+      );
+      return { c, row, box };
+    });
+    const free = selectable().length;
+    pickBody = h('div.cd-step', { tabindex: '-1' },
+      h('div.cd-account', null,
+        h('span.cd-acc-icon', null, icon('phone', 20)),
+        h('div.cd-acc-main', null,
+          h('strong', null, found.host, h('span.cd-ok', null, h('i'), 'verbunden')),
+          h('span', null, found.account),
+        ),
+        h('button.btn.ghost.sm', { onclick: () => go(1) }, 'Ändern'),
+      ),
+      h('div.cd-list-head', null,
+        h('h3', { id: 'cd-list-title' }, 'Deine Kalender', h('span.count', null, found.calendars.length)),
+        allBtn,
+      ),
+      h('div.cd-list', { role: 'group', 'aria-labelledby': 'cd-list-title' }, rows.map((r) => r.row)),
+      free ? null : h('p.cd-hint', null, 'Alle Kalender sind schon verbunden. Du findest sie in der Seitenleiste.'),
+      h('p.cd-note', null, icon('refresh', 16),
+        h('span', null, 'Bleibt automatisch aktuell: Neue und geänderte Termine vom iPhone erscheinen hier von selbst. Jeder Kalender wird ein eigener Zeitgarten-Kalender, den du auch mit Freunden teilen kannst.')),
+    );
+    updateSelection();
+  }
+
+  function go(n) {
+    back = n < step;
+    step = n;
+    refresh();
+    const body = step === 1 ? connectBody : pickBody;
+    body.closest('.sheet-body').scrollTop = 0;
+    body.focus({ preventScroll: true });
+  }
+
+  async function connect() {
+    if (connectBtn.disabled) return;
+    error.hidden = true;
+    const username = userInput.value.trim();
+    const password = passInput.value.trim();
+    const missing = !username ? userInput : !password ? passInput : null;
+    if (missing) {
+      missing.classList.remove('shake');
+      void missing.offsetWidth;
+      missing.classList.add('shake');
+      missing.focus();
+      return;
+    }
+    await busy(connectBtn, async () => {
+      try {
+        found = await api('POST', '/api/caldav/discover', { username, password, server: serverInput.value.trim() || undefined });
+      } catch (e) {
+        showError(e.message);
+        return;
+      }
+      chosen.clear();
+      for (const c of selectable()) chosen.add(c.id);
+      buildPick();
+      go(2);
+    });
+  }
+
+  async function importChosen() {
+    await busy(importBtn, async () => {
+      let r;
+      try {
+        r = await api('POST', '/api/caldav/import', { sessionId: found.sessionId, calendars: [...chosen], tz: localTz() });
+      } catch (e) {
+        if (e.status !== 410) throw e;
+        go(1);
+        showError(e.message);
+        return;
+      }
+      for (const x of r.imported) setHidden(x.calendarId, false);
+      await loadAll();
+      hooks.render();
+      burstFrom(importBtn, ['📱', '✨', '📅', '🎉'], 18);
+      close();
+      toast(`${r.imported.length} Kalender mit ${r.total === 1 ? '1 Termin' : `${r.total} Terminen`} übernommen`);
+      for (const f of r.failed) toast(`„${f.name}“ hat nicht geklappt: ${f.error}`, { error: true });
+    });
+  }
+
+  return {
+    body: () => {
+      const el = step === 1 ? connectBody : pickBody;
+      el.classList.toggle('back', back);
+      return [steps(), el];
+    },
+    foot: () => (step === 1 ? connectFoot : pickFoot),
+  };
+}
+
 export function openImport({ calendarId = null } = {}) {
-  let mode = 'file';
+  let mode = 'phone';
   let fileText = null;
   let fileName = '';
   let subscribe = true;
@@ -1016,7 +1265,7 @@ export function openImport({ calendarId = null } = {}) {
       ),
     ),
   );
-  const urlPanel = h('div.panel', { hidden: true },
+  const urlPanel = h('div.panel', null,
     field('Link zum Kalender', urlInput),
     h('div.chips.wrap', null, HOLIDAYS.map((x) => h('button.chip', {
       type: 'button',
@@ -1043,6 +1292,7 @@ export function openImport({ calendarId = null } = {}) {
   state.calendars.map((c) => h('option', { value: c.id, selected: c.id === calendarId }, `${c.emoji} ${c.name}`)),
   h('option', { value: '__new', selected: !calendarId }, '＋ Neuer Kalender'));
   newNameField.hidden = !!calendarId;
+  const target = h('div.grid-2', null, field('Importieren in', targetSel), newNameField);
 
   const importBtn = h('button.btn.primary', {
     onclick: () => busy(importBtn, async () => {
@@ -1068,25 +1318,24 @@ export function openImport({ calendarId = null } = {}) {
       toast(r.count === 1 ? '1 Termin importiert' : `${r.count} Termine importiert`);
     }),
   }, icon('upload', 18), 'Importieren');
+  const cancelBtn = h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen');
+
+  const phone = iphoneImport({ refresh: () => sheet.refresh(), close: () => sheet.close() });
+  const tabs = segmented([
+    { value: 'phone', label: 'iPhone', icon: 'phone' },
+    { value: 'file', label: 'Datei', icon: 'file' },
+    { value: 'url', label: 'Link', title: 'Internet-Link', icon: 'globe' },
+  ], mode, (v) => {
+    mode = v;
+    sheet.refresh();
+  });
 
   const sheet = openSheet({
     className: 'import-sheet',
     render: () => ({
       title: 'Kalender importieren',
-      body: [
-        segmented([
-          { value: 'file', label: 'Datei', icon: 'file' },
-          { value: 'url', label: 'Internet-Link', icon: 'globe' },
-        ], mode, (v) => {
-          mode = v;
-          filePanel.hidden = v !== 'file';
-          urlPanel.hidden = v !== 'url';
-        }),
-        filePanel,
-        urlPanel,
-        h('div.grid-2', null, field('Importieren in', targetSel), newNameField),
-      ],
-      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen'), h('span.grow'), importBtn],
+      body: [tabs, mode === 'phone' ? phone.body() : [mode === 'file' ? filePanel : urlPanel, target]],
+      foot: mode === 'phone' ? phone.foot() : [cancelBtn, h('span.grow'), importBtn],
     }),
   });
 }
