@@ -1,7 +1,8 @@
 // iPhone-Kalender über iCloud (CalDAV) finden und laden – funktioniert auch mit Nextcloud & Co.
 // Die eigentliche Netzwerk-Anfrage kommt von außen (request), damit sie SSRF-geschützt ist.
 import crypto from 'node:crypto';
-import { sameSite } from './safe-fetch.js';
+import net from 'node:net';
+import { isPrivateAddress, sameSite } from './safe-fetch.js';
 import { children, find, findAll, parseXml, text } from './xml.js';
 
 export const ICLOUD_SERVER = 'https://caldav.icloud.com/';
@@ -9,6 +10,8 @@ const YEAR = 365 * 24 * 3600e3;
 
 const caldavError = (code, message) => Object.assign(new Error(message), { code });
 const isIcloud = (server) => /(^|\.)icloud\.com$/i.test(new URL(server).hostname);
+// Ohne Verschlüsselung (http) nur im eigenen Netz – sonst ginge das Passwort im Klartext durchs Internet
+const isLocalHost = (host) => (net.isIP(host) ? isPrivateAddress(host) : /^(localhost|[^.]+|.+\.(local|lan|home\.arpa|internal))$/i.test(host));
 
 function normalizeServer(raw) {
   const s = String(raw || '').trim();
@@ -19,8 +22,20 @@ function normalizeServer(raw) {
   } catch {
     throw caldavError('invalid', 'Die Server-Adresse ist ungültig.');
   }
-  if (!['http:', 'https:'].includes(u.protocol)) throw caldavError('invalid', 'Die Server-Adresse muss mit https:// beginnen.');
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && isLocalHost(u.hostname.replace(/^\[|\]$/g, '')))) {
+    throw caldavError('invalid', 'Die Server-Adresse muss mit https:// beginnen.');
+  }
+  u.username = '';
+  u.password = '';
   return u.toString();
+}
+
+function resolveHref(href, base) {
+  try {
+    return new URL(href, base).toString();
+  } catch {
+    return null;
+  }
 }
 
 function basicAuth(username, password) {
@@ -89,20 +104,20 @@ function session(creds, request) {
     return findAll(root, 'response').map((r) => {
       const found = {};
       for (const ps of children(r, 'propstat')) {
-        const status = text(find(ps, 'status'));
+        const status = text(children(ps, 'status')[0]);
         if (status && !/\s2\d\d(\s|$)/.test(status)) continue;
-        for (const p of children(find(ps, 'prop'))) found[p.name] ??= p;
+        for (const p of children(children(ps, 'prop')[0])) found[p.name] ??= p;
       }
-      const href = text(find(r, 'href'));
-      return { url: href ? new URL(href, res.url).toString() : res.url, base: res.url, props: found };
-    });
+      const href = text(children(r, 'href')[0]);
+      return { url: href ? resolveHref(href, res.url) : res.url, base: res.url, props: found };
+    }).filter((r) => r.url);
   }
 
   // Ein Verweis (<d:href>) innerhalb einer Eigenschaft: current-user-principal oder calendar-home-set
   async function hrefProp(url, prop) {
     const xml = prop === 'calendar-home-set' ? '<c:calendar-home-set/>' : `<d:${prop}/>`;
     const hit = (await propfind(url, 0, xml))?.find((r) => text(find(r.props[prop], 'href')));
-    return hit ? new URL(text(find(hit.props[prop], 'href')), hit.base).toString() : null;
+    return hit ? resolveHref(text(find(hit.props[prop], 'href')), hit.base) : null;
   }
 
   return { server, icloud, send, propfind, hrefProp };
@@ -161,7 +176,8 @@ export async function discoverCalendars(creds, { request }) {
       : 'Auf diesem Server wurden keine Kalender gefunden.');
   }
   calendars.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'de'));
-  return calendars.map(({ order, ...c }) => c);
+  for (const c of calendars) delete c.order;
+  return calendars;
 }
 
 /**

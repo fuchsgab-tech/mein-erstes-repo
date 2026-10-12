@@ -26,6 +26,9 @@
   --mix: 20%;
   --mix-text: 62%;
   --blur: 0px;
+  /* Leuchten um Termine: Stile setzen nur Größe & Stärke, die Farbe kommt pro Termin aus --c */
+  --ev-glow-geo: 0 0 0 0;
+  --ev-glow-mix: 0%;
   --ev-glow: 0 0 0 transparent;
   --shadow-sm: 0 1px 2px rgba(20, 20, 40, 0.05);
   --shadow: 0 1px 2px rgba(20, 20, 40, 0.04), 0 8px 28px -10px rgba(20, 20, 40, 0.14);
@@ -160,7 +163,8 @@
   --on-accent: #01262d;
   --mix: 20%;
   --mix-text: 40%;
-  --ev-glow: 0 0 16px -3px color-mix(in srgb, var(--c) 80%, transparent);
+  --ev-glow-geo: 0 0 16px -3px;
+  --ev-glow-mix: 80%;
 }
 
 /* ---------- Sunset: Pfirsich & Abendrot ---------- */
@@ -637,6 +641,9 @@ input[type="date"].input, input[type="time"].input { padding: 0 10px; font-varia
 .day.other .num, .day.other .mon { color: var(--text-3); opacity: 0.6; }
 .day.today .num { background: var(--accent); color: var(--on-accent); opacity: 1; box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--accent) 70%, transparent); }
 .week-events { position: absolute; inset: 0; pointer-events: none; }
+
+/* --c wird inline gesetzt – erst dort lässt sich das farbige Leuchten berechnen */
+[style*="--c:"] { --ev-glow: var(--ev-glow-geo) color-mix(in srgb, var(--c) var(--ev-glow-mix), transparent); }
 
 .bar {
   position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 5px;

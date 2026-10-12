@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import { children, decodeEntities, find, findAll, parseXml, text } from '../server/xml.js';
 import { discoverCalendars, fetchCalendarEvents, ICLOUD_SERVER, normalizeColor, secretBox } from '../server/caldav.js';
-import { fetchCalendarText, normalizeCalendarUrl, safeRequest, sameSite } from '../server/safe-fetch.js';
+import { fetchCalendarText, isPrivateAddress, normalizeCalendarUrl, safeRequest, sameSite } from '../server/safe-fetch.js';
 import { createCore, HttpError } from '../server/core.js';
 
 // ---------- XML ----------
@@ -58,6 +58,10 @@ test('XML: tolerant bei kaputtem oder leerem Inhalt', () => {
   const deep = parseXml(`${'<x>'.repeat(20000)}tief${'</x>'.repeat(20000)}`);
   assert.equal(findAll(deep, 'x').length, 19999);
   assert.equal(text(deep), 'tief');
+  // Tausende unpassende End-Tags unter tiefer Verschachtelung dauern nicht ewig (früher quadratisch)
+  const t = Date.now();
+  parseXml(`${'<a>'.repeat(100000)}${'</b>'.repeat(300000)}`);
+  assert.ok(Date.now() - t < 3000, `${Date.now() - t} ms`);
 });
 
 test('Farben und Adressen', () => {
@@ -71,6 +75,19 @@ test('Farben und Adressen', () => {
   assert.ok(!sameSite('https://caldav.icloud.com/', 'http://p42-caldav.icloud.com/'));
   assert.ok(!sameSite('https://caldav.icloud.com/', 'https://evil.example/'));
   assert.ok(!sameSite('http://localhost:1/', 'http://127.0.0.1:1/'));
+  // Kurze Endungen: example.co.uk und evil.co.uk sind verschiedene Anbieter
+  assert.ok(sameSite('https://dav.example.co.uk/', 'https://cloud.example.co.uk/'));
+  assert.ok(!sameSite('https://dav.example.co.uk/', 'https://evil.co.uk/'));
+});
+
+test('Interne Adressen in jeder Schreibweise erkannt (auch IPv6)', () => {
+  const blocked = ['::ffff:7f00:1', '::ffff:127.0.0.1', '[::ffff:a00:1]', '::7f00:1', '::', '::1', '0:0:0:0:0:0:0:1',
+    '64:ff9b::7f00:1', '64:ff9b::169.254.169.254', '2002:a00:1::', 'fe80::1%eth0', 'fc00::1', 'ff02::1', '2001:db8::1',
+    '192.0.2.10', '198.51.100.7', '203.0.113.1', '100.64.0.1'];
+  for (const ip of blocked) assert.equal(isPrivateAddress(ip), true, ip);
+  for (const ip of ['17.253.144.10', '2a00:1450:4001:80b::200e', '::ffff:8.8.8.8', '64:ff9b::808:808', 'icloud.com']) {
+    assert.equal(isPrivateAddress(ip), false, ip);
+  }
 });
 
 // ---------- Nachgebauter iCloud-Server ----------
@@ -219,8 +236,11 @@ test('safeRequest: Weiterleitungen, Methoden, Schutz vor internen Adressen', asy
   r = await safeRequest(`${mock.server}to-other-host`, { headers: { authorization: 'Basic geheim' }, allowPrivate: true });
   assert.equal(JSON.parse(r.text).auth, null);
   assert.equal(new URL(r.url).hostname, 'localhost');
-  // Ohne Freigabe sind interne Adressen gesperrt
+  // Ohne Freigabe sind interne Adressen gesperrt – auch als IPv6-Schreibweise oder über einen Namen
   await assert.rejects(safeRequest(mock.server), { code: 'blocked', message: 'Diese Adresse ist nicht erlaubt.' });
+  await assert.rejects(safeRequest(`http://[::ffff:127.0.0.1]:${mock.ports.root}/echo`), { code: 'blocked' });
+  await assert.rejects(safeRequest(`http://localhost:${mock.ports.root}/echo`), { code: 'blocked' });
+  await assert.rejects(safeRequest('http://nutzer:geheim@example.com/'), { code: 'invalid' });
   await assert.rejects(safeRequest('ftp://example.com/'), { code: 'invalid' });
   // Die alte Funktion für Kalender-Links funktioniert wie bisher
   const t = await fetchCalendarText(`${mock.server}umzug`, { allowPrivate: true });
@@ -278,6 +298,19 @@ test('verständliche Fehler: falsches Passwort, Netzwerk, keine Kalender', async
   const onlyInbox = '<multistatus xmlns="DAV:"><response><href>/1/calendars/inbox/</href><propstat><prop><resourcetype><collection/><schedule-inbox xmlns="urn:ietf:params:xml:ns:caldav"/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>';
   await assert.rejects(discoverCalendars({ username: USER, password: 'x' }, { request: fake(207, onlyInbox) }), { code: 'empty', message: /keine Kalender gefunden/ });
   await assert.rejects(discoverCalendars({ server: 'ftp://x', username: USER, password: 'x' }, { request }), { code: 'invalid' });
+  // Unverschlüsselt nur im eigenen Netz – sonst ginge das Passwort im Klartext durchs Internet
+  await assert.rejects(discoverCalendars({ server: 'http://cloud.example.com', username: USER, password: 'x' }, { request }),
+    { code: 'invalid', message: 'Die Server-Adresse muss mit https:// beginnen.' });
+  await assert.rejects(discoverCalendars({ server: 'http://[2a00:1450::1]/', username: USER, password: 'x' }, { request }), { code: 'invalid' });
+  const asked = [];
+  const record = async (url) => {
+    asked.push(url);
+    return { status: 401, url, text: '' };
+  };
+  await assert.rejects(discoverCalendars({ server: 'http://nas.local/dav', username: USER, password: 'x' }, { request: record }), { code: 'auth' });
+  // Zugangsdaten in der Adresse werden nicht mitgeschickt
+  await assert.rejects(discoverCalendars({ server: 'https://ich:pw@cloud.example.com/dav', username: USER, password: 'x' }, { request: record }), { code: 'auth' });
+  assert.deepEqual(asked, ['http://nas.local/dav', 'https://cloud.example.com/dav']);
 });
 
 test('Zugangsdaten werden mit AES-256-GCM versiegelt', () => {
@@ -295,7 +328,7 @@ test('Zugangsdaten werden mit AES-256-GCM versiegelt', () => {
 
 // ---------- Ende-zu-Ende mit der App-Logik ----------
 
-function makeCore({ withCaldav = true } = {}) {
+function makeCore({ withCaldav = true, discover = (c) => discoverCalendars(c, { request }) } = {}) {
   const db = { version: 1, users: {}, calendars: {}, members: [], events: {}, comments: {}, subscriptions: {}, activity: [] };
   const box = secretBox(crypto.createHash('sha256').update('test-schlüssel').digest());
   const pushed = [];
@@ -310,7 +343,7 @@ function makeCore({ withCaldav = true } = {}) {
     normalizeCalendarUrl,
     ...(withCaldav ? {
       caldav: {
-        discover: (c) => discoverCalendars(c, { request }),
+        discover,
         fetchEvents: (c, url) => fetchCalendarEvents(c, url, { request }),
       },
       sealSecret: box.seal,
@@ -453,6 +486,71 @@ test('iPhone-Import Ende zu Ende: verbinden, auswählen, importieren, aktualisie
   assert.equal((await call('DELETE', `/api/subscriptions/${sub.id}`, token)).status, 200);
   assert.ok(!Object.values(db.subscriptions).some((s) => s.id === sub.id));
   assert.equal(Object.values(db.events).filter((e) => e.calendarId === privat.id).length, 0);
+});
+
+test('Neues App-Passwort repariert die Verbindung, wer den Kalender verlässt, nimmt sie mit', async () => {
+  const { db, box, core, call, pushed } = makeCore();
+  const a = (await call('POST', '/api/users', null, { name: 'Gabriel' })).data;
+  const found = (await call('POST', '/api/caldav/discover', a.token, creds())).data;
+  const privat = found.calendars.find((c) => c.name === 'Privat');
+  const imp = await call('POST', '/api/caldav/import', a.token, { sessionId: found.sessionId, calendars: [privat.id], tz: 'Europe/Berlin' });
+  assert.equal(imp.status, 200);
+  // Die Sitzung ist nach dem Import verbraucht
+  const arbeit = found.calendars.find((c) => c.name === 'Arbeit');
+  assert.equal((await call('POST', '/api/caldav/import', a.token, { sessionId: found.sessionId, calendars: [arbeit.id] })).status, 410);
+  const calId = imp.data.imported[0].calendarId;
+  const stored = Object.values(db.subscriptions).find((s) => s.calendarId === calId);
+
+  // App-Passwort bei Apple widerrufen -> Fehler; dann nicht mehr alle 30 Minuten mit falschem Passwort anklopfen
+  stored.creds = box.seal(JSON.stringify({ ...creds(), password: 'widerrufen' }));
+  assert.equal((await call('POST', `/api/subscriptions/${stored.id}/sync`, a.token)).status, 400);
+  assert.ok(stored.error);
+  stored.lastAttempt = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+  const before = stored.lastAttempt;
+  await core.syncDue(6 * 60 * 60 * 1000);
+  assert.equal(stored.lastAttempt, before);
+
+  // Neu verbinden mit dem neuen Passwort: Verbindung erneuert und gleich wieder aktuell
+  pushed.length = 0;
+  const again = (await call('POST', '/api/caldav/discover', a.token, creds())).data;
+  assert.equal(again.repaired, 1);
+  assert.equal(again.calendars.find((c) => c.name === 'Privat').connected, true);
+  assert.equal(JSON.parse(box.open(stored.creds)).password, PASS);
+  for (let i = 0; i < 50 && stored.error; i++) await new Promise((r) => setTimeout(r, 20));
+  assert.equal(stored.error, null);
+  await new Promise((r) => setTimeout(r, 20));
+  assert.ok(pushed.some((p) => p.userId === a.user.id && p.msg.type === 'calendars'));
+
+  // Lena tritt dem iPhone-Kalender bei; Gabriel verlässt ihn -> seine Zugangsdaten werden nicht weiter benutzt
+  const lena = (await call('POST', '/api/users', null, { name: 'Lena' })).data;
+  const code = (await call('GET', '/api/me', a.token)).data.calendars.find((c) => c.id === calId).inviteCode;
+  assert.equal((await call('POST', `/api/invites/${code}/accept`, lena.token)).status, 200);
+  assert.ok(Object.values(db.events).some((e) => e.calendarId === calId));
+  assert.equal((await call('POST', `/api/calendars/${calId}/leave`, a.token)).status, 200);
+  assert.ok(!db.subscriptions[stored.id]);
+  assert.ok(!Object.values(db.events).some((e) => e.subscriptionId === stored.id));
+  const left = (await call('GET', '/api/me', lena.token)).data.calendars.find((c) => c.id === calId);
+  assert.equal(left.role, 'owner');
+  assert.deepEqual(left.subscriptions, []);
+});
+
+test('Unerwartete Fehler beim Verbinden zeigen keine technischen Details', async () => {
+  const { call } = makeCore({
+    discover: async () => {
+      throw new TypeError('Cannot read properties of undefined (reading \'href\')');
+    },
+  });
+  const { token } = (await call('POST', '/api/users', null, { name: 'Lena' })).data;
+  const r = await call('POST', '/api/caldav/discover', token, { username: USER, password: PASS });
+  assert.equal(r.status, 400);
+  assert.equal(r.data.error, 'Die Verbindung hat nicht geklappt. Prüf die Angaben und versuch es nochmal.');
+  // Zugangsdaten in der Server-Adresse werden entfernt
+  const { db, call: call2 } = makeCore({ discover: async (c) => [{ url: `${c.server}cal/`, name: 'Kalender', color: null }] });
+  const t2 = (await call2('POST', '/api/users', null, { name: 'Max' })).data.token;
+  const found = await call2('POST', '/api/caldav/discover', t2, { server: 'https://max:geheim@cloud.example.com/', username: 'max', password: 'pw' });
+  assert.equal(found.status, 200);
+  assert.equal(found.data.host, 'cloud.example.com');
+  assert.ok(!JSON.stringify(db).includes('geheim'));
 });
 
 test('Ohne CalDAV (z. B. alte Einrichtung) gibt es eine klare Meldung – Links-Import geht weiter', async () => {

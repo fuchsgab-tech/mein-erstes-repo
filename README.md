@@ -21,6 +21,11 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
 
 ### Schön & persönlich
 - **7 Designs** zum Umschalten – jeweils hell und dunkel: Garten, Aurora (Glas & Polarlicht), Neon, Sunset, Ozean, Pastell, Mono
+- **4 Live-Stile** mit bewegtem Hintergrund:
+  - **Jarvis**: Hologramm-HUD mit Radar, Ringen und Leuchtrahmen
+  - **Synthwave**: Retro-Neon mit Sonne, Bergen und Raster-Horizont
+  - **Cyberpunk**: Night City mit Skyline, Regen und Warnstreifen
+  - **Galaxie**: Sterne, Nebel und Sternschnuppen
 - **Selbst einstellen**: Akzentfarbe, Termin-Stil (getönt, kräftig, Linie), Schrift für Überschriften (modern, rund, elegant, technisch), Ecken (eckig bis extra rund), Abstände, Kalenderwochen, bewegter Hintergrund, Effekte
 - Dein Design wird **auf allen deinen Geräten** übernommen
 
@@ -34,9 +39,12 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
 
 ### Kalender
 - **Monat, Woche, Liste** mit Suche – plus Mini-Kalender
+- **Lebendige Monatsansicht**: Ein Banner zur Jahreszeit (fallende Blätter im Herbst, Schnee im Winter …) mit dem nächsten Termin und den Zahlen des Monats, Emojis an den Terminen, Geburtstage hervorgehoben, ein roter Live-Punkt an allem, was gerade läuft, und ein Tagesfortschritt am heutigen Tag
+- **Woche und Liste** mit „Jetzt“-Linie, leicht schraffierten vergangenen Stunden und Terminfarben zum Durchblättern
 - **Ziehen & Ablegen**: Termine in der Monatsansicht einfach auf einen anderen Tag ziehen (am Handy: lange drücken), mit „Rückgängig“
 - **Wiederholungen**: täglich, werktags, wöchentlich, alle 2 Wochen, monatlich, jährlich – auf Wunsch mit Enddatum
 - **Kalender importieren**
+  - **direkt vom iPhone** (iCloud): Apple-ID und ein app-spezifisches Passwort eingeben, dann die Kalender **antippen und auswählen**, ganz ohne Datei. Sie bleiben verbunden und aktualisieren sich etwa alle halbe Stunde von selbst. Über „Anderer Kalender-Server“ geht das auch mit Nextcloud, mailbox.org, Fastmail & Co.
   - als **.ics-Datei** (Export aus Google Kalender, Apple Kalender oder Outlook)
   - als **Internet-Link** (z. B. die „Privatadresse im iCal-Format“ von Google oder ein öffentlicher iCloud-Kalender). Ein Link-Import ist ein **Abo** und aktualisiert sich alle 6 Stunden von selbst.
   - Feiertage für Deutschland und Österreich mit einem Klick
@@ -81,7 +89,7 @@ Zum Ausprobieren gibt es eine Demo-Version, die komplett im Browser läuft. Sie 
 npm run demo
 ```
 
-Das baut die Demo nach `demo/dist/`. Den Ordner kannst du auf jeden statischen Hoster legen, zum Beispiel GitHub Pages. Einladungslinks und Kalender-Abos per Link funktionieren in der Demo nicht, dafür braucht es den echten Server.
+Das baut die Demo nach `demo/dist/`. Den Ordner kannst du auf jeden statischen Hoster legen, zum Beispiel GitHub Pages. Einladungslinks und Kalender-Abos per Link funktionieren in der Demo nicht, dafür braucht es den echten Server. Auch der iPhone-Import wird in der Demo nur nachgespielt: Er zeigt Beispiel-Kalender, egal was man eingibt.
 
 ## Mit Freunden nutzen (online stellen)
 
@@ -99,10 +107,12 @@ Einstellungen über Umgebungsvariablen:
 | --- | --- | --- |
 | `PORT` | Port des Servers | `3000` |
 | `DATA_DIR` | Ordner, in dem die Daten gespeichert werden | `./data` |
+| `ZEITGARTEN_SECRET` | Schlüssel, mit dem die iCloud-Passwörter verschlüsselt gespeichert werden | zufällig, in `DATA_DIR/secret.key` |
 
 ## Deine Daten
 
 Alles wird in **einer Datei** gespeichert: `data/zeitgarten.json`. Zum Sichern kopierst du einfach diese Datei.
+Verbundene iPhone-Kalender brauchen dein app-spezifisches Passwort, damit sie sich später selbst aktualisieren können. Es wird **verschlüsselt** gespeichert und nie an den Browser zurückgeschickt. Der Schlüssel liegt in `data/secret.key` (oder kommt aus `ZEITGARTEN_SECRET`). Sichere ihn zusammen mit `zeitgarten.json`, sonst müssen die iPhone-Kalender nach einem Umzug neu verbunden werden. Du kannst das Passwort jederzeit unter account.apple.com widerrufen.
 Die App benutzt keine Tracker, keine Werbung und lädt keine fremden Schriften oder Skripte.
 
 ## Tests
@@ -111,7 +121,7 @@ Die App benutzt keine Tracker, keine Werbung und lädt keine fremden Schriften o
 npm test
 ```
 
-Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den Export, die Zeitzonen (auch bei der Zeitumstellung), die Wiederholungsregeln und die API mit Einladungen, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
+Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung), die Wiederholungsregeln und die API mit Einladungen, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
 
 ## So ist das Projekt aufgebaut
 
@@ -121,15 +131,22 @@ server/
   core.js         Die eigentliche Logik (Kalender, Einladungen, Termine, Neuigkeiten …), auch für die Demo
   ics.js          .ics-Dateien lesen und schreiben
   safe-fetch.js   Kalender-Links sicher aus dem Internet laden
+  caldav.js       iPhone-/iCloud-Kalender finden und Termine abholen (CalDAV)
+  xml.js          Kleiner XML-Leser für die Antworten von iCloud
   store.js        Speichern in einer JSON-Datei
 public/
   index.html      Einstieg der App
   css/app.css     Das ganze Design: 7 Stile, hell und dunkel, alle Einstellungen
+  css/skins-live.css  Die Live-Stile Jarvis, Synthwave, Cyberpunk und Galaxie
+  css/calendar.css    Die lebendige Monats-, Wochen- und Listenansicht
+  css/caldav.css      Der iPhone-Import
   js/app.js       Start, Seitenleiste, Navigation, Live-Updates
   js/dashboard.js Übersicht „Heute“ mit Himmel, Countdown und Grafiken
   js/views.js     Monats-, Wochen- und Listenansicht, Ziehen & Ablegen
   js/sheets.js    Fenster: Termin, Editor, Kalender, Import, Profil, Neuigkeiten, Design
   js/themes.js    Designs und persönliche Einstellungen
+  js/bgfx.js      Bewegte Hintergründe der Live-Stile
+  js/season.js    Jahreszeiten-Banner im Monat
   js/fx.js        Konfetti, Emoji-Regen und Tooltips
   js/recur.js     Wiederkehrende Termine
   js/time.js      Datum, Zeitzonen und Kalenderwochen

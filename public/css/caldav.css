@@ -177,14 +177,32 @@
 }
 .cd-note .icon { margin-top: 1px; color: var(--accent-2); }
 
+/* Verbindung nach neuem App-Passwort erneuert */
+.cd-renewed {
+  display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 0; padding: 11px 13px; border-radius: var(--r-md);
+  font-size: 13.5px; font-weight: 600; line-height: 1.4;
+  color: color-mix(in srgb, var(--online) 70%, var(--text));
+  background: color-mix(in srgb, var(--online) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--online) 26%, transparent);
+}
+.cd-renewed .icon { margin-top: 1px; }
+
 /* ---------- Kalender-Einstellungen: verbundene iPhone-Kalender ---------- */
 
 .sub-icon.phone { background: color-mix(in srgb, var(--c) 16%, var(--surface)); color: color-mix(in srgb, var(--c) 72%, var(--text)); }
+/* Konto und Stand lieber umbrechen als „aktualisiert gerade …“ abschneiden */
+.subs .m-main span { white-space: normal; overflow-wrap: anywhere; }
 .m-main span.sub-account { color: var(--text-2); }
+.cd-reconnect {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 34px; margin-top: 6px; padding: 0 12px;
+  border-radius: var(--r-sm); font-size: 13.5px; font-weight: 650;
+  color: var(--accent-2); background: var(--accent-soft);
+}
 
 /* Hover nur mit Maus – auf dem Handy bliebe er nach dem Tippen hängen */
 @media (hover: hover) {
   .cd-show:hover, .cd-all:hover { background: var(--accent-soft); }
+  .cd-reconnect:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
   .cd-row:not(.on):not(.connected):hover { background: color-mix(in srgb, var(--c) 5%, var(--surface)); }
 }
 

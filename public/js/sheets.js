@@ -254,7 +254,7 @@ export function openEvent(occ) {
           sub ? meta(sub.kind === 'caldav' ? 'phone' : 'feed', h('span.muted', null, sub.kind !== 'caldav'
             ? `Aus dem Abo „${sub.name}“ – wird automatisch aktualisiert.`
             : sub.host === 'iCloud'
-              ? `Vom iPhone (iCloud-Kalender „${sub.name}“) – ändern kannst du ihn dort, hier aktualisiert er sich von selbst.`
+              ? `Vom iPhone (iCloud-Kalender „${sub.name}“). Ändern kannst du den Termin dort – hier aktualisiert er sich von selbst.`
               : `Aus „${sub.name}“ (${sub.host}) – wird automatisch aktualisiert.`)) : null,
           meta('user', h('span.muted', null, `Eingetragen von ${person(ev.createdBy).name}`)),
 
@@ -862,15 +862,20 @@ export function openCalendar(calId, { invite = false } = {}) {
                   h('span', { class: sub.error ? 'err' : '' }, sub.error
                     ? `Fehler: ${sub.error}`
                     : `${sub.count} Termine · ${phone ? '' : `${sub.host} · `}aktualisiert ${ago(sub.lastSync)}`),
+                  phone && sub.error ? h('button.cd-reconnect', { type: 'button', onclick: () => openImport() }, icon('refresh', 15), 'Neu verbinden') : null,
                 ),
                 h('button.icon-btn', {
                   title: 'Jetzt aktualisieren',
                   'aria-label': 'Jetzt aktualisieren',
                   onclick: (e) => busy(e.currentTarget, async () => {
-                    const r = await api('POST', `/api/subscriptions/${sub.id}/sync`);
-                    await loadAll();
-                    hooks.render();
-                    toast(`Aktualisiert – ${r.count} Termine`);
+                    try {
+                      const r = await api('POST', `/api/subscriptions/${sub.id}/sync`);
+                      toast(`Aktualisiert – ${r.count} Termine`);
+                    } finally {
+                      // Auch nach einem Fehler neu laden – dann steht er (samt „Neu verbinden“) gleich da
+                      await loadAll();
+                      hooks.render();
+                    }
                   }),
                 }, icon('refresh', 18)),
                 h('button.icon-btn', {
@@ -1016,6 +1021,7 @@ function iphoneImport({ refresh, close }) {
   });
   const showBtn = h('button.cd-show', {
     type: 'button',
+    'aria-label': 'Passwort anzeigen',
     'aria-pressed': 'false',
     'aria-controls': 'cd-pass',
     onclick: () => {
@@ -1029,12 +1035,16 @@ function iphoneImport({ refresh, close }) {
   const passLabel = h('label.label', { for: 'cd-pass' }, 'App-spezifisches Passwort');
   const serverInput = input('cd-server', {
     type: 'url', inputmode: 'url', autocomplete: 'off', maxlength: 300, placeholder: 'https://cloud.example.com/remote.php/dav',
-    // Bei einem eigenen Server heißt es nicht mehr Apple-ID
+    // Bei einem eigenen Server heißt es nicht mehr Apple-ID – und der Name muss keine E-Mail-Adresse sein
     oninput: () => {
       const other = !!serverInput.value.trim();
       userLabel.textContent = other ? 'Benutzername' : 'Apple-ID';
       passLabel.textContent = other ? 'Passwort oder App-Passwort' : 'App-spezifisches Passwort';
+      userInput.type = other ? 'text' : 'email';
+      userInput.inputMode = other ? 'text' : 'email';
+      userInput.placeholder = other ? 'Benutzername' : 'name@icloud.com';
     },
+    onkeydown: (e) => e.key === 'Enter' && !e.isComposing && connect(),
   });
   const error = h('div.cd-error', { role: 'alert', hidden: true });
   const showError = (msg) => {
@@ -1098,11 +1108,12 @@ function iphoneImport({ refresh, close }) {
       row.classList.toggle('on', box.checked);
     }
     const n = chosen.size;
-    importBtn.disabled = n === 0;
-    importBtn.replaceChildren(icon('check', 18), `${n} Kalender übernehmen`);
+    const free = selectable().length;
+    importBtn.disabled = free > 0 && n === 0;
+    importBtn.replaceChildren(icon('check', 18), free ? `${n} Kalender übernehmen` : 'Fertig');
     const all = selectable().every((c) => chosen.has(c.id));
     allBtn.textContent = all ? 'Keine auswählen' : 'Alle auswählen';
-    allBtn.hidden = !selectable().length;
+    allBtn.hidden = !free;
   }
   function toggleAll() {
     const all = selectable().every((c) => chosen.has(c.id));
@@ -1142,6 +1153,10 @@ function iphoneImport({ refresh, close }) {
         ),
         h('button.btn.ghost.sm', { onclick: () => go(1) }, 'Ändern'),
       ),
+      found.repaired ? h('p.cd-renewed', { role: 'status' }, icon('check', 16),
+        h('span', null, found.repaired === 1
+          ? 'Die Verbindung für 1 Kalender ist erneuert – er aktualisiert sich jetzt wieder.'
+          : `Die Verbindung für ${found.repaired} Kalender ist erneuert – sie aktualisieren sich jetzt wieder.`)) : null,
       h('div.cd-list-head', null,
         h('h3', { id: 'cd-list-title' }, 'Deine Kalender', h('span.count', null, found.calendars.length)),
         allBtn,
@@ -1159,7 +1174,10 @@ function iphoneImport({ refresh, close }) {
     step = n;
     refresh();
     const body = step === 1 ? connectBody : pickBody;
-    body.closest('.sheet-body').scrollTop = 0;
+    // Inzwischen auf einen anderen Reiter gewechselt oder geschlossen? Dann nichts weiter tun.
+    const scroller = body.closest('.sheet-body');
+    if (!scroller) return;
+    scroller.scrollTop = 0;
     body.focus({ preventScroll: true });
   }
 
@@ -1191,6 +1209,7 @@ function iphoneImport({ refresh, close }) {
   }
 
   async function importChosen() {
+    if (!selectable().length) return close();
     await busy(importBtn, async () => {
       let r;
       try {

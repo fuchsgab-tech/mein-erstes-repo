@@ -78,7 +78,7 @@ export function createCore({
   // Wie die Zugangsdaten angezeigt werden dürfen: g••••@icloud.com
   function maskAccount(name) {
     const [local, domain] = String(name).split(/@(?=[^@]*$)/);
-    return `${local.slice(0, 1)}••••${domain ? `@${domain}` : ''}`;
+    return `${[...local][0] || ''}••••${domain ? `@${domain}` : ''}`;
   }
 
   function calendarView(cal, user) {
@@ -147,6 +147,15 @@ export function createCore({
   function deleteEventData(ev) {
     delete db.events[ev.id];
     for (const c of Object.values(db.comments)) if (c.eventId === ev.id) delete db.comments[c.id];
+  }
+
+  // Wer einen Kalender verlässt, nimmt die eigene iPhone-Verbindung mit – die Zugangsdaten gehören nur ihr bzw. ihm
+  function dropCaldavOf(calId, userId) {
+    for (const s of Object.values(db.subscriptions)) {
+      if (s.calendarId !== calId || s.type !== 'caldav' || s.createdBy !== userId) continue;
+      for (const ev of Object.values(db.events)) if (ev.subscriptionId === s.id) deleteEventData(ev);
+      delete db.subscriptions[s.id];
+    }
   }
 
   function deleteCalendar(cal) {
@@ -341,7 +350,8 @@ export function createCore({
     }
   }
 
-  // Abos, die länger als maxAge nicht aktualisiert wurden, neu laden – iPhone-Kalender öfter
+  // Abos, die länger als maxAge nicht aktualisiert wurden, neu laden – iPhone-Kalender öfter,
+  // außer die Anmeldung klappt gerade nicht (sonst klopfen wir alle 30 Minuten mit falschem Passwort bei Apple an)
   const CALDAV_SYNC_MS = 30 * 60 * 1000;
   let syncing = false;
   async function syncDue(maxAge) {
@@ -350,7 +360,7 @@ export function createCore({
     try {
       for (const sub of Object.values(db.subscriptions)) {
         const last = Date.parse(sub.lastAttempt || sub.lastSync || 0);
-        const age = sub.type === 'caldav' ? Math.min(maxAge, CALDAV_SYNC_MS) : maxAge;
+        const age = sub.type === 'caldav' && !sub.error ? Math.min(maxAge, CALDAV_SYNC_MS) : maxAge;
         if (Date.now() - last > age) await syncSubscription(sub).catch(() => {});
       }
     } finally {
@@ -451,6 +461,7 @@ export function createCore({
       deleteCalendar(cal);
     } else {
       db.members = db.members.filter((m) => !(m.calendarId === cal.id && m.userId === user.id));
+      dropCaldavOf(cal.id, user.id);
       logActivity(cal.id, user.id, 'member.leave', { title: cal.name });
       if (cal.ownerId === user.id) {
         const next = others.sort((a, b) => a.joinedAt.localeCompare(b.joinedAt))[0];
@@ -470,6 +481,7 @@ export function createCore({
     if (params.userId === user.id) fail(400, 'Du kannst dich nicht selbst entfernen.');
     notifyCalendar(cal.id, { type: 'calendars' });
     db.members = db.members.filter((m) => !(m.calendarId === cal.id && m.userId === params.userId));
+    dropCaldavOf(cal.id, params.userId);
     save();
     return { calendar: calendarView(cal, user) };
   });
@@ -717,6 +729,8 @@ export function createCore({
       try {
         const u = new URL(server);
         if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error();
+        u.username = '';
+        u.password = '';
         server = u.toString();
       } catch {
         fail(400, 'Die Server-Adresse ist ungültig.');
@@ -741,13 +755,12 @@ export function createCore({
     for (const [id, sess] of caldavSessions) if (sess.expires < t) caldavSessions.delete(id);
   }
 
-  // Kalender-Adressen, die diese Person schon verbunden hat
-  function connectedCaldavUrls(user) {
+  // iPhone-Kalender, die diese Person verbunden hat
+  function caldavSubsOf(user) {
     const mine = new Set(calendarIdsOf(user.id));
-    return new Set(Object.values(db.subscriptions)
-      .filter((s) => s.type === 'caldav' && s.createdBy === user.id && mine.has(s.calendarId))
-      .map((s) => s.url));
+    return Object.values(db.subscriptions).filter((s) => s.type === 'caldav' && s.createdBy === user.id && mine.has(s.calendarId));
   }
+  const connectedCaldavUrls = (user) => new Set(caldavSubsOf(user).map((s) => s.url));
 
   route('POST', '/api/caldav/discover', async ({ user, body }) => {
     requireCaldav();
@@ -757,7 +770,8 @@ export function createCore({
     try {
       found = await caldav.discover(creds);
     } catch (e) {
-      fail(400, e.message || 'Die Verbindung hat nicht geklappt.');
+      // Nur die eigenen, verständlichen Meldungen weitergeben – keine technischen Interna
+      fail(400, (e.code && e.message) || 'Die Verbindung hat nicht geklappt. Prüf die Angaben und versuch es nochmal.');
     }
     pruneCaldavSessions();
     for (const [id, sess] of caldavSessions) if (sess.userId === user.id) caldavSessions.delete(id);
@@ -772,20 +786,33 @@ export function createCore({
       color: isColor(c.color) ? c.color.toLowerCase() : spare.shift() || PALETTE[i % PALETTE.length],
     }));
     if (!calendars.length) fail(400, 'Es wurden keine Kalender gefunden.');
+    const sealed = sealSecret(JSON.stringify(creds));
     const sessionId = newId(18);
     caldavSessions.set(sessionId, {
       userId: user.id,
       server: creds.server,
       account,
-      creds: sealSecret(JSON.stringify(creds)),
+      creds: sealed,
       calendars,
       expires: Date.now() + CALDAV_SESSION_MS,
     });
-    const connected = connectedCaldavUrls(user);
+
+    // Schon verbundene Kalender übernehmen die neuen Zugangsdaten (z. B. nach einem neuen App-Passwort)
+    const urls = new Set(calendars.map((c) => c.url));
+    const renewed = caldavSubsOf(user).filter((s) => urls.has(s.url));
+    const repaired = renewed.filter((s) => s.error);
+    for (const s of renewed) Object.assign(s, { creds: sealed, server: creds.server, account });
+    if (renewed.length) save();
+    for (const s of repaired) {
+      syncSubscription(s).catch(() => {}).finally(() => notifyCalendar(s.calendarId, { type: 'calendars' }));
+    }
+
+    const connected = new Set(renewed.map((s) => s.url));
     return {
       sessionId,
       account,
       host: caldavHost(creds.server),
+      repaired: repaired.length,
       calendars: calendars.map((c) => ({ id: c.id, name: c.name, color: c.color, connected: connected.has(c.url) })),
     };
   });
@@ -838,6 +865,7 @@ export function createCore({
       imported.push({ calendarId: cal.id, name: cal.name, count });
     });
     if (!imported.length) fail(failed.length ? 400 : 409, failed[0]?.error || 'Diese Kalender sind schon verbunden.');
+    caldavSessions.delete(str(body.sessionId, 64));
     save();
     push(user.id, { type: 'calendars' });
     return { imported, failed, total: imported.reduce((n, x) => n + x.count, 0) };

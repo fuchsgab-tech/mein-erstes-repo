@@ -72,9 +72,14 @@ export function parseXml(input) {
     } else if (text[lt + 1] === '/') {
       const end = text.indexOf('>', lt);
       const name = localName(text.slice(lt + 2, end === -1 ? text.length : end).trim());
-      // Tolerant: bis zum passenden offenen Element schließen
-      const at = stack.findLastIndex((el, idx) => idx > 0 && el.name === name);
-      if (at > 0) stack.length = at;
+      // Tolerant: bis zum passenden offenen Element schließen – nur ein paar Ebenen zurück,
+      // sonst könnte ein bösartiger Server mit tausenden falschen End-Tags alles ausbremsen
+      for (let at = stack.length - 1; at > 0 && at >= stack.length - 64; at--) {
+        if (stack[at].name === name) {
+          stack.length = at;
+          break;
+        }
+      }
       i = end === -1 ? text.length : end + 1;
     } else {
       const end = tagEnd(text, lt + 1);

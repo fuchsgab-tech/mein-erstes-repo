@@ -1,15 +1,93 @@
 // Die drei Ansichten: Monat, Woche, Liste – plus der kleine Monatskalender in der Seitenleiste
 import { h, icon } from './h.js';
-import { dayLong, monthName, relDay, time, weekdayName, WEEKDAYS } from './fmt.js';
+import { dayLong, monthName, relDay, time, untilText, weekdayName, WEEKDAYS } from './fmt.js';
 import { occFirstDay, occLastDay } from './recur.js';
-import { eventColor, state, visibleOccurrences } from './state.js';
+import { eventColor, hooks, state, visibleOccurrences } from './state.js';
 import { prefs } from './themes.js';
 import { addDays, addMonths, daysBetween, isoWeek, parseYmd, sameDay, startOfDay, startOfWeek, ymd } from './time.js';
 import { moveOccurrence, occItem, openDay, openEditor, openEvent } from './sheets.js';
+import { mountSeasonFx, seasonArt, seasonOf } from './season.js';
 import { textOn } from './ui.js';
 
 const isNarrow = () => matchMedia('(max-width: 760px)').matches;
 const cssPx = (el, name, fallback) => parseFloat(getComputedStyle(el).getPropertyValue(name)) || fallback;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+// Läuft fn zu jeder vollen Minute; gibt die Aufräum-Funktion zurück
+function everyMinute(fn) {
+  let iv = 0;
+  const to = setTimeout(() => {
+    fn();
+    iv = setInterval(fn, 60000);
+  }, 60050 - (Date.now() % 60000));
+  return () => {
+    clearTimeout(to);
+    clearInterval(iv);
+  };
+}
+
+// ---------- Emojis, Feste, live ----------
+
+const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}/u;
+const EMOJI_LOOK = /\p{Emoji_Presentation}|\uFE0F|\p{Regional_Indicator}/u;
+const graphemes = typeof Intl.Segmenter === 'function'
+  ? ((seg) => (s) => Array.from(seg.segment(s), (x) => x.segment))(new Intl.Segmenter('de', { granularity: 'grapheme' }))
+  : (s) => Array.from(s);
+const emojiCache = new Map();
+
+// Erstes Emoji im Titel wird zum Symbol, der Text bleibt ohne Doppelung
+function splitEmoji(title) {
+  let r = emojiCache.get(title);
+  if (r) return r;
+  r = { emoji: '', text: title };
+  const parts = graphemes(title);
+  const i = parts.findIndex((g) => EMOJI.test(g) && EMOJI_LOOK.test(g));
+  if (i >= 0) {
+    const text = `${parts.slice(0, i).join('')} ${parts.slice(i + 1).join('')}`.replace(/\s+/g, ' ').replace(/\s([,.!?:;])/g, '$1').trim();
+    r = { emoji: parts[i], text };
+  }
+  if (emojiCache.size > 800) emojiCache.clear();
+  emojiCache.set(title, r);
+  return r;
+}
+
+const BIRTHDAY = /🎂|🥳|geburtstag|birthday/i;
+const FESTIVE = /🎂|🥳|geburtstag|birthday|jahrestag|anniversary/i;
+const isFestive = (o) => (o.allDay && /FREQ=YEARLY/i.test(o.ev.rrule || '')) || FESTIVE.test(o.ev.title);
+const festiveEmoji = (title) => (BIRTHDAY.test(title) ? '🎂' : /hochzeit|💍/i.test(title) ? '💍' : '🎉');
+
+function symbolOf(o) {
+  const { emoji, text } = splitEmoji(o.ev.title);
+  const festive = isFestive(o);
+  return { emoji, text, festive, sym: emoji || (festive ? festiveEmoji(o.ev.title) : '') };
+}
+
+function liveState(o, t) {
+  if (o.end <= t) return 'past';
+  return !o.allDay && o.start <= t ? 'now' : '';
+}
+
+function eventLabel(o, live) {
+  const n = o.ev.attendees?.length || 0;
+  return [
+    o.ev.title,
+    o.allDay ? 'ganztägig' : o.end > o.start ? `${time(o.start)} bis ${time(o.end)} Uhr` : `${time(o.start)} Uhr`,
+    live === 'now' ? 'läuft gerade' : live === 'past' ? 'vorbei' : null,
+    n > 1 ? `${n} sind dabei` : null,
+  ].filter(Boolean).join(', ');
+}
+
+// Klassen „läuft gerade“/„vorbei“ setzen – auch später, wenn die Minute weiterläuft
+function applyLive(el, o, t) {
+  const live = liveState(o, t);
+  if (el.dataset.live === live) return;
+  el.dataset.live = live;
+  el.classList.toggle('past', live === 'past');
+  el.classList.toggle('now', live === 'now');
+  el.setAttribute('aria-label', eventLabel(o, live));
+}
+
+const pulse = () => h('span.ev-live', { 'aria-hidden': 'true' });
 
 // ---------- gemeinsame Balken-Logik ----------
 
@@ -133,31 +211,142 @@ function attachDrag(el, o) {
   });
 }
 
-function barEl(s, { lane, top, showTime, draggable = false }) {
-  const ev = s.o.ev;
+function barEl(s, { lane, top, showTime, draggable = false, t = Date.now(), delay = 0 }) {
+  const o = s.o;
+  const ev = o.ev;
   const color = eventColor(ev);
-  const cls = [s.block ? 'block' : 'timed', s.contL && 'cont-l', s.contR && 'cont-r'].filter(Boolean).join(' ');
+  const { text, festive, sym } = symbolOf(o);
+  const people = ev.attendees?.length || 0;
+  const cls = [s.block ? 'block' : 'timed', s.contL && 'cont-l', s.contR && 'cont-r', festive && 'festive', sym && 'has-ej']
+    .filter(Boolean).join(' ');
   const el = h('button.bar', {
     class: cls,
     style: {
       '--c': color,
       '--on-c': textOn(color),
+      '--d': delay,
       left: `calc(${s.col} * 100% / 7 + 2px)`,
       width: `calc(${s.span} * 100% / 7 - 4px)`,
       top: `${top + s.lane * lane}px`,
       height: `${lane - 3}px`,
     },
     title: ev.title,
+    'data-k': `${ev.id}|${o.orig || ''}`,
     onclick: (e) => {
       e.stopPropagation();
-      if (!suppressClick) openEvent(s.o);
+      if (!suppressClick) openEvent(o);
     },
-  }, !s.block && showTime ? h('span.t', null, time(s.o.start)) : null, h('span.label', null, ev.title));
-  if (draggable) attachDrag(el, s.o);
+  },
+  sym ? h('span.ej', { 'aria-hidden': 'true' }, sym) : null,
+  !s.block && showTime ? h('span.t', null, time(o.start)) : null,
+  h('span.label', null, text),
+  o.allDay ? null : pulse(),
+  showTime && people > 1 ? h('span.ppl', { 'aria-hidden': 'true' }, icon('users', 11), people) : null);
+  applyLive(el, o, t);
+  if (draggable) attachDrag(el, o);
   return el;
 }
 
 // ---------- Monat ----------
+
+// Wie viele Termine liegen an jedem Tag des Rasters?
+function dayLoad(occs, gridStart, days) {
+  const load = new Array(days).fill(0);
+  for (const o of occs) {
+    const a = Math.max(0, daysBetween(gridStart, occFirstDay(o)));
+    const b = Math.min(days - 1, daysBetween(gridStart, occLastDay(o)));
+    for (let i = a; i <= b; i++) load[i]++;
+  }
+  return load;
+}
+
+const busyLevel = (n) => (n >= 7 ? 3 : n >= 5 ? 2 : n >= 3 ? 1 : 0);
+const dayAria = (d, n, today) => `${dayLong(d)}${today ? ', heute' : ''}, ${n ? plural(n, 'Termin', 'Termine') : 'frei'}`;
+const leftText = (ms) => {
+  const m = Math.max(1, Math.round(ms / 60000));
+  return m < 60 ? `${m} Min.` : `${Math.floor(m / 60)} Std.${m % 60 ? ` ${m % 60} Min.` : ''}`;
+};
+
+// Monatsbild: Jahreszeit, Stimmung, Zahlen und der nächste Termin
+function monthBanner(c, occs, today) {
+  const info = seasonOf(c);
+  const first = new Date(c.getFullYear(), c.getMonth(), 1);
+  const next = new Date(c.getFullYear(), c.getMonth() + 1, 1);
+  const inMonth = occs.filter((o) => o.start < next && o.end > first);
+  const current = today >= first && today < next;
+  const future = first > today;
+
+  const birthdays = inMonth.filter((o) => isFestive(o) && BIRTHDAY.test(o.ev.title)).length;
+  const parts = [
+    [inMonth.length, 'Termin', 'Termine', icon('calendar', 12), ''],
+    [inMonth.filter((o) => (o.ev.attendees?.length || 0) > 1).length, 'gemeinsam', 'gemeinsam', '👥', 'st-more'],
+    [birthdays, 'Geburtstag', 'Geburtstage', '🎂', ''],
+    [inMonth.filter(isFestive).length - birthdays, 'Jahrestag', 'Jahrestage', '🎉', 'st-more'],
+  ].filter(([n], i) => n || i === 0);
+  const words = ([n, one, many]) => `${n} ${n === 1 ? one : many}`;
+  // Am Handy werden aus den Wörtern kleine Symbole; Vorleseprogramme bekommen immer den ganzen Satz
+  const stats = inMonth.length
+    ? h('p.mb-stats', null, h('span.sr-only', null, parts.map(words).join(', ')),
+      h('span', { 'aria-hidden': 'true' }, parts.map(([n, one, many, sym, more], i) => h('span.st', { class: more },
+        i ? h('span.sep', null, '·') : null, sym ? h('span.si', null, sym) : null, h('b', null, n), h('span.sw', null, ` ${n === 1 ? one : many}`)))))
+    : h('p.mb-stats', null, future || current ? 'Noch alles frei' : 'Ein ruhiger Monat');
+
+  const chip = (label, o, rel, live) => {
+    const { text, sym } = symbolOf(o);
+    const done = live ? Math.min(1, (Date.now() - o.start) / Math.max(1, o.end - o.start)) : 0;
+    return h('button.mb-chip', {
+      class: live ? 'live' : '',
+      style: { '--c': eventColor(o.ev), '--done': done.toFixed(3) },
+      title: o.ev.title,
+      'aria-label': `${label}: ${o.ev.title}, ${rel}`,
+      onclick: () => openEvent(o),
+    },
+    live ? pulse() : null,
+    h('span.k', null, label),
+    sym && text ? h('span.ej', { 'aria-hidden': 'true' }, sym) : null,
+    h('span.nm', null, text || o.ev.title),
+    h('span.rel', null, rel));
+  };
+  const chips = h('div.mb-chips');
+  const drawChips = () => {
+    const t = Date.now();
+    const keep = chips.contains(document.activeElement) ? [...chips.children].indexOf(document.activeElement) : -1;
+    const out = [];
+    if (current) {
+      let soon = occs.filter((o) => o.end > t);
+      if (!soon.some((o) => o.start > t)) soon = visibleOccurrences(today, addDays(today, 90)).filter((o) => o.end > t);
+      const running = soon.find((o) => !o.allDay && o.start <= t);
+      const upcoming = soon.find((o) => o.start > t);
+      if (running) out.push(chip('Jetzt', running, `noch ${leftText(running.end - t)}`, true));
+      if (upcoming) out.push(chip('Nächstes', upcoming, upcoming.allDay && daysBetween(today, upcoming.start) === 1 ? 'morgen' : untilText(upcoming.start)));
+    } else if (future && inMonth.length) {
+      const starts = inMonth.filter((x) => x.start >= first);
+      const o = starts.find((x) => !/FREQ=(DAILY|WEEKLY)/i.test(x.ev.rrule || '')) || starts[0] || inMonth[0];
+      out.push(chip('Los geht’s', o, untilText(o.start)));
+    }
+    if (!inMonth.length && (current || future)) {
+      out.push(h('button.mb-chip.add', { onclick: () => openEditor({ date: current ? today : first }) }, icon('plus', 14), 'Termin planen'));
+    }
+    chips.replaceChildren(...out);
+    if (keep >= 0) (chips.children[keep] || chips.firstElementChild)?.focus();
+  };
+  drawChips();
+
+  const art = h('div.mb-art', { 'aria-hidden': 'true' });
+  art.innerHTML = seasonArt(info); // feste Grafik ohne Nutzereingaben
+  const sky = h('div.mb-sky');
+  const el = h('section.mb.season', { 'data-scene': info.scene, 'aria-label': `${monthName(c)}: ${info.season}` },
+    art,
+    sky,
+    h('div.mb-text', null,
+      h('div.mb-eyebrow', null, h('span.mb-emoji', { 'aria-hidden': 'true' }, info.emoji), info.season),
+      stats,
+      h('p.mb-mood', null, h('span.mb-emoji', { 'aria-hidden': 'true' }, info.emoji), info.mood),
+      chips,
+    ),
+  );
+  return { el, tick: drawChips, start: () => mountSeasonFx(sky, info) };
+}
 
 export function renderMonth(container) {
   const c = state.cursor;
@@ -167,41 +356,89 @@ export function renderMonth(container) {
   const weeks = Math.ceil((daysBetween(gridStart, last) + 1) / 7);
   const occs = visibleOccurrences(gridStart, addDays(gridStart, weeks * 7));
   const today = startOfDay(new Date());
+  const load = dayLoad(occs, gridStart, weeks * 7);
+  // Fokus über Live-Neuzeichnungen hinweg behalten (Tastatur)
+  const focused = container.contains(document.activeElement) ? document.activeElement : null;
+  const refocus = focused?.closest('.day')?.dataset.date;
+  const refocusBar = focused?.closest('.bar')?.dataset.k;
+  const prog = h('span.dprog', { 'aria-hidden': 'true' }, h('i'));
+  const setProgress = () => prog.style.setProperty('--p', Math.min(1, Math.max(0, (Date.now() - today) / 864e5)).toFixed(4));
+  setProgress();
 
-  const body = h('div.month-body');
+  // Pfeiltasten wandern durch die Tage, Enter öffnet den Tag
+  const onKey = (e) => {
+    const cell = e.target.closest?.('.day');
+    if (!cell) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openDay(parseYmd(cell.dataset.date));
+      return;
+    }
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const to = body.querySelector(`.day[data-date="${ymd(addDays(parseYmd(cell.dataset.date), step))}"]`);
+    if (!to) return;
+    cell.tabIndex = -1;
+    to.tabIndex = 0;
+    to.focus();
+  };
+
+  const body = h('div.month-body', { onkeydown: onKey });
   const rows = [];
   for (let w = 0; w < weeks; w++) {
     const ws = addDays(gridStart, w * 7);
     const days = h('div.week-days', null, WEEKDAYS.map((_, i) => {
       const d = addDays(ws, i);
+      const n = load[w * 7 + i];
+      const isToday = sameDay(d, today);
       const cls = [
         d.getMonth() !== c.getMonth() && 'other',
-        sameDay(d, today) && 'today',
+        isToday && 'today',
         i >= 5 && 'we',
+        busyLevel(n) && `busy-${busyLevel(n)}`,
       ].filter(Boolean).join(' ');
-      return h('div.day', { class: cls, role: 'button', tabindex: '-1', 'aria-label': dayLong(d), 'data-date': ymd(d), onclick: () => openDay(d) },
-        h('span.num', null, d.getDate()),
-        d.getDate() === 1 ? h('span.mon', null, monthName(d).slice(0, 3)) : null,
-        i === 0 && prefs.kw ? h('span.kw', { title: `Kalenderwoche ${isoWeek(d)}` }, `KW ${isoWeek(d)}`) : null,
-      );
+      return h('div.day', {
+        class: cls,
+        role: 'button',
+        tabindex: '-1',
+        'aria-label': dayAria(d, n, isToday),
+        'aria-current': isToday ? 'date' : null,
+        'data-date': ymd(d),
+        onclick: () => openDay(d),
+      },
+      h('span.num', null, d.getDate()),
+      d.getDate() === 1 ? h('span.mon', null, monthName(d).slice(0, 3)) : null,
+      i === 0 && prefs.kw ? h('span.kw', { title: `Kalenderwoche ${isoWeek(d)}` }, `KW ${isoWeek(d)}`) : null,
+      isToday ? prog : null);
     }));
     const layer = h('div.week-events');
     const el = h('div.week', null, days, layer);
     rows.push({ el, layer, ws });
     body.append(el);
   }
+  const tabStop = (refocus && body.querySelector(`.day[data-date="${refocus}"]`))
+    || body.querySelector('.day.today:not(.other)') || body.querySelector(`.day[data-date="${ymd(first)}"]`);
+  tabStop.tabIndex = 0;
 
-  const month = h('div.month', null,
+  const banner = monthBanner(c, occs, today);
+  const month = h('div.month', { class: state.viewFresh ? 'intro' : '' },
+    banner.el,
     h('div.month-head', null, WEEKDAYS.map((d, i) => h('div.dow', { class: i >= 5 ? 'we' : '' }, d))),
     body,
   );
   container.replaceChildren(month);
+  if (refocus) tabStop.focus();
 
+  let liveBars = [];
   const layout = () => {
     const lane = cssPx(month, '--lane', 22);
     const top = cssPx(month, '--dayhead', 30);
     const showTime = !isNarrow();
-    for (const row of rows) {
+    const t = Date.now();
+    liveBars = [];
+    rows.forEach((row, r) => {
       const maxLanes = Math.max(1, Math.floor((row.el.clientHeight - top - 2) / lane));
       const segs = weekSegments(occs, row.ws);
       const need = Array(7).fill(0);
@@ -212,14 +449,18 @@ export function renderMonth(container) {
       for (const s of segs) {
         const cols = Array.from({ length: s.span }, (_, i) => s.col + i);
         const visible = s.lane < maxLanes - 1 || (s.lane === maxLanes - 1 && !cols.some((i) => over[i]));
-        if (visible) out.push(barEl(s, { lane, top, showTime, draggable: true }));
-        else for (const i of cols) hidden[i]++;
+        if (visible) {
+          const el = barEl(s, { lane, top, showTime, draggable: true, t, delay: r * 45 + s.col * 14 + s.lane * 10 });
+          if (!s.o.allDay) liveBars.push({ el, o: s.o });
+          out.push(el);
+        } else for (const i of cols) hidden[i]++;
       }
       hidden.forEach((n, i) => {
         if (!n) return;
         const d = addDays(row.ws, i);
         out.push(h('button.more', {
           style: { left: `calc(${i} * 100% / 7 + 2px)`, width: `calc(100% / 7 - 4px)`, top: `${top + (maxLanes - 1) * lane}px`, height: `${lane - 3}px` },
+          'aria-label': `${plural(n, 'weiterer Termin', 'weitere Termine')} am ${dayLong(d)}`,
           onclick: (e) => {
             e.stopPropagation();
             openDay(d);
@@ -227,16 +468,33 @@ export function renderMonth(container) {
         }, isNarrow() ? `+${n}` : `+${n} weitere`));
       });
       row.layer.replaceChildren(...out);
-    }
+    });
   };
   layout();
+  if (refocusBar) month.querySelector(`.bar[data-k="${CSS.escape(refocusBar)}"]`)?.focus();
   let raf = 0;
   const ro = new ResizeObserver(() => {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(layout);
   });
   ro.observe(body);
-  return () => ro.disconnect();
+
+  const stopFx = banner.start();
+  const introTimer = setTimeout(() => month.classList.remove('intro'), 1200);
+  const stopTick = everyMinute(() => {
+    if (!sameDay(today, new Date())) return hooks.render(); // Mitternacht: neuer Tag
+    const t = Date.now();
+    setProgress();
+    if (!state.dragging) for (const b of liveBars) applyLive(b.el, b.o, t);
+    banner.tick();
+  });
+  return () => {
+    ro.disconnect();
+    cancelAnimationFrame(raf);
+    clearTimeout(introTimer);
+    stopTick();
+    stopFx();
+  };
 }
 
 // ---------- Woche ----------
@@ -271,6 +529,7 @@ export function renderWeek(container) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   const occs = visibleOccurrences(ws, addDays(ws, 7));
   const today = startOfDay(new Date());
+  const t0 = Date.now();
   const blocks = occs.filter((o) => o.allDay || !sameDay(occFirstDay(o), occLastDay(o)));
   const timed = occs.filter((o) => !blocks.includes(o));
 
@@ -278,36 +537,50 @@ export function renderWeek(container) {
   const lanes = segs.reduce((m, s) => Math.max(m, s.lane + 1), 0);
   const lane = isNarrow() ? 20 : 24;
   const alldayLayer = h('div.wv-allday-lanes', { style: { height: `${Math.max(1, lanes) * lane + 6}px` } },
-    segs.map((s) => barEl(s, { lane, top: 3, showTime: false })));
+    segs.map((s) => barEl(s, { lane, top: 3, showTime: false, t: t0 })));
 
   const head = h('div.wv-head', null,
     h('div.wv-gutter'),
-    h('div.wv-days', null, days.map((d, i) => h('button.wv-dayhead', {
-      class: sameDay(d, today) ? 'today' : '',
-      onclick: () => openDay(d),
-      'aria-label': dayLong(d),
-    }, h('span.wd', null, WEEKDAYS[i]), h('span.dn', null, d.getDate())))),
+    h('div.wv-days', null, days.map((d, i) => {
+      const list = occs.filter((o) => occFirstDay(o) <= d && occLastDay(o) >= d);
+      return h('button.wv-dayhead', {
+        class: sameDay(d, today) ? 'today' : d < today ? 'past' : '',
+        onclick: () => openDay(d),
+        'aria-label': dayAria(d, list.length, sameDay(d, today)),
+        'aria-current': sameDay(d, today) ? 'date' : null,
+      },
+      h('span.wd', null, WEEKDAYS[i]),
+      h('span.dn', null, d.getDate()),
+      h('span.wv-dots', { 'aria-hidden': 'true' },
+        list.slice(0, 4).map((o) => h('i', { style: { '--c': eventColor(o.ev) } })),
+        list.length > 4 ? h('b', null, `+${list.length - 4}`) : null));
+    })),
   );
 
-  const cols = days.map((d) => {
+  const evEls = [];
+  const pastShade = h('div.wv-past', { 'aria-hidden': 'true' });
+  const cols = days.map((d, di) => {
     const dayStart = d.getTime();
     const items = columnize(timed.filter((o) => sameDay(occFirstDay(o), d)).map((o) => ({
       o,
       s: Math.max(0, (o.start - dayStart) / 60000),
       e: Math.min(1440, Math.max((o.end - dayStart) / 60000, (o.start - dayStart) / 60000 + 20)),
     })));
+    const isToday = sameDay(d, today);
     const col = h('div.wv-col', {
-      class: sameDay(d, today) ? 'today' : '',
+      class: [isToday && 'today', di >= 5 && 'we'].filter(Boolean).join(' '),
       onclick: (e) => {
         if (e.target !== col) return;
         const hour = Math.min(23, Math.floor(e.offsetY / cssPx(col, '--hour', 48)));
         openEditor({ date: d, hour });
       },
-    }, items.map((it) => {
+    }, isToday ? pastShade : null, items.map((it) => {
       const dur = it.e - it.s;
       const ev = it.o.ev;
-      return h('button.wv-ev', {
-        class: dur < 45 ? 'short' : '',
+      const short = dur < 45;
+      const { emoji, text } = splitEmoji(ev.title);
+      const el = h('button.wv-ev', {
+        class: short ? 'short' : '',
         style: {
           '--c': eventColor(ev),
           '--on-c': textOn(eventColor(ev)),
@@ -318,23 +591,35 @@ export function renderWeek(container) {
         },
         title: ev.title,
         onclick: () => openEvent(it.o),
-      }, h('span.tt', null, dur < 45 ? h('span.tm', null, `${time(it.o.start)} `) : null, ev.title),
-      dur >= 45 ? h('span.tm', null, `${time(it.o.start)} – ${time(it.o.end)}`) : null);
+      },
+      h('span.tt', null, pulse(), short ? h('span.tm', null, `${time(it.o.start)} `) : null,
+        emoji && text ? h('span.ej', { 'aria-hidden': 'true' }, emoji) : null, text || ev.title),
+      short ? null : h('span.tm', null, `${time(it.o.start)} – ${time(it.o.end)}`),
+      emoji && dur >= 100 ? h('span.wm', { 'aria-hidden': 'true' }, emoji) : null);
+      applyLive(el, it.o, t0);
+      evEls.push({ el, o: it.o });
+      return el;
     }));
     return col;
   });
 
-  const nowLine = h('div.now-line');
+  const nowTag = h('span.now-tag');
+  const nowLine = h('div.now-line', { 'aria-hidden': 'true' }, h('span.now-rail'), nowTag);
   const colsEl = h('div.wv-cols', null, cols, nowLine);
   const placeNow = () => {
     const n = new Date();
     const i = days.findIndex((d) => sameDay(d, n));
+    const top = `calc(${(n.getHours() * 60 + n.getMinutes()) / 60} * var(--hour))`;
     nowLine.hidden = i < 0;
     if (i >= 0) {
       nowLine.style.left = `calc(${i} * 100% / 7)`;
       nowLine.style.width = 'calc(100% / 7)';
-      nowLine.style.top = `calc(${(n.getHours() * 60 + n.getMinutes()) / 60} * var(--hour))`;
+      nowLine.style.top = top;
+      nowLine.style.setProperty('--i', i);
+      nowTag.textContent = time(n);
+      pastShade.style.height = top;
     }
+    for (const x of evEls) applyLive(x.el, x.o, n.getTime());
   };
   placeNow();
 
@@ -345,15 +630,47 @@ export function renderWeek(container) {
     ),
   );
 
-  const view = h('div.wv', null, head, h('div.wv-allday', null, h('div.wv-gutter.wv-allday-label', null, 'ganzt.'), alldayLayer), scroll);
+  const view = h('div.wv', null, head,
+    h('div.wv-allday', null, h('div.wv-gutter.wv-allday-label', { title: 'Ganztägig' }, icon('sun', 13), h('span', null, 'ganztags')), alldayLayer),
+    scroll);
   container.replaceChildren(view);
   scroll.scrollTop = weekScroll ?? cssPx(view, '--hour', 48) * 7 - 8;
 
-  const timer = setInterval(placeNow, 60000);
-  return () => clearInterval(timer);
+  return everyMinute(() => {
+    if (!sameDay(today, new Date())) hooks.render(); // Mitternacht: neuer Tag
+    else placeNow();
+  });
 }
 
 // ---------- Liste ----------
+
+function listItem(o, day) {
+  const el = occItem(o, day);
+  const { emoji, text, festive, sym } = symbolOf(o);
+  const title = el.querySelector('.title');
+  if (emoji && text && title) title.textContent = text;
+  const av = h('span.lv-av', { 'aria-hidden': 'true', class: sym ? '' : 'mono' }, sym || (graphemes(text.trim())[0] || '•').toUpperCase());
+  const stripe = el.querySelector('.stripe');
+  if (stripe) stripe.after(av);
+  else el.prepend(av);
+  if (festive) el.classList.add('festive');
+  return el;
+}
+
+function monthSeparator(d) {
+  const info = seasonOf(d);
+  const art = h('span.lv-month-art', { 'aria-hidden': 'true' });
+  art.innerHTML = seasonArt(info); // feste Grafik ohne Nutzereingaben
+  return h('h2.lv-month.season', { 'data-scene': info.scene },
+    art,
+    h('span.lv-month-text', null,
+      h('strong', null, monthName(d), d.getFullYear() !== new Date().getFullYear() ? ` ${d.getFullYear()}` : ''),
+      h('span.lv-month-mood', null, h('span', { 'aria-hidden': 'true' }, info.emoji), ` ${info.mood}`),
+    ),
+  );
+}
+
+const REL_CLASS = { Heute: 'today', Morgen: 'tomorrow', Gestern: 'yesterday' };
 
 export function renderList(container) {
   const searchInput = h('input', {
@@ -397,16 +714,24 @@ export function renderList(container) {
     }
     const today = startOfDay(new Date());
     const out = [];
+    let lastMonth = null;
     for (const { day, items } of groups.values()) {
+      const mk = day.getFullYear() * 12 + day.getMonth();
+      if (lastMonth !== null && mk !== lastMonth) out.push(monthSeparator(day));
+      lastMonth = mk;
       const rel = relDay(day);
       out.push(h('section.lv-day', { class: sameDay(day, today) ? 'today' : '' },
-        h('button.lv-date', { onclick: () => openDay(day) },
+        h('button.lv-date', { onclick: () => openDay(day), 'aria-label': dayLong(day) },
           h('span.dn', null, day.getDate()),
           h('span.wd', null, WEEKDAYS[(day.getDay() + 6) % 7]),
         ),
         h('div.lv-items', null,
-          h('div.lv-label', null, rel ? `${rel} · ` : '', weekdayName(day), ', ', day.getDate(), '. ', monthName(day), day.getFullYear() !== today.getFullYear() ? ` ${day.getFullYear()}` : ''),
-          items.map((o) => occItem(o, day)),
+          h('div.lv-label', null,
+            rel ? h('span.lv-chip', { class: REL_CLASS[rel] }, rel) : null,
+            h('span.lv-dtext', null, weekdayName(day), ', ', day.getDate(), '. ', monthName(day), day.getFullYear() !== today.getFullYear() ? ` ${day.getFullYear()}` : ''),
+            h('span.lv-count', null, plural(items.length, 'Termin', 'Termine')),
+          ),
+          items.map((o) => listItem(o, day)),
         ),
       ));
     }

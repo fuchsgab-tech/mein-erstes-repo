@@ -23,6 +23,8 @@
   backdrop-filter: none; -webkit-backdrop-filter: none;
 }
 :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+/* Zahlen in der Wochen-Heatmap kräftiger – die Felder liegen halbtransparent über dem bewegten Bild */
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .heat .cell { --text-2: var(--text); }
 :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky-art::before,
 :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky-art::after,
 :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sky::before,
@@ -39,8 +41,8 @@
     radial-gradient(35% 35% at 4% 96%, rgba(0, 190, 240, 0.12), transparent 70%),
     linear-gradient(180deg, #f4fbfe, #e2f0f7);
   --surface: #fbfeff;
-  --card: rgba(250, 254, 255, 0.8);
-  --sidebar-bg: rgba(246, 252, 255, 0.78);
+  --card: rgba(250, 254, 255, 0.76);
+  --sidebar-bg: rgba(246, 252, 255, 0.74);
   --surface-2: rgba(0, 121, 166, 0.07);
   --surface-3: rgba(0, 121, 166, 0.14);
   --line: rgba(0, 105, 145, 0.14);
@@ -53,9 +55,10 @@
   --danger: #d4293f;
   --online: #0c9c63;
   --mix: 16%;
-  --mix-text: 66%;
+  --mix-text: 58%;
   --blur: 12px;
-  --ev-glow: 0 0 10px -4px color-mix(in srgb, var(--c) 70%, transparent);
+  --ev-glow-geo: 0 0 10px -4px;
+  --ev-glow-mix: 70%;
   --shadow-sm: 0 0 0 1px rgba(0, 121, 166, 0.05);
   --shadow: 0 0 0 1px rgba(0, 121, 166, 0.04), 0 14px 34px -20px rgba(0, 80, 120, 0.4);
   --shadow-lg: 0 0 0 1px rgba(0, 121, 166, 0.14), 0 30px 70px -24px rgba(0, 60, 90, 0.45);
@@ -67,7 +70,7 @@
   --hud-panel: linear-gradient(115deg, #ffffff, #e4f5fc 60%, #d3edf8);
   --fx-a: var(--accent);
   --fx-b: #0aa5d6;
-  --fx-k: 0.7;
+  --fx-k: 0.85;
 }
 :root[data-skin="jarvis"][data-mode="dark"] {
   --bg: #01070d;
@@ -83,15 +86,16 @@
   --line: rgba(80, 210, 255, 0.12);
   --line-2: rgba(80, 210, 255, 0.28);
   --text: #e3f8ff;
-  --text-2: #92c8dd;
-  --text-3: #6596ac;
+  --text-2: #a3d3e6;
+  --text-3: #7aa5b9;
   --accent: #35e0ff;
   --on-accent: #00222c;
   --danger: #ff4d64;
   --online: #3dffb2;
   --mix: 16%;
   --mix-text: 42%;
-  --ev-glow: 0 0 14px -3px color-mix(in srgb, var(--c) 75%, transparent);
+  --ev-glow-geo: 0 0 14px -3px;
+  --ev-glow-mix: 75%;
   --shadow-sm: 0 0 0 1px rgba(53, 224, 255, 0.06);
   --shadow: 0 0 0 1px rgba(53, 224, 255, 0.05), 0 0 36px -16px rgba(53, 224, 255, 0.4), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
   --shadow-lg: 0 0 0 1px rgba(53, 224, 255, 0.16), 0 0 70px -20px rgba(53, 224, 255, 0.35), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
@@ -130,7 +134,7 @@
 /* Scanner, der über Monat und Woche wandert (unter dem Inhalt) */
 :root[data-skin="jarvis"] :is(.month, .wv)::before {
   content: ""; position: absolute; left: 0; right: 0; top: -180px; height: 180px; z-index: -1; pointer-events: none;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 6%, transparent) 80%, color-mix(in srgb, var(--accent) 26%, transparent) 99%, transparent);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 4%, transparent) 80%, color-mix(in srgb, var(--accent) 18%, transparent) 99%, transparent);
   opacity: 0;
 }
 :root[data-skin="jarvis"][data-motion="on"] :is(.month, .wv)::before { animation: hud-scan 11s linear infinite; }
@@ -158,7 +162,7 @@
 }
 :root[data-skin="jarvis"] .day.today .num::after,
 :root[data-skin="jarvis"] .wv-dayhead.today .dn::after {
-  content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; border: 1px dashed var(--accent);
+  content: ""; position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; border: 1px dashed var(--accent);
 }
 :root[data-skin="jarvis"][data-motion="on"] .day.today .num::after,
 :root[data-skin="jarvis"][data-motion="on"] .wv-dayhead.today .dn::after { animation: spin 7s linear infinite; }
@@ -254,9 +258,10 @@
   --danger: #d6264a;
   --online: #10a37f;
   --mix: 22%;
-  --mix-text: 64%;
+  --mix-text: 56%;
   --blur: 12px;
-  --ev-glow: 0 0 12px -4px color-mix(in srgb, var(--c) 80%, transparent);
+  --ev-glow-geo: 0 0 12px -4px;
+  --ev-glow-mix: 80%;
   --shadow-sm: 0 1px 2px rgba(120, 30, 120, 0.06);
   --shadow: 0 0 0 1px rgba(194, 24, 154, 0.08), 0 14px 36px -18px rgba(194, 24, 154, 0.4);
   --shadow-lg: 0 0 0 1px rgba(194, 24, 154, 0.12), 0 30px 80px -24px rgba(110, 20, 120, 0.45);
@@ -299,7 +304,8 @@
   --online: #2dffc4;
   --mix: 22%;
   --mix-text: 42%;
-  --ev-glow: 0 0 16px -3px color-mix(in srgb, var(--c) 85%, transparent);
+  --ev-glow-geo: 0 0 16px -3px;
+  --ev-glow-mix: 85%;
   --shadow-sm: 0 0 0 1px rgba(255, 61, 207, 0.08);
   --shadow: 0 0 0 1px rgba(255, 61, 207, 0.14), 0 0 40px -16px rgba(255, 61, 207, 0.55), 0 20px 50px -24px rgba(0, 0, 0, 0.8);
   --shadow-lg: 0 0 0 1px rgba(255, 61, 207, 0.25), 0 0 80px -20px rgba(255, 61, 207, 0.45), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
@@ -307,7 +313,7 @@
   --toast-text: #fff0fd;
   --toast-icon: var(--accent);
   --scrim: rgba(8, 0, 22, 0.6);
-  --chrome: linear-gradient(180deg, #ffffff 0%, #d9f6ff 40%, #8e74ff 49%, #3a1366 51%, #ff5fd2 74%, #ffd36b 100%);
+  --chrome: linear-gradient(180deg, #ffffff 0%, #d4f3ff 40%, #a48cff 48.5%, #5a2a9e 50%, #ff6ad5 52%, #ff9ad9 72%, #ffd36b 100%);
   --sun: linear-gradient(180deg, #ffe66d, #ff8a3d 50%, #ff2fa6);
   --on-sun: #1d0019;
   --btn: linear-gradient(135deg, #ff3dcf, #ff8a3d);
@@ -423,9 +429,10 @@
   --danger: #d1002c;
   --online: #00805e;
   --mix: 24%;
-  --mix-text: 70%;
+  --mix-text: 56%;
   --blur: 10px;
-  --ev-glow: 0 0 0 transparent;
+  --ev-glow-geo: 0 0 0 0;
+  --ev-glow-mix: 0%;
   --shadow-sm: 0 0 0 1px rgba(11, 11, 11, 0.1);
   --shadow: 0 0 0 1px rgba(11, 11, 11, 0.16);
   --shadow-lg: 0 0 0 1px rgba(11, 11, 11, 0.3), 0 30px 70px -24px rgba(40, 36, 0, 0.5);
@@ -449,15 +456,15 @@
   --bg: #050507;
   --wallpaper: linear-gradient(180deg, #050507 40%, #2a0718);
   --surface: #0e0e13;
-  --card: rgba(10, 10, 14, 0.84);
-  --sidebar-bg: rgba(8, 8, 11, 0.84);
+  --card: rgba(10, 10, 14, 0.74);
+  --sidebar-bg: rgba(8, 8, 11, 0.78);
   --surface-2: rgba(252, 238, 10, 0.06);
   --surface-3: rgba(252, 238, 10, 0.12);
   --line: rgba(252, 238, 10, 0.12);
   --line-2: rgba(252, 238, 10, 0.26);
   --text: #f4f1de;
   --text-2: #bdb894;
-  --text-3: #8c8768;
+  --text-3: #9d9878;
   --accent: #fcee0a;
   --on-accent: #0a0a00;
   --cp-2: #00f0ff;
@@ -466,7 +473,8 @@
   --online: #00ffa3;
   --mix: 20%;
   --mix-text: 42%;
-  --ev-glow: 0 0 12px -4px color-mix(in srgb, var(--c) 75%, transparent);
+  --ev-glow-geo: 0 0 12px -4px;
+  --ev-glow-mix: 75%;
   --shadow-sm: 0 0 0 1px rgba(252, 238, 10, 0.06);
   --shadow: 0 0 0 1px rgba(252, 238, 10, 0.08), 0 20px 40px -20px rgba(0, 0, 0, 0.9);
   --shadow-lg: 0 0 0 1px rgba(252, 238, 10, 0.2), 0 30px 80px -24px rgba(0, 0, 0, 0.95);
@@ -535,6 +543,15 @@
 :root[data-skin="cyberpunk"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--on-accent); outline-offset: -6px; }
 :root[data-skin="cyberpunk"][data-events="tint"] .bar.block { box-shadow: inset 2px 0 0 var(--c), var(--ev-glow); }
 :root[data-skin="cyberpunk"] .toast { box-shadow: inset 3px 0 0 var(--toast-icon), var(--shadow-lg); }
+:root[data-skin="cyberpunk"] .sheet { position: relative; }
+:root[data-skin="cyberpunk"] .sheet::after {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background:
+    linear-gradient(var(--accent), var(--accent)) left top / 88px 3px,
+    linear-gradient(var(--accent), var(--accent)) left top / 3px 26px,
+    repeating-linear-gradient(-45deg, var(--accent) 0 3px, transparent 3px 7px) right 18px top 0 / 72px 4px;
+  background-repeat: no-repeat;
+}
 :root[data-skin="cyberpunk"] .cd-num { text-shadow: 3px 0 color-mix(in srgb, var(--cp-3) 55%, transparent), -3px 0 color-mix(in srgb, var(--cp-2) 45%, transparent); }
 
 /* Übersicht: Kopfbereich wie ein Spielmenü – gelb auf schwarz (hell: umgekehrt) */
@@ -608,10 +625,11 @@
   --danger: #e0355a;
   --online: #10b981;
   --mix: 20%;
-  --mix-text: 62%;
+  --mix-text: 56%;
   --blur: 16px;
   --live-bf: blur(10px) saturate(1.3);
-  --ev-glow: 0 0 14px -4px color-mix(in srgb, var(--c) 70%, transparent);
+  --ev-glow-geo: 0 0 14px -4px;
+  --ev-glow-mix: 70%;
   --shadow-sm: 0 1px 2px rgba(60, 40, 130, 0.06);
   --shadow: 0 1px 2px rgba(60, 40, 130, 0.05), 0 16px 40px -20px rgba(80, 60, 180, 0.4);
   --shadow-lg: 0 30px 80px -24px rgba(60, 40, 140, 0.45);
@@ -652,7 +670,8 @@
   --online: #34f5b5;
   --mix: 24%;
   --mix-text: 44%;
-  --ev-glow: 0 0 16px -4px color-mix(in srgb, var(--c) 80%, transparent);
+  --ev-glow-geo: 0 0 16px -4px;
+  --ev-glow-mix: 80%;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 40px -18px rgba(165, 148, 255, 0.45), 0 20px 50px -24px rgba(0, 0, 0, 0.8);
   --shadow-lg: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 80px -24px rgba(165, 148, 255, 0.4), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
@@ -825,7 +844,7 @@
 
 @media (max-width: 760px) {
   :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) { --live-bf: none; --blur: 0px; }
-  :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .sheet {
+  :root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) :is(.sheet, .tabbar) {
     backdrop-filter: none; -webkit-backdrop-filter: none;
   }
   :root[data-skin="jarvis"] .sky { --rs: 230px; }

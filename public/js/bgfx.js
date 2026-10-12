@@ -336,31 +336,32 @@ function jarvis(p) {
       ctx.drawImage(sweep.c, -r * 0.98, -r * 0.98, r * 1.96, r * 1.96);
       ctx.restore();
 
-      // Beschriftungen wie auf einem Helmdisplay
+      // Beschriftungen wie auf einem Helmdisplay – leise, weil meist Termine darüber liegen
       const sec = Math.floor(Date.now() / 1000);
       if (sec !== clockSec) {
         clockSec = sec;
         clockLabel = new Date().toLocaleTimeString('de-DE');
       }
       ctx.globalCompositeOperation = 'source-over';
-      ctx.font = '600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+      ctx.font = '600 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
       ctx.fillStyle = A;
       ctx.strokeStyle = A;
-      ctx.globalAlpha = 0.6 * k;
+      ctx.globalAlpha = 0.45 * k;
       const lx = m.cx + r * 0.78;
       const ly = m.cy - r * 0.86;
       ctx.beginPath();
       ctx.moveTo(m.cx + r * 0.6, m.cy - r * 0.6);
       ctx.lineTo(lx - 8, ly + 6);
-      ctx.lineTo(lx + 120, ly + 6);
+      ctx.lineTo(lx + 110, ly + 6);
       ctx.moveTo(m.cx - r * 0.66, m.cy + r * 0.56);
       ctx.lineTo(m.cx - r * 0.9, m.cy + r * 0.84);
-      ctx.lineTo(m.cx - r * 0.9 - 120, m.cy + r * 0.84);
+      ctx.lineTo(m.cx - r * 0.9 - 110, m.cy + r * 0.84);
       ctx.stroke();
+      ctx.globalAlpha = 0.3 * k;
       ctx.fillText('SYSTEM ONLINE', lx, ly);
-      ctx.fillText(clockLabel, m.cx - r * 0.9 - 120, m.cy + r * 0.84 - 6);
-      ctx.globalAlpha = 0.4 * k;
-      ctx.fillText('52.52°N  13.40°E', lx, ly + 20);
+      ctx.fillText(clockLabel, lx, ly + 18);
+      ctx.globalAlpha = 0.2 * k;
+      ctx.fillText('52.52°N  13.40°E', lx, ly + 32);
 
       // aufsteigende Datenpartikel
       ctx.globalCompositeOperation = p.blend;
@@ -391,6 +392,8 @@ function jarvis(p) {
 function synthwave(p) {
   const halo = glow(p.b, 256, 0.22);
   const k = p.k;
+  const STAR = rgba(p.d, 1);
+  const LINE = rgba(p.c, 1);
   const m = {};
   let sky = null;
   let ground = null;
@@ -453,8 +456,8 @@ function synthwave(p) {
         g.fill();
         // Gitter-Kanten auf den Bergen
         g.save();
-        g.strokeStyle = rgba(p.c, 1);
-        g.shadowColor = rgba(p.c, 1);
+        g.strokeStyle = LINE;
+        g.shadowColor = LINE;
         g.shadowBlur = 10;
         g.lineWidth = 1.5;
         g.globalAlpha = 0.85;
@@ -483,8 +486,8 @@ function synthwave(p) {
       g.beginPath();
       g.rect(0, hy, W, gh - hy);
       g.clip();
-      g.strokeStyle = rgba(p.c, 1);
-      g.shadowColor = rgba(p.c, 1);
+      g.strokeStyle = LINE;
+      g.shadowColor = LINE;
       g.shadowBlur = 8;
       g.lineWidth = 1.3;
       g.globalAlpha = 0.75 * k;
@@ -526,7 +529,7 @@ function synthwave(p) {
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, W, m.hz + 1);
 
-      ctx.fillStyle = rgba(p.d, 1);
+      ctx.fillStyle = STAR;
       for (let i = 0; i < stars.length; i += 4) {
         ctx.globalAlpha = (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 1.7 + stars[i + 3]))) * (p.dark ? 0.9 : 0.55);
         const s = stars[i + 2];
@@ -558,7 +561,7 @@ function synthwave(p) {
 
       // Querlinien kommen auf uns zu
       ctx.globalCompositeOperation = p.blend;
-      ctx.fillStyle = rgba(p.c, 1);
+      ctx.fillStyle = LINE;
       const span = H - m.hz;
       const ph2 = (t * 0.5) % 1;
       for (let j = 0; j < 26; j++) {
@@ -584,22 +587,27 @@ function synthwave(p) {
 function cyberpunk(p) {
   const k = p.k;
   const COL = [rgba(p.a, 1), rgba(p.b, 1), rgba(p.c, 1)];
+  const DROP = rgba(p.d, 1);
   const lamp = [glow(p.a, 64), glow(p.b, 64), glow(p.c, 64)];
-  const beam = layer(80, 512, false);
-  const bgr = beam.g.createLinearGradient(0, 512, 0, 0);
-  bgr.addColorStop(0, rgba(p.b, 0.55));
-  bgr.addColorStop(1, rgba(p.b, 0));
-  beam.g.fillStyle = bgr;
-  beam.g.beginPath();
-  beam.g.moveTo(36, 512);
-  beam.g.lineTo(0, 0);
-  beam.g.lineTo(80, 0);
-  beam.g.lineTo(44, 512);
-  beam.g.closePath();
-  beam.g.fill();
+  // Suchscheinwerfer in Cyan und Magenta
+  const beams = [p.b, p.c].map((col) => {
+    const { c, g } = layer(80, 512, false);
+    const grd = g.createLinearGradient(0, 512, 0, 0);
+    grd.addColorStop(0, rgba(col, 0.6));
+    grd.addColorStop(1, rgba(col, 0));
+    g.fillStyle = grd;
+    g.beginPath();
+    g.moveTo(36, 512);
+    g.lineTo(0, 0);
+    g.lineTo(80, 0);
+    g.lineTo(44, 512);
+    g.closePath();
+    g.fill();
+    return c;
+  });
 
   const m = {};
-  let sky = null;
+  let back = null;
   let city = null;
   let wins = null;
   let rain = null;
@@ -611,10 +619,29 @@ function cyberpunk(p) {
     resize() {
       m.ch = Math.round(H * (W > 760 ? 0.46 : 0.4));
       m.cy = H - m.ch;
-      sky = ctx.createLinearGradient(0, 0, 0, H);
+      // Himmel mit Neonschein über der Skyline (flache Ellipsen) als ruhende Ebene
+      back = layer(W, H);
+      const bg = back.g;
+      const sky = bg.createLinearGradient(0, 0, 0, H);
       sky.addColorStop(0, rgba(p.s1, 1));
       sky.addColorStop(0.62, rgba(mix(p.s1, p.s2, 0.6), 1));
       sky.addColorStop(1, rgba(p.s2, 1));
+      bg.fillStyle = sky;
+      bg.fillRect(0, 0, W, H);
+      bg.globalCompositeOperation = p.blend;
+      const hr = Math.max(W * 0.34, 220);
+      const flat = Math.min(0.5, (m.ch * 0.55) / hr);
+      for (const [fx, col, a] of [[0.28, p.c, 0.3], [0.74, p.b, 0.14], [0.52, p.c, 0.2]]) {
+        const grd = bg.createRadialGradient(0, 0, 0, 0, 0, hr);
+        grd.addColorStop(0, rgba(col, a * (p.dark ? 1 : 0.45) * k));
+        grd.addColorStop(1, rgba(col, 0));
+        bg.save();
+        bg.translate(W * fx, m.cy);
+        bg.scale(1, flat);
+        bg.fillStyle = grd;
+        bg.fillRect(-hr, -hr, hr * 2, hr * 2);
+        bg.restore();
+      }
 
       // Skyline in drei Ebenen
       city = layer(W, m.ch);
@@ -647,6 +674,26 @@ function cyberpunk(p) {
             }
           }
           g.globalAlpha = 1;
+          // Leuchtreklame
+          if (ti && bw > 46 && rnd() < 0.2) {
+            const sw = bw * 0.62;
+            const sh = rnd(12, 22);
+            const sx = x + (bw - sw) / 2;
+            const sy = top + bh * rnd(0.08, 0.3);
+            const col = COL[rnd() < 0.5 ? 2 : rnd() < 0.5 ? 1 : 0];
+            g.save();
+            g.fillStyle = rgba(tier.col, 1);
+            g.fillRect(sx, sy, sw, sh);
+            g.strokeStyle = col;
+            g.fillStyle = col;
+            g.shadowColor = col;
+            g.shadowBlur = 12;
+            g.lineWidth = 1.5;
+            g.strokeRect(sx + 0.75, sy + 0.75, sw - 1.5, sh - 1.5);
+            g.globalAlpha = 0.85;
+            for (let tx = sx + 5; tx < sx + sw - 8; tx += rnd(6, 12)) g.fillRect(tx, sy + sh / 2 - 1.5, rnd(3, 7), 3);
+            g.restore();
+          }
           // Neonstreifen und Kanten
           if (rnd() < 0.16 + ti * 0.04) {
             g.save();
@@ -687,8 +734,7 @@ function cyberpunk(p) {
     frame(t, dt) {
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(back.c, 0, 0, W, H);
 
       // Suchscheinwerfer
       ctx.globalCompositeOperation = p.blend;
@@ -696,8 +742,8 @@ function cyberpunk(p) {
         ctx.save();
         ctx.translate(W * (i ? 0.78 : 0.3), m.cy + m.ch * 0.25);
         ctx.rotate(Math.sin(t * 0.22 + i * 2.4) * 0.38 + (i ? 0.22 : -0.22));
-        ctx.globalAlpha = 0.16 * k;
-        ctx.drawImage(beam.c, -60, -H * 0.95, 120, H * 0.95);
+        ctx.globalAlpha = (p.dark ? 0.2 : 0.12) * k;
+        ctx.drawImage(beams[i], -60, -H * 0.95, 120, H * 0.95);
         ctx.restore();
       }
 
@@ -731,7 +777,7 @@ function cyberpunk(p) {
 
       // Regen in einem Pfad
       ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = rgba(p.d, 1);
+      ctx.strokeStyle = DROP;
       ctx.lineWidth = 1;
       ctx.globalAlpha = (p.dark ? 0.3 : 0.18) * k;
       ctx.beginPath();
@@ -776,22 +822,30 @@ function cyberpunk(p) {
 
 // ---------- Galaxie: Sternenfeld, Nebel und Sternschnuppen ----------
 
+// Nebelschwade: Wölkchen entlang eines geschwungenen Fadens, dazu dunkle Staublücken
 function cloud(col, seed) {
   const rnd = seeded(seed);
   const S = 256;
   const { c, g } = layer(S, S, false);
-  for (let i = 0; i < 24; i++) {
-    const a = rnd(0, TAU);
-    const d = rnd(0, 0.18) * S;
-    const x = S / 2 + Math.cos(a) * d;
-    const y = S / 2 + Math.sin(a) * d * 0.75;
-    const r = rnd(0.1, 0.3) * S;
+  const puff = (x, y, r, a) => {
     const grd = g.createRadialGradient(x, y, 0, x, y, r);
-    grd.addColorStop(0, rgba(col, 0.2));
+    grd.addColorStop(0, rgba(col, a));
     grd.addColorStop(1, rgba(col, 0));
     g.fillStyle = grd;
     g.fillRect(x - r, y - r, r * 2, r * 2);
+  };
+  const bend = rnd(0, TAU);
+  const lift = rnd(0.1, 0.22);
+  for (let i = 0; i < 40; i++) {
+    const u = i / 39;
+    const w = Math.sin(u * Math.PI); // in der Mitte dichter
+    const x = S * (0.14 + 0.72 * u) + rnd(-0.06, 0.06) * S;
+    const y = S * (0.5 + lift * Math.sin(u * Math.PI * 1.6 + bend)) + rnd(-0.1, 0.1) * S * w;
+    puff(x, y, S * rnd(0.05, 0.11 + 0.12 * w), rnd(0.08, 0.2) * (0.4 + 0.6 * w));
   }
+  for (let i = 0; i < 10; i++) puff(S * rnd(0.25, 0.75), S * rnd(0.3, 0.7), S * rnd(0.12, 0.26), 0.05);
+  g.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 9; i++) puff(S * rnd(0.2, 0.8), S * rnd(0.3, 0.7), S * rnd(0.03, 0.08), rnd(0.3, 0.6));
   return c;
 }
 
@@ -801,6 +855,7 @@ function galaxie(p) {
   // Lage, Größe und Drift der Nebel: x, y, Größe, Tempo
   const CL = [0.22, 0.3, 1.05, 1, 0.8, 0.22, 0.85, -1.3, 0.66, 0.84, 1.15, 0.8, 0.12, 0.86, 0.75, -0.9];
   const dot = glow(p.d, 32, 0.22);
+  const STAR = rgba(p.d, 1);
   // heller Stern mit vier Strahlen
   const spark = layer(64, 64, false);
   const sg = spark.g;
@@ -814,6 +869,8 @@ function galaxie(p) {
     sg.fillRect(x0 === x1 ? 31 : x0, y0 === y1 ? 31 : y0, x0 === x1 ? 2 : 60, y0 === y1 ? 2 : 60);
   }
   const m = {};
+  const Q = 0.25; // Nebel sind weich – Viertelauflösung reicht und spart viel Füllarbeit
+  let neb = null;
   let far = null;
   let mid = null;
   let near = null;
@@ -822,16 +879,29 @@ function galaxie(p) {
   return {
     resize() {
       m.size = Math.max(W, H);
+      neb = layer(W * Q, H * Q, false);
       far = layer(W, H);
       const g = far.g;
       const rnd = seeded(404);
       const nf = clamp(Math.round((W * H) / 1700), 200, 900);
       const tint = [p.d, mix(p.d, p.b, 0.4), mix(p.d, p.c, 0.35)];
-      for (let i = 0; i < nf; i++) {
-        g.globalAlpha = rnd(0.15, 0.7) * k;
+      const bandY = (x) => H * (0.4 + 0.14 * Math.sin((x / W) * TAU + 1));
+      const band = Math.max(40, H * 0.11);
+      const glowDot = glow(mix(p.d, p.b, 0.5), 64, 0.4);
+      g.globalAlpha = (p.dark ? 0.05 : 0.07) * k;
+      for (let x = -band; x < W + band; x += band * 0.35) {
+        const r = band * rnd(1.6, 2.6);
+        g.drawImage(glowDot, x - r, bandY(x) + rnd(-0.3, 0.3) * band - r, r * 2, r * 2);
+      }
+      for (let i = 0; i < nf * 1.8; i++) {
+        const inBand = i >= nf;
+        const x = rnd(0, W);
+        // im Band dicht und zur Mitte hin gehäuft
+        const y = inBand ? bandY(x) + (rnd() + rnd() + rnd() - 1.5) * band : rnd(0, H);
+        g.globalAlpha = rnd(0.15, inBand ? 0.55 : 0.7) * k;
         g.fillStyle = rgba(tint[i % 3], 1);
         const s = rnd() < 0.85 ? 1 : 1.6;
-        g.fillRect(rnd(0, W), rnd(0, H), s, s);
+        g.fillRect(x, y, s, s);
       }
       const nm = clamp(Math.round((W * H) / 7000), 50, 220);
       mid = new Float32Array(nm * 4);
@@ -857,28 +927,33 @@ function galaxie(p) {
       ctx.clearRect(0, 0, W, H);
 
       // Nebel
-      ctx.globalCompositeOperation = p.blend;
+      const n = neb.g;
+      n.setTransform(1, 0, 0, 1, 0, 0);
+      n.globalCompositeOperation = 'source-over';
+      n.globalAlpha = 1;
+      n.clearRect(0, 0, neb.c.width, neb.c.height);
+      n.globalCompositeOperation = p.blend;
+      n.globalAlpha = (p.dark ? 0.8 : 0.85) * k;
       for (let i = 0; i < 4; i++) {
         const j = i * 4;
         const s = m.size * CL[j + 2];
         const x = W * CL[j] + Math.sin(t * 0.03 * CL[j + 3] + i * 1.7) * W * 0.05;
         const y = H * CL[j + 1] + Math.cos(t * 0.025 * CL[j + 3] + i) * H * 0.05;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(t * 0.008 * CL[j + 3]);
-        ctx.globalAlpha = (p.dark ? 0.62 : 0.7) * k;
-        ctx.drawImage(clouds[i], -s / 2, -s / 2, s, s);
-        ctx.restore();
+        const a = t * 0.008 * CL[j + 3];
+        const c = Math.cos(a) * Q;
+        const sn = Math.sin(a) * Q;
+        n.setTransform(c, sn, -sn, c, x * Q, y * Q);
+        n.drawImage(clouds[i], -s / 2, -s / 2, s, s);
       }
+      ctx.drawImage(neb.c, 0, 0, W, H);
 
       // ferne Sterne driften langsam (Parallaxe)
-      ctx.globalAlpha = 1;
       const ox = -((t * 3) % W);
       ctx.drawImage(far.c, ox, 0, W, H);
       ctx.drawImage(far.c, ox + W, 0, W, H);
 
       // mittlere Sterne funkeln
-      ctx.fillStyle = rgba(p.d, 1);
+      ctx.fillStyle = STAR;
       for (let i = 0; i < mid.length; i += 4) {
         let x = mid[i] - 7 * dt;
         if (x < -4) x += W + 8;
@@ -914,7 +989,7 @@ function galaxie(p) {
         shot.y += shot.vy * dt;
         shot.life -= dt * 1.2;
         const f = Math.max(0, shot.life);
-        ctx.strokeStyle = rgba(p.d, 1);
+        ctx.strokeStyle = STAR;
         for (let i = 0; i < 12; i++) {
           ctx.globalAlpha = f * (1 - i / 12) * 0.9 * k;
           ctx.lineWidth = 2.2 * (1 - i / 12) + 0.3;
@@ -956,10 +1031,10 @@ function tick(now) {
 function run() {
   cancelAnimationFrame(raf);
   raf = 0;
-  if (!scene) return;
+  if (!scene || document.hidden) return; // beim Zurückkehren meldet sich visibilitychange
   const still = root.dataset.motion === 'off';
   draw(still ? STILL : clock, 0);
-  if (still || document.hidden) return;
+  if (still) return;
   last = performance.now();
   raf = requestAnimationFrame(tick);
 }
