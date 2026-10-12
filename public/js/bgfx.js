@@ -1,6 +1,15 @@
-// Bewegte Hintergründe der Live-Stile (Jarvis, Synthwave, Cyberpunk, Galaxie) – wird einmal von app.js geladen.
+// Bewegte Hintergründe der Live-Stile (Jarvis, Synthwave, Cyberpunk, Galaxie und die Stile aus js/skins/)
+// – wird einmal von app.js geladen.
 // Ein Canvas liegt hinter allem und existiert nur, solange ein Live-Stil aktiv ist.
 // Die Farben kommen aus den CSS-Variablen --fx-*, damit Hell/Dunkel und eigene Akzentfarben passen.
+//
+// Eine Szene ist eine Funktion (p, kit) => { resize(), frame(t, dt) }:
+//   p    Farben aus --fx-a … --fx-d, --fx-s1 … --fx-s4 als [r, g, b], dazu p.dark, p.k (Stärke 0–1), p.blend
+//   kit  Zeichenfläche und Hilfen: kit.ctx, kit.W, kit.H, kit.dpr (immer aktuell), kit.layer, kit.glow,
+//        kit.seeded, kit.rgba, kit.mix, kit.clamp, kit.rand, kit.sideW, kit.TAU
+//   resize()       nach jeder Größenänderung (ruhende Ebenen hier vorberechnen)
+//   frame(t, dt)   ein Bild zeichnen; t = Sekunden, dt = 0 beim Standbild (Bewegung aus)
+import { EXTRA_SKINS } from './skins/index.js';
 
 const root = document.documentElement;
 const TAU = Math.PI * 2;
@@ -1008,6 +1017,16 @@ function galaxie(p) {
 }
 
 const SCENES = { jarvis, synthwave, cyberpunk, galaxie };
+for (const m of EXTRA_SKINS) if (m.scene) SCENES[m.skin.id] = m.scene;
+
+// Was eine Szene aus einer eigenen Datei braucht (Werte als Getter, weil sie sich mit der Größe ändern)
+const kit = {
+  get ctx() { return ctx; },
+  get W() { return W; },
+  get H() { return H; },
+  get dpr() { return dpr; },
+  TAU, clamp, rand, seeded, rgb, rgba, mix, layer, glow, sideW,
+};
 
 // ---------- Ablauf ----------
 
@@ -1100,7 +1119,7 @@ function sync() {
   const key = `${root.dataset.skin}|${p.key}`;
   if (key !== sceneKey) {
     sceneKey = key;
-    scene = make(p);
+    scene = make(p, kit);
     scene.resize();
   } else if (resized) {
     scene.resize();

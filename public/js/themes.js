@@ -1,5 +1,6 @@
 // Designs & persönliche Darstellung
 import { api } from './api.js';
+import { EXTRA_SKINS } from './skins/index.js';
 
 export const SKINS = [
   {
@@ -57,7 +58,8 @@ export const SKINS = [
     id: 'galaxie', name: 'Galaxie', desc: 'Live · Sterne & Nebel', live: true,
     light: { bg: 'radial-gradient(1px 1px at 18% 24%, #6d5bd0, transparent), radial-gradient(1px 1px at 72% 16%, #6d5bd0, transparent), radial-gradient(1.5px 1.5px at 86% 64%, #6d5bd0, transparent), radial-gradient(50% 50% at 22% 30%, rgba(249,168,212,.75), transparent 70%), radial-gradient(50% 50% at 82% 76%, rgba(165,180,252,.8), transparent 70%), linear-gradient(180deg, #e0e4ff, #f6e8fb 55%, #ffe4ea), #f4ecfb', surface: 'rgba(255,255,255,.7)', accent: '#6b4dff', text: '#1c1838' },
     dark: { bg: 'radial-gradient(1px 1px at 18% 24%, #fff, transparent), radial-gradient(1px 1px at 72% 16%, #fff, transparent), radial-gradient(1.5px 1.5px at 86% 64%, #fff, transparent), radial-gradient(1px 1px at 40% 82%, #fff, transparent), radial-gradient(50% 50% at 24% 30%, rgba(124,58,237,.6), transparent 70%), radial-gradient(50% 50% at 80% 76%, rgba(219,39,119,.45), transparent 70%), radial-gradient(40% 40% at 72% 18%, rgba(37,99,235,.5), transparent 70%), #04030f', surface: 'rgba(14,12,38,.62)', accent: '#a594ff', text: '#f1efff', glow: true },
-  },
+  },  // Weitere Live-Stile, jeder in einer eigenen Datei unter js/skins/
+  ...EXTRA_SKINS.map((m) => m.skin),
 ];
 
 export const DEFAULT_PREFS = {

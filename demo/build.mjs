@@ -13,12 +13,16 @@ const copy = (from, to) => {
   fs.copyFileSync(path.join(ROOT, from), path.join(OUT, to));
 };
 
-for (const f of fs.readdirSync(path.join(ROOT, 'public/js'))) if (f !== 'api.js') copy(`public/js/${f}`, `js/${f}`);
+// public/js mit Unterordnern (z. B. js/skins/) – nur api.js kommt aus der Demo
+for (const f of fs.readdirSync(path.join(ROOT, 'public/js'), { recursive: true })) {
+  if (f !== 'api.js' && fs.statSync(path.join(ROOT, 'public/js', f)).isFile()) copy(`public/js/${f}`, `js/${f}`);
+}
 copy('demo/api.js', 'js/api.js'); // statt Server: alles im Browser
 copy('server/core.js', 'server/core.js');
 copy('server/ics.js', 'server/ics.js');
 copy('public/js/time.js', 'public/js/time.js'); // wird von core.js und ics.js eingebunden
-const CSS = ['app.css', 'skins-live.css', 'calendar.css', 'caldav.css'];
+// Dieselben Stylesheets wie die echte App, in derselben Reihenfolge
+const CSS = [...fs.readFileSync(path.join(ROOT, 'public/index.html'), 'utf8').matchAll(/<link rel="stylesheet" href="css\/([^"]+)">/g)].map((m) => m[1]);
 for (const f of CSS) copy(`public/css/${f}`, `css/${f}`);
 copy('public/icon.svg', 'icon.svg');
 copy('public/icon-192.png', 'icon-192.png');
