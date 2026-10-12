@@ -1562,6 +1562,12 @@ function skinCard(sk, mode, set) {
   );
 }
 
+// „Wähl deinen Look“ nach dem Beitreten – Platzhalter, wird vom App-Team ausgebaut
+export function openLookPicker({ onDone = null } = {}) {
+  openDesign();
+  onDone?.();
+}
+
 export function openDesign() {
   const sheet = openSheet({
     className: 'wide design-sheet',
