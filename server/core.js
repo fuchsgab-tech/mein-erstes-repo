@@ -1,7 +1,7 @@
 // Zeitgarten – die eigentliche Logik (Kalender, Einladungen, Termine, Neuigkeiten …) ohne HTTP.
 // Läuft auf dem Server (server/index.js) und in der Demo direkt im Browser (demo/api.js).
 import { parseIcs } from './ics.js';
-import { isValidTz, isYmd } from '../public/js/time.js';
+import { dayNum, fromDayNum, isValidTz, isYmd, pad, wallParts, zonedToUtc } from '../public/js/time.js';
 
 export class HttpError extends Error {
   constructor(status, message) {
@@ -38,16 +38,81 @@ export function createCore({
     throw new HttpError(status, message);
   };
 
-  const tokenIndex = new Map();
-  for (const u of Object.values(db.users)) tokenIndex.set(u.tokenHash, u.id);
+  // ---------- Anmeldung: jedes Gerät hat einen eigenen Token ----------
+  // user.tokens = [{ hash, createdAt, usedAt }]. user.tokenHash spiegelt tokens[0] – so bleibt
+  // das erste Gerät angemeldet, falls jemand auf eine ältere Version zurückgeht.
+  const MAX_DEVICES = 30;
+  const tokenIndex = new Map(); // hash -> userId
+  let migrated = false;
 
-  function issueToken(user) {
-    if (user.tokenHash) tokenIndex.delete(user.tokenHash);
+  const syncLegacyToken = (u) => {
+    if (u.tokens[0]) u.tokenHash = u.tokens[0].hash;
+    else delete u.tokenHash;
+  };
+
+  for (const u of Object.values(db.users)) {
+    if (!Array.isArray(u.tokens)) u.tokens = [];
+    u.tokens = u.tokens.filter((t) => t && typeof t.hash === 'string');
+    if (u.tokenHash && !u.tokens.some((t) => t.hash === u.tokenHash)) {
+      // Altes Format (ein Token pro Person) – oder eine ältere Version hat den ersten Token erneuert
+      const entry = { hash: u.tokenHash, createdAt: u.createdAt || now() };
+      if (u.tokens.length) u.tokens[0] = entry;
+      else u.tokens.push(entry);
+      migrated = true;
+    }
+    for (const t of u.tokens) tokenIndex.set(t.hash, u.id);
+  }
+
+  // Neuer Token für ein Gerät; mit replace wird nur der Token dieses einen Geräts ersetzt
+  function issueToken(user, replace = null) {
     const token = newId(24);
-    user.tokenHash = hash(token);
-    tokenIndex.set(user.tokenHash, user.id);
+    const entry = { hash: hash(token), createdAt: now(), usedAt: now() };
+    user.tokens ||= [];
+    const i = replace ? user.tokens.findIndex((t) => t.hash === replace) : -1;
+    if (i >= 0) {
+      tokenIndex.delete(user.tokens[i].hash);
+      user.tokens[i] = entry;
+    } else {
+      user.tokens.push(entry);
+      // Höchstens MAX_DEVICES Geräte – das am längsten nicht benutzte fliegt raus
+      while (user.tokens.length > MAX_DEVICES) {
+        const last = (t) => t.usedAt || t.createdAt || '';
+        const oldest = user.tokens.reduce((a, t, j) => (last(t) < last(user.tokens[a]) ? j : a), 0);
+        tokenIndex.delete(user.tokens[oldest].hash);
+        user.tokens.splice(oldest, 1);
+      }
+    }
+    tokenIndex.set(entry.hash, user.id);
+    syncLegacyToken(user);
     return token;
   }
+
+  // ---------- Mitglieder ----------
+
+  // Jedes Mitglied hat einen eigenen Abo-Link (/feed/<feedToken>.ics). Wer geht oder entfernt wird, nimmt ihn mit.
+  function addMember(calId, userId, role) {
+    const m = { calendarId: calId, userId, role, joinedAt: now(), feedToken: newId(18) };
+    db.members.push(m);
+    return m;
+  }
+
+  // Früher teilten sich alle Mitglieder einen Abo-Link pro Kalender. Wer ihn hatte, lässt sich nicht mehr
+  // feststellen (auch Leute, die längst entfernt wurden) – deshalb bekommt jetzt jedes Mitglied einen neuen,
+  // persönlichen Link. Der alte zeigt nur noch einen Hinweis, dass er erneuert wurde.
+  for (const m of db.members) {
+    if (!m.feedToken) {
+      m.feedToken = newId(18);
+      migrated = true;
+    }
+  }
+  for (const cal of Object.values(db.calendars)) {
+    if (!cal.feedToken) continue;
+    db.retiredFeeds ||= {};
+    db.retiredFeeds[cal.feedToken] = cal.id;
+    delete cal.feedToken;
+    migrated = true;
+  }
+  if (migrated) save();
 
   const membership = (calId, userId) => db.members.find((m) => m.calendarId === calId && m.userId === userId);
   const membersOf = (calId) => db.members.filter((m) => m.calendarId === calId);
@@ -65,7 +130,27 @@ export function createCore({
     return ev;
   }
 
-  const publicUser = (u) => ({ id: u.id, name: u.name, color: u.color });
+  const publicUser = (u) => ({ id: u.id, name: u.name, color: u.color, emoji: u.emoji || null });
+
+  // Profilbild als Emoji: genau eines – auch zusammengesetzte (👨‍👩‍👧, ❤️‍🔥) und mit Hautfarbe (👍🏽) oder Flaggen (🇩🇪)
+  const graphemes = typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter('de', { granularity: 'grapheme' })
+    : null;
+  function cleanEmoji(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v !== 'string') fail(400, 'Bitte wähle genau ein Emoji aus.');
+    const e = v.trim();
+    if (!e) return null;
+    const pictos = (s) => (s.match(/\p{Extended_Pictographic}/gu) || []).length;
+    const flags = (e.match(/\p{Regional_Indicator}/gu) || []).length;
+    const ok = e.length <= 16
+      && /^[\p{Extended_Pictographic}\p{Emoji_Component}\u200D\uFE0F\u20E3]+$/u.test(e)
+      && !/[\p{L}\p{N}#*]/u.test(e) // keine Buchstaben, Ziffern oder Tasten-Emojis wie 1️⃣
+      && (flags ? flags === 2 && !pictos(e) : e.split('\u200D').every((part) => pictos(part) === 1))
+      && (!graphemes || [...graphemes.segment(e)].length === 1);
+    if (!ok) fail(400, 'Bitte wähle genau ein Emoji aus.');
+    return e;
+  }
 
   const isIcloudHost = (hostname) => /(^|\.)icloud\.com$/i.test(hostname);
   // „iCloud“ oder der Name des CalDAV-Servers
@@ -98,7 +183,7 @@ export function createCore({
       createdAt: cal.createdAt,
       role: membership(cal.id, user.id)?.role,
       inviteCode: cal.inviteCode,
-      feedToken: cal.feedToken,
+      feedToken: membership(cal.id, user.id)?.feedToken || null, // persönlicher Abo-Link
       members: membersOf(cal.id)
         .filter((m) => db.users[m.userId])
         .map((m) => ({ ...publicUser(db.users[m.userId]), role: m.role, joinedAt: m.joinedAt })),
@@ -117,7 +202,7 @@ export function createCore({
 
   function eventView(ev, commentCounts) {
     const { createdBy, ...rest } = ev;
-    return { ...rest, createdBy, commentCount: commentCounts?.[ev.id] || 0 };
+    return { ...rest, attendeesByOcc: ev.attendeesByOcc || {}, createdBy, commentCount: commentCounts?.[ev.id] || 0 };
   }
 
   function commentCountsFor(eventIds) {
@@ -136,11 +221,10 @@ export function createCore({
       emoji: str(emoji, 16).trim() || '📅',
       ownerId: user.id,
       inviteCode: newId(9),
-      feedToken: newId(18),
       createdAt: now(),
     };
     db.calendars[cal.id] = cal;
-    db.members.push({ calendarId: cal.id, userId: user.id, role: 'owner', joinedAt: now() });
+    addMember(cal.id, user.id, 'owner');
     return cal;
   }
 
@@ -162,6 +246,7 @@ export function createCore({
     for (const ev of Object.values(db.events)) if (ev.calendarId === cal.id) deleteEventData(ev);
     for (const s of Object.values(db.subscriptions)) if (s.calendarId === cal.id) delete db.subscriptions[s.id];
     db.members = db.members.filter((m) => m.calendarId !== cal.id);
+    for (const [t, id] of Object.entries(db.retiredFeeds || {})) if (id === cal.id) delete db.retiredFeeds[t];
     delete db.calendars[cal.id];
   }
 
@@ -205,6 +290,79 @@ export function createCore({
     return ev;
   }
 
+  // ---------- Einzelne Tage einer Serie ----------
+
+  // Ein Tag einer Serie wird so bezeichnet wie in public/js/recur.js (o.orig):
+  // 'YYYY-MM-DD' bei ganztägigen Serien, sonst der Beginn als ISO-Zeit in UTC
+  function cleanOccurrence(ev, raw) {
+    if (typeof raw !== 'string' || raw.length > 40) fail(400, 'Ungültiges Datum.');
+    if (ev.allDay) {
+      if (!isYmd(raw) || Number.isNaN(Date.parse(raw)) || raw < ev.start) fail(400, 'Ungültiges Datum.');
+      return raw;
+    }
+    const t = Date.parse(raw);
+    if (Number.isNaN(t) || t < Date.parse(ev.start) - 864e5) fail(400, 'Ungültiges Datum.');
+    return new Date(t).toISOString();
+  }
+
+  const isExdate = (ev, occ) => (ev.exdates || []).some((x) => (ev.allDay ? String(x).slice(0, 10) === occ : Date.parse(x) === Date.parse(occ)));
+
+  // Wer an diesem Tag dabei ist – ohne eigenen Eintrag gilt die Zusage für die ganze Serie
+  const attendeesFor = (ev, occ) => (ev.rrule && occ && ev.attendeesByOcc && Object.hasOwn(ev.attendeesByOcc, occ)
+    ? ev.attendeesByOcc[occ]
+    : ev.attendees || []);
+
+  const MAX_OCC_ENTRIES = 1000;
+  function setOccAttendees(ev, occ, list) {
+    ev.attendeesByOcc ||= {};
+    ev.attendeesByOcc[occ] = list;
+    const keys = Object.keys(ev.attendeesByOcc);
+    // Sehr alte Tage zuerst vergessen (ISO-Zeiten und Daten sortieren sich zeitlich)
+    if (keys.length > MAX_OCC_ENTRIES) for (const k of keys.sort().slice(0, keys.length - MAX_OCC_ENTRIES)) delete ev.attendeesByOcc[k];
+  }
+
+  function dropOccAttendees(ev, occ) {
+    if (!ev.attendeesByOcc) return;
+    for (const k of Object.keys(ev.attendeesByOcc)) {
+      if (ev.allDay ? k === String(occ).slice(0, 10) : Date.parse(k) === Date.parse(occ)) delete ev.attendeesByOcc[k];
+    }
+  }
+
+  // Wird eine Serie verschoben (andere Uhrzeit oder anderer Tag), wandern abgesagte Tage und Zusagen
+  // für einzelne Tage mit – sonst tauchten abgesagte Tage nach dem Verschieben wieder auf.
+  function shiftSeriesDates(old, ev, { exdates = true } = {}) {
+    if (!old.rrule || !ev.rrule || !old.allDay !== !ev.allDay || (old.start === ev.start && old.tz === ev.tz)) return;
+    const ymdNum = (v) => (isYmd(String(v).slice(0, 10)) ? dayNum(...String(v).slice(0, 10).split('-').map(Number)) : NaN);
+    let shift;
+    if (ev.allDay) {
+      const delta = ymdNum(ev.start) - ymdNum(old.start);
+      if (!delta) return;
+      shift = (k) => {
+        const n = ymdNum(k);
+        if (Number.isNaN(n)) return k;
+        const { y, m, d } = fromDayNum(n + delta);
+        return `${y}-${pad(m)}-${pad(d)}`;
+      };
+    } else {
+      const oldTz = isValidTz(old.tz) ? old.tz : 'UTC';
+      const newTz = isValidTz(ev.tz) ? ev.tz : 'UTC';
+      const t0 = Date.parse(old.start);
+      if (Number.isNaN(t0) || Number.isNaN(Date.parse(ev.start))) return;
+      const o = wallParts(t0, oldTz);
+      const n = wallParts(Date.parse(ev.start), newTz);
+      const delta = dayNum(n.y, n.m, n.d) - dayNum(o.y, o.m, o.d);
+      shift = (k) => {
+        const t = Date.parse(k);
+        if (Number.isNaN(t)) return k;
+        const w = wallParts(t, oldTz);
+        const { y, m, d } = fromDayNum(dayNum(w.y, w.m, w.d) + delta);
+        return new Date(zonedToUtc(y, m, d, n.h, n.mi, n.s, newTz)).toISOString();
+      };
+    }
+    if (exdates) ev.exdates = ev.exdates.map(shift);
+    if (ev.attendeesByOcc) ev.attendeesByOcc = Object.fromEntries(Object.entries(ev.attendeesByOcc).map(([k, v]) => [shift(k), v]));
+  }
+
   // ---------- Live-Aktualisierung ----------
 
   function notifyCalendar(calId, payload, { except = null } = {}) {
@@ -228,7 +386,7 @@ export function createCore({
   // Neuigkeiten („Max hat … eingetragen“)
   function logActivity(calId, userId, kind, extra = {}) {
     const u = db.users[userId];
-    const a = { id: newId(8), calendarId: calId, userId, name: u?.name, color: u?.color, kind, at: now(), ...extra };
+    const a = { id: newId(8), calendarId: calId, userId, name: u?.name, color: u?.color, emoji: u?.emoji || null, kind, at: now(), ...extra };
     db.activity.push(a);
     if (db.activity.length > 3000) db.activity.splice(0, db.activity.length - 3000);
     notifyCalendar(calId, { type: 'activity', activity: a });
@@ -268,6 +426,8 @@ export function createCore({
       const key = keyOf(p);
       const old = used.has(key) ? null : existing.get(key);
       used.add(key);
+      // Bei einer Datei dürfen die Termine hier bearbeitet werden: selbst abgesagte Tage einer Serie bleiben abgesagt
+      const exdates = !subscription && old?.exdates?.length ? [...new Set([...p.exdates, ...old.exdates])] : p.exdates;
       const ev = {
         id: old?.id || newId(),
         calendarId: cal.id,
@@ -277,11 +437,14 @@ export function createCore({
         end: p.end,
         tz: p.tz || null,
         rrule: p.rrule,
-        exdates: p.exdates,
+        exdates,
         location: p.location,
         notes: p.notes,
+        // Was die Leute hier ergänzt haben, bleibt beim Aktualisieren erhalten
         color: old?.color || null,
         attendees: old?.attendees || [],
+        ...(old?.attendeesByOcc ? { attendeesByOcc: old.attendeesByOcc } : {}),
+        ...(old?.reactions ? { reactions: old.reactions } : {}),
         createdBy: old?.createdBy || subscription?.createdBy || user.id,
         createdAt: old?.createdAt || stamp,
         updatedAt: stamp,
@@ -289,6 +452,8 @@ export function createCore({
         recurrenceId: p.recurrenceId || null,
         subscriptionId: subscription?.id || null,
       };
+      // Serie im Abo verschoben: Zusagen für einzelne Tage wandern mit (die abgesagten Tage kommen aus dem Abo)
+      if (old) shiftSeriesDates(old, ev, { exdates: false });
       db.events[ev.id] = ev;
       seen.add(ev.id);
       count++;
@@ -383,7 +548,7 @@ export function createCore({
   route('POST', '/api/users', ({ body }) => {
     const name = str(body.name, 40).trim();
     if (!name) fail(400, 'Bitte gib deinen Namen ein.');
-    const user = { id: newId(9), name, color: isColor(body.color) ? body.color : '#6366f1', createdAt: now() };
+    const user = { id: newId(9), name, color: isColor(body.color) ? body.color : '#6366f1', createdAt: now(), tokens: [] };
     const token = issueToken(user);
     db.users[user.id] = user;
     createCalendar(user, { name: 'Mein Kalender', color: user.color, emoji: '🌿' });
@@ -410,22 +575,99 @@ export function createCore({
   });
 
   route('PATCH', '/api/me', ({ user, body }) => {
+    const emoji = 'emoji' in body ? cleanEmoji(body.emoji) : undefined; // erst prüfen, dann ändern
     if ('name' in body) user.name = str(body.name, 40).trim() || user.name;
     if (isColor(body.color)) user.color = body.color;
+    if (emoji !== undefined) {
+      if (emoji) user.emoji = emoji;
+      else delete user.emoji;
+    }
     if ('prefs' in body) user.prefs = cleanPrefs(body.prefs);
     save();
-    if ('name' in body || 'color' in body) {
+    if ('name' in body || 'color' in body || 'emoji' in body) {
       for (const id of calendarIdsOf(user.id)) notifyCalendar(id, { type: 'calendars' });
     }
     if ('prefs' in body) push(user.id, { type: 'prefs' });
     return { user: publicUser(user), prefs: user.prefs || {} };
   });
 
-  route('POST', '/api/me/token', ({ user }) => {
-    const token = issueToken(user);
+  // Neuer Token nur für DIESES Gerät (der bisherige gilt danach nicht mehr). Andere Geräte bleiben angemeldet –
+  // außer sie wurden per /login/-Link mit genau diesem Token angemeldet.
+  route('POST', '/api/me/token', ({ user, tokenHash }) => {
+    const token = issueToken(user, tokenHash);
     save();
     return { token };
   });
+
+  // ---------- Weiteres Gerät per Code verbinden (z. B. die App auf dem iPhone-Home-Bildschirm) ----------
+
+  const PAIR_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // ohne 0/O und 1/I/L
+  const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const PAIR_MS = 10 * 60 * 1000;
+  const PAIR_WINDOW_MS = 10 * 60 * 1000;
+  const PAIR_MAX_FAILS_IP = 10;
+  const PAIR_MAX_FAILS_ALL = 300; // 31^8 mögliche Codes: auch 300 Versuche alle 10 Minuten treffen praktisch nie
+  const pairCodes = new Map(); // Code ohne Strich -> { userId, expires }
+  const pairFails = new Map(); // IP -> Zeitpunkte falscher Versuche
+  let pairFailsAll = [];
+
+  // Zufällige Zeichen aus newId (Zufall kommt von außen, damit das auch im Browser läuft)
+  function randomCode(n) {
+    let out = '';
+    while (out.length < n) {
+      for (const ch of newId(12)) {
+        const i = B64URL.indexOf(ch);
+        // 62 = 2 × 31: so ist jedes Zeichen gleich wahrscheinlich
+        if (i >= 0 && i < 2 * PAIR_ALPHABET.length && out.length < n) out += PAIR_ALPHABET[i % PAIR_ALPHABET.length];
+      }
+    }
+    return out;
+  }
+
+  function prunePairing() {
+    const t = Date.now();
+    for (const [c, p] of pairCodes) if (p.expires <= t) pairCodes.delete(c);
+    pairFailsAll = pairFailsAll.filter((x) => t - x < PAIR_WINDOW_MS);
+    for (const [ip, list] of pairFails) {
+      const recent = list.filter((x) => t - x < PAIR_WINDOW_MS);
+      if (recent.length) pairFails.set(ip, recent);
+      else pairFails.delete(ip);
+    }
+  }
+
+  route('POST', '/api/me/pair-code', ({ user }) => {
+    prunePairing();
+    for (const [c, p] of pairCodes) if (p.userId === user.id) pairCodes.delete(c); // nur ein Code gleichzeitig
+    let code;
+    do code = randomCode(8);
+    while (pairCodes.has(code));
+    const expires = Date.now() + PAIR_MS;
+    pairCodes.set(code, { userId: user.id, expires });
+    return { code: `${code.slice(0, 4)}-${code.slice(4)}`, expiresAt: new Date(expires).toISOString() };
+  });
+
+  // Schutz vor Durchprobieren: pro Adresse und insgesamt nur wenige falsche Versuche in 10 Minuten
+  route('POST', '/api/pair', ({ body, ip }) => {
+    prunePairing();
+    if ((pairFails.get(ip) || []).length >= PAIR_MAX_FAILS_IP || pairFailsAll.length >= PAIR_MAX_FAILS_ALL) {
+      fail(429, 'Zu viele Versuche. Warte ein paar Minuten und versuch es dann nochmal.');
+    }
+    const code = str(body.code, 40).toUpperCase().replace(/[\s-]/g, '');
+    const p = code.length === 8 ? pairCodes.get(code) : null;
+    const user = p && db.users[p.userId];
+    if (!user) {
+      const t = Date.now();
+      if (pairFails.size > 10000) pairFails.clear(); // Notbremse für den Speicher – das Gesamt-Limit gilt weiter
+      pairFails.set(ip, [...(pairFails.get(ip) || []), t]);
+      pairFailsAll.push(t);
+      fail(400, 'Der Code stimmt nicht oder ist abgelaufen.');
+    }
+    pairCodes.delete(code); // nur einmal gültig
+    const token = issueToken(user);
+    save();
+    push(user.id, { type: 'paired' }); // das andere Gerät kann den Code jetzt ausblenden
+    return { token, user: publicUser(user) };
+  }, { auth: false });
 
   // Kalender
   route('POST', '/api/calendars', ({ user, body }) => {
@@ -479,9 +721,22 @@ export function createCore({
     const cal = requireCalendar(params.id, user);
     if (cal.ownerId !== user.id) fail(403, 'Nur die Kalender-Besitzerin bzw. der Besitzer kann Mitglieder entfernen.');
     if (params.userId === user.id) fail(400, 'Du kannst dich nicht selbst entfernen.');
-    notifyCalendar(cal.id, { type: 'calendars' });
-    db.members = db.members.filter((m) => !(m.calendarId === cal.id && m.userId === params.userId));
-    dropCaldavOf(cal.id, params.userId);
+    if (membership(cal.id, params.userId)) {
+      notifyCalendar(cal.id, { type: 'calendars' }); // auch an die entfernte Person, damit der Kalender bei ihr verschwindet
+      // Mit dem Mitgliedseintrag ist auch der persönliche Abo-Link weg
+      db.members = db.members.filter((m) => !(m.calendarId === cal.id && m.userId === params.userId));
+      dropCaldavOf(cal.id, params.userId);
+      // Neuer Einladungslink, damit die entfernte Person nicht einfach wieder beitreten kann
+      cal.inviteCode = newId(9);
+      save();
+    }
+    return { calendar: calendarView(cal, user), inviteCode: cal.inviteCode };
+  });
+
+  // Eigenen Abo-Link erneuern (falls er in falsche Hände geraten ist)
+  route('POST', '/api/calendars/:id/feed-token', ({ user, params }) => {
+    const cal = requireCalendar(params.id, user);
+    membership(cal.id, user.id).feedToken = newId(18);
     save();
     return { calendar: calendarView(cal, user) };
   });
@@ -517,7 +772,7 @@ export function createCore({
   route('POST', '/api/invites/:code/accept', ({ user, params }) => {
     const cal = findInvite(params.code);
     if (membership(cal.id, user.id)) return { calendarId: cal.id, already: true };
-    db.members.push({ calendarId: cal.id, userId: user.id, role: 'member', joinedAt: now() });
+    addMember(cal.id, user.id, 'member');
     save();
     notifyCalendar(cal.id, { type: 'calendars', joined: user.id });
     logActivity(cal.id, user.id, 'member.join', { title: cal.name });
@@ -557,18 +812,28 @@ export function createCore({
     const old = requireEvent(params.id, user);
     if (old.subscriptionId) fail(409, 'Dieser Termin kommt aus einem Kalender-Abo und kann hier nicht bearbeitet werden.');
     const ev = cleanEvent(body, old);
+    // Hat die App die abgesagten Tage selbst schon angepasst, bleiben sie, wie sie sind
+    shiftSeriesDates(old, ev, { exdates: !('exdates' in body) || JSON.stringify(body.exdates) === JSON.stringify(old.exdates || []) });
     if (body.calendarId && body.calendarId !== old.calendarId) {
       requireCalendar(body.calendarId, user);
       ev.calendarId = body.calendarId;
     }
+    // Nur einen Tag einer Serie abgesagt? Dann sagen die Neuigkeiten, welchen
+    const onlyExdates = Object.keys(body).length > 0 && Object.keys(body).every((k) => k === 'exdates');
+    const before = new Set(old.exdates || []);
+    const added = onlyExdates ? ev.exdates.filter((x) => !before.has(x)) : [];
+    for (const x of added) dropOccAttendees(ev, x); // Zusagen für abgesagte Tage sind hinfällig
     ev.updatedAt = now();
     ev.updatedBy = user.id;
     db.events[ev.id] = ev;
     save();
     notifyCalendar(old.calendarId, { type: 'events', calendarId: old.calendarId });
     if (ev.calendarId !== old.calendarId) notifyCalendar(ev.calendarId, { type: 'events', calendarId: ev.calendarId });
-    const onlyExdates = Object.keys(body).every((k) => k === 'exdates');
-    logActivity(ev.calendarId, user.id, onlyExdates ? 'event.skip' : 'event.update', { eventId: ev.id, title: ev.title, start: ev.start, allDay: ev.allDay });
+    if (added.length) {
+      logActivity(ev.calendarId, user.id, 'event.skip', { eventId: ev.id, title: ev.title, occurrence: added[added.length - 1], start: ev.start, allDay: ev.allDay });
+    } else {
+      logActivity(ev.calendarId, user.id, 'event.update', { eventId: ev.id, title: ev.title, start: ev.start, allDay: ev.allDay });
+    }
     return { event: eventView(ev) };
   });
 
@@ -582,17 +847,75 @@ export function createCore({
     return { ok: true };
   });
 
+  // Zusagen gelten bei Serien für einen bestimmten Tag (occurrence), sonst für den ganzen Termin
   route('POST', '/api/events/:id/attend', ({ user, body, params }) => {
     const ev = requireEvent(params.id, user);
-    const set = new Set(ev.attendees || []);
+    const hasOcc = ev.rrule && body.occurrence !== undefined && body.occurrence !== null && body.occurrence !== '';
+    const occ = hasOcc ? cleanOccurrence(ev, body.occurrence) : null;
+    if (occ && isExdate(ev, occ)) fail(409, 'An diesem Tag findet der Termin nicht statt.');
+    const set = new Set(attendeesFor(ev, occ));
     const was = set.has(user.id);
     if (body.going) set.add(user.id);
     else set.delete(user.id);
-    ev.attendees = [...set];
+    if (occ) setOccAttendees(ev, occ, [...set]);
+    else ev.attendees = [...set];
     save();
     notifyCalendar(ev.calendarId, { type: 'events', calendarId: ev.calendarId });
-    if (body.going && !was) logActivity(ev.calendarId, user.id, 'attend', { eventId: ev.id, title: ev.title });
+    if (body.going && !was) {
+      logActivity(ev.calendarId, user.id, 'attend', { eventId: ev.id, title: ev.title, ...(occ ? { occurrence: occ } : {}), allDay: !!ev.allDay });
+    }
     return { event: eventView(ev) };
+  });
+
+  // Nur einen Tag einer Serie ändern: Der Tag fällt aus der Serie heraus und wird ein eigener Termin
+  route('POST', '/api/events/:id/detach', ({ user, body, params }) => {
+    const series = requireEvent(params.id, user);
+    if (series.subscriptionId) fail(409, 'Dieser Termin kommt aus einem Kalender-Abo und kann hier nicht bearbeitet werden.');
+    if (!series.rrule) fail(400, 'Dieser Termin wiederholt sich nicht.');
+    const occ = cleanOccurrence(series, body.occurrence);
+    if (isExdate(series, occ)) fail(409, 'Dieser Tag der Serie wurde schon geändert oder abgesagt.');
+    const patch = body.patch && typeof body.patch === 'object' && !Array.isArray(body.patch) ? body.patch : {};
+    let calId = series.calendarId;
+    if (patch.calendarId && patch.calendarId !== calId) calId = requireCalendar(patch.calendarId, user).id;
+
+    // Ausgangspunkt ist die Serie an genau diesem Tag (gleiche Dauer)
+    let base;
+    if (series.allDay) {
+      const span = Math.max(0, Math.round((Date.parse(series.end || series.start) - Date.parse(series.start)) / 864e5));
+      const end = new Date(Date.parse(occ) + span * 864e5).toISOString().slice(0, 10);
+      base = { start: occ, end };
+    } else {
+      const dur = Math.max(0, Date.parse(series.end) - Date.parse(series.start)) || 0;
+      base = { start: occ, end: new Date(Date.parse(occ) + dur).toISOString() };
+    }
+    for (const k of ['title', 'allDay', 'tz', 'location', 'notes', 'color']) base[k] = series[k];
+    const picked = {};
+    for (const k of ['title', 'start', 'end', 'allDay', 'tz', 'location', 'notes', 'color']) if (k in patch) picked[k] = patch[k];
+    const ev = cleanEvent(picked, base);
+    const stamp = now();
+    Object.assign(ev, {
+      id: newId(),
+      calendarId: calId,
+      rrule: null,
+      exdates: [],
+      attendees: [...attendeesFor(series, occ)],
+      ...(series.reactions ? { reactions: JSON.parse(JSON.stringify(series.reactions)) } : {}),
+      createdBy: series.createdBy,
+      createdAt: stamp,
+      updatedAt: stamp,
+      updatedBy: user.id,
+      subscriptionId: null,
+    });
+    db.events[ev.id] = ev;
+    series.exdates = [...(series.exdates || []), occ];
+    dropOccAttendees(series, occ);
+    series.updatedAt = stamp;
+    series.updatedBy = user.id;
+    save();
+    notifyCalendar(series.calendarId, { type: 'events', calendarId: series.calendarId });
+    if (calId !== series.calendarId) notifyCalendar(calId, { type: 'events', calendarId: calId });
+    logActivity(calId, user.id, 'event.moveone', { eventId: ev.id, title: ev.title, occurrence: occ, start: ev.start, allDay: ev.allDay });
+    return { event: eventView(ev), series: eventView(series, commentCountsFor(new Set([series.id]))) };
   });
 
   route('POST', '/api/events/:id/react', ({ user, body, params }) => {
@@ -896,13 +1219,27 @@ export function createCore({
 
   // ---------- Anfragen beantworten ----------
 
-  function authenticate(token) {
-    if (!token) return null;
-    const id = tokenIndex.get(hash(token));
-    return id ? db.users[id] : null;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  function userByHash(tokenHash) {
+    const id = tokenHash ? tokenIndex.get(tokenHash) : null;
+    const user = id ? db.users[id] : null;
+    if (!user) return null;
+    // Höchstens einmal am Tag merken, wann das Gerät zuletzt benutzt wurde (für das Aufräumen alter Geräte)
+    const t = user.tokens.find((x) => x.hash === tokenHash);
+    if (t && !(Date.now() - Date.parse(t.usedAt || 0) < DAY_MS)) {
+      t.usedAt = now();
+      save();
+    }
+    return user;
   }
 
-  async function handle(method, pathname, { token = null, body = {}, query = new URLSearchParams() } = {}) {
+  function authenticate(token) {
+    if (!token || typeof token !== 'string') return null;
+    return userByHash(hash(token));
+  }
+
+  // ip dient nur dem Schutz vor Durchprobieren (Kopplungs-Codes)
+  async function handle(method, pathname, { token = null, body = {}, query = new URLSearchParams(), ip = 'unbekannt' } = {}) {
     let match = null;
     let r;
     for (r of routes) {
@@ -911,19 +1248,38 @@ export function createCore({
       if (match) break;
     }
     if (!match) fail(404, 'Nicht gefunden.');
-    const user = authenticate(token);
+    const tokenHash = token && typeof token === 'string' ? hash(token) : null;
+    const user = userByHash(tokenHash);
     if (r.auth && !user) fail(401, 'Nicht angemeldet.');
-    const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(match[i + 1])]));
-    const result = await r.handler({ user, body: body && typeof body === 'object' ? body : {}, params, query });
+    let params;
+    try {
+      params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(match[i + 1])]));
+    } catch {
+      fail(400, 'Ungültige Anfrage.');
+    }
+    const result = await r.handler({
+      user, tokenHash: user ? tokenHash : null, ip: String(ip || 'unbekannt'), body: body && typeof body === 'object' ? body : {}, params, query,
+    });
     return result ?? { ok: true };
   }
 
-  // Kalender als .ics-Abo (für Apple/Google/Outlook)
+  // Kalender als .ics-Abo (für Apple/Google/Outlook) – jeder persönliche Link gehört zu einem Mitglied.
+  // Alte, gemeinsame Links liefern nur noch { renewed: true } (siehe oben).
   function feed(feedToken) {
-    const cal = Object.values(db.calendars).find((c) => c.feedToken === feedToken);
-    if (!cal) return null;
-    return { calendar: cal, events: Object.values(db.events).filter((e) => e.calendarId === cal.id) };
+    if (!feedToken || typeof feedToken !== 'string') return null;
+    const m = db.members.find((x) => x.feedToken === feedToken);
+    const cal = m && db.calendars[m.calendarId];
+    if (cal) return { calendar: cal, events: Object.values(db.events).filter((e) => e.calendarId === cal.id) };
+    const retired = db.retiredFeeds && Object.hasOwn(db.retiredFeeds, feedToken) ? db.calendars[db.retiredFeeds[feedToken]] : null;
+    return retired ? { renewed: true } : null;
   }
 
-  return { handle, authenticate, feed, syncDue, onlineContacts, announcePresence };
+  // Für die Link-Vorschau einer Einladung (WhatsApp, iMessage …) – nur Name des Kalenders und der Person
+  function invitePreview(code) {
+    const cal = typeof code === 'string' && code ? Object.values(db.calendars).find((c) => c.inviteCode === code) : null;
+    if (!cal) return null;
+    return { calendar: `${cal.emoji || ''} ${cal.name}`.trim(), owner: db.users[cal.ownerId]?.name || null };
+  }
+
+  return { handle, authenticate, feed, invitePreview, syncDue, onlineContacts, announcePresence };
 }

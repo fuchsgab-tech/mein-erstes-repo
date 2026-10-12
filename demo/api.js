@@ -118,8 +118,10 @@ export async function api(method, path, body) {
   const url = new URL(path, 'https://demo.zeitgarten');
   let result;
   try {
-    result = await core.handle(method, url.pathname, { token, body: body ? structuredClone(body) : {}, query: url.searchParams });
+    result = await core.handle(method, url.pathname, { token, body: body ? structuredClone(body) : {}, query: url.searchParams, ip: 'demo' });
   } catch (e) {
+    // Wie im echten Client: Profil unbekannt (z. B. Demo-Daten gelöscht) -> app.js erklärt das
+    if (e.status === 401 && token) window.dispatchEvent(new CustomEvent('zg:unauthorized'));
     throw Object.assign(new Error(e.message || 'Da ist etwas schiefgelaufen.'), { status: e.status || 500 });
   }
   try {
@@ -244,6 +246,7 @@ const ICLOUD = [
 
 const as = (who) => ({
   post: (path, body) => core.handle('POST', path, { token: who.token, body }),
+  patch: (path, body) => core.handle('PATCH', path, { token: who.token, body }),
 });
 
 async function seed(user, userToken) {
@@ -252,6 +255,9 @@ async function seed(user, userToken) {
   const L = as(lena);
   const M = as(max);
   const U = as({ token: userToken });
+  // Die Beispiel-Freunde haben ein Emoji als Profilbild
+  await M.patch('/api/me', { emoji: '🐻' });
+  await L.patch('/api/me', { emoji: '🦊' });
 
   const { calendar: wg } = await L.post('/api/calendars', { name: 'WG Kastanienallee', emoji: '🏠', color: '#22b3a0' });
   await M.post(`/api/invites/${wg.inviteCode}/accept`);

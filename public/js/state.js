@@ -109,6 +109,10 @@ export function person(id) {
 
 export const eventColor = (ev) => ev.color || calById(ev.calendarId)?.color || '#64748b';
 
+// Wer ist dabei? Bei Serien gilt die Zusage pro Datum (orig aus recur.js), sonst für den ganzen Termin
+export const attendeesFor = (ev, orig) =>
+  (ev.rrule && orig && ev.attendeesByOcc && Object.hasOwn(ev.attendeesByOcc, orig) ? ev.attendeesByOcc[orig] : ev.attendees) || [];
+
 export function setHidden(id, hidden) {
   if (hidden) state.hidden.add(id);
   else state.hidden.delete(id);

@@ -27,11 +27,20 @@ export const auth = {
 };
 
 // Live-Verbindung zum Server: meldet neue Termine, Kommentare, wer online ist …
+// Wiederverbinden nach Abbrüchen übernimmt app.js (connectLive): Bei einem Fehler wird die
+// Verbindung hier geschlossen und onError gerufen – so gibt es nie zwei Verbindungen gleichzeitig.
 export function openStream(onMessage, { onOpen, onError } = {}) {
-  const source = new EventSource(`/api/stream?token=${encodeURIComponent(token)}`);
-  source.onopen = () => onOpen?.();
-  source.onerror = () => onError?.();
+  const source = new EventSource(`/api/stream?token=${encodeURIComponent(token || '')}`);
+  let done = false;
+  source.onopen = () => !done && onOpen?.();
+  source.onerror = () => {
+    if (done) return;
+    done = true;
+    source.close();
+    onError?.();
+  };
   source.onmessage = (e) => {
+    if (done) return;
     let msg;
     try {
       msg = JSON.parse(e.data);
@@ -40,7 +49,12 @@ export function openStream(onMessage, { onOpen, onError } = {}) {
     }
     onMessage(msg);
   };
-  return { close: () => source.close() };
+  return {
+    close: () => {
+      done = true;
+      source.close();
+    },
+  };
 }
 
 export async function api(method, path, body) {
@@ -64,6 +78,8 @@ export async function api(method, path, body) {
     /* leer */
   }
   if (!res.ok) {
+    // Profil auf dem Server unbekannt (z. B. Daten weg oder abgemeldet) – app.js zeigt dann eine Erklärung
+    if (res.status === 401 && token) window.dispatchEvent(new CustomEvent('zg:unauthorized'));
     throw Object.assign(new Error(data?.error || 'Da ist etwas schiefgelaufen.'), { status: res.status });
   }
   return data;

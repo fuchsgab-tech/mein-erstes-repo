@@ -3,7 +3,7 @@ import { h, icon } from './h.js';
 import { dayShort, hours, monthName, relDay, time, weekdayName, WEEKDAYS } from './fmt.js';
 import { hideTip, showTip } from './fx.js';
 import { occFirstDay, occLastDay } from './recur.js';
-import { calById, eventColor, hooks, person, state, visibleOccurrences } from './state.js';
+import { attendeesFor, calById, eventColor, hooks, person, state, visibleOccurrences } from './state.js';
 import { addDays, daysBetween, isoWeek, sameDay, startOfDay, startOfWeek } from './time.js';
 import { avatarStack } from './ui.js';
 import { feedItem, openActivity, openDay, openEditor, openEvent, openInvitePicker } from './sheets.js';
@@ -107,6 +107,10 @@ function skyCard(now, today, ticks) {
 
 // ---------- Als Nächstes ----------
 
+// Zeit nach Wanduhr: An Tagen mit Zeitumstellung zählt die Stunde extra nicht mit
+// (vom 12. Oktober 10:41 bis 26. Oktober 10:00 sind es 13 Tage 23 Std., nicht 14 Tage)
+const wallMs = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds());
+
 function countdownParts(ms, withDays) {
   const s = Math.max(0, Math.floor(ms / 1000));
   if (withDays) return [[Math.floor(s / 86400), 'Tage'], [Math.floor((s % 86400) / 3600), 'Std.']];
@@ -126,12 +130,14 @@ function nextCard(now, today, ticks) {
   }
   const ev = o.ev;
   const cal = calById(ev.calendarId);
-  const people = (ev.attendees || []).map(person);
+  const people = attendeesFor(ev, o.orig).map(person);
   const target = running ? o.end : o.start;
-  const withDays = !running && target - now >= 864e5;
+  const withDays = !running && wallMs(target) - wallMs(now) >= 864e5;
+  // Tage & Stunden nach Kalender, kurze Countdowns in echter Zeit
+  const remaining = (t) => (withDays ? wallMs(target) - wallMs(t) : target - t);
   const nums = [];
   const countdown = h('div.countdown', { 'aria-live': 'off' });
-  countdownParts(target - now, withDays).forEach(([n, lbl], i) => {
+  countdownParts(remaining(now), withDays).forEach(([n, lbl], i) => {
     if (i) countdown.append(h('span.cd-sep', null, ':'));
     const num = h('span.cd-num', null, withDays ? n : pad2(n));
     nums.push(num);
@@ -149,7 +155,7 @@ function nextCard(now, today, ticks) {
       }
       return;
     }
-    countdownParts(left, withDays).forEach(([n], i) => {
+    countdownParts(remaining(t), withDays).forEach(([n], i) => {
       nums[i].textContent = withDays ? n : pad2(n);
     });
     if (meter) meter.style.width = `${Math.min(100, ((t - o.start) / (o.end - o.start)) * 100).toFixed(2)}%`;
