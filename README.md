@@ -23,11 +23,20 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
 
 ### Schön & persönlich
 - **7 Designs** zum Umschalten – jeweils hell und dunkel: Garten, Aurora (Glas & Polarlicht), Neon, Sunset, Ozean, Pastell, Mono
-- **4 Live-Stile** mit bewegtem Hintergrund:
+- **12 Live-Stile** mit bewegtem Hintergrund, jeweils hell und dunkel:
   - **Jarvis**: Hologramm-HUD mit Radar, Ringen und Leuchtrahmen
   - **Synthwave**: Retro-Neon mit Sonne, Bergen und Raster-Horizont
   - **Cyberpunk**: Night City mit Skyline, Regen und Warnstreifen
   - **Galaxie**: Sterne, Nebel und Sternschnuppen
+  - **Matrix**: grüner Zeichen-Regen und Terminal-Look
+  - **Arcade**: 8-Bit-Sterne, Pixel-Aliens und Röhrenbild
+  - **Sakura**: fallende Kirschblüten, nachts mit Laternen und Mond
+  - **Comic**: Pop-Art mit Rasterpunkten, dicken Konturen und ab und zu „ZACK!“
+  - **Tiefsee**: leuchtende Quallen, Lichtstrahlen und Blasen
+  - **Lagerfeuer**: aufsteigende Funken und Glut unter dem Sternenhimmel
+  - **Liquid Glass**: schimmerndes Glas mit wandernden Farbwolken
+  - **Lavalampe**: wabernde Blasen im 70er-Stil
+- Neue Freunde wählen direkt nach dem Beitreten unter „Wähl deinen Look“ ihren Stil. Live-Stile wechseln dabei automatisch auf Dunkel, dort wirken sie am besten
 - **Selbst einstellen**: Akzentfarbe, Termin-Stil (getönt, kräftig, Linie), Schrift für Überschriften (modern, rund, elegant, technisch), Ecken (eckig bis extra rund), Abstände, Kalenderwochen, bewegter Hintergrund, Effekte
 - Dein Design wird **auf allen deinen Geräten** übernommen
 
@@ -150,6 +159,7 @@ public/
   index.html      Einstieg der App
   css/app.css     Das ganze Design: 7 Stile, hell und dunkel, alle Einstellungen
   css/skins-live.css  Die Live-Stile Jarvis, Synthwave, Cyberpunk und Galaxie
+  css/skins/       Die weiteren Live-Stile, je eine Datei (Matrix, Arcade, Sakura, …)
   css/calendar.css    Die lebendige Monats-, Wochen- und Listenansicht
   css/caldav.css      Der iPhone-Import
   js/app.js       Start, Seitenleiste, Navigation, Live-Updates
@@ -159,6 +169,7 @@ public/
   js/sheets.js    Fenster: Termin, Editor, Kalender, Import, Profil, Neuigkeiten, Design, „Wähl deinen Look“
   js/themes.js    Designs und persönliche Einstellungen
   js/bgfx.js      Bewegte Hintergründe der Live-Stile
+  js/skins/       Die weiteren Live-Stile: Eintrag für die Auswahl und bewegter Hintergrund, je eine Datei
   js/season.js    Jahreszeiten-Banner im Monat
   js/fx.js        Konfetti, Emoji-Regen und Tooltips
   js/recur.js     Wiederkehrende Termine
