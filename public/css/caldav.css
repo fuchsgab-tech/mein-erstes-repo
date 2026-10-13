@@ -1,0 +1,221 @@
+/* Zeitgarten – Import vom iPhone (iCloud) */
+
+/* Reiter im Import-Fenster: immer mit Beschriftung, über die volle Breite */
+.import-sheet .seg { display: flex; width: 100%; }
+.import-sheet .seg button { flex: 1; justify-content: center; padding: 0 8px; }
+.import-sheet .seg .seg-label { display: inline; }
+
+/* ---------- Schritte ---------- */
+
+.cd-steps {
+  display: flex; align-items: center; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none;
+  font-size: 13px; font-weight: 650; color: var(--text-3);
+}
+.cd-steps li { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.cd-steps li + li::before {
+  content: ""; width: 34px; height: 2px; border-radius: 1px; margin-right: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--line-2));
+}
+.cd-steps b {
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  font-size: 12px; background: var(--surface-2); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.cd-steps .on { color: var(--text); }
+.cd-steps .on b { background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.cd-steps .done { color: var(--accent-2); }
+.cd-steps .done b { background: var(--accent-soft); color: var(--accent-2); box-shadow: none; }
+
+.cd-step { outline: none; }
+:root[data-motion="on"] .cd-step { animation: cdIn 0.38s var(--ease) both; }
+:root[data-motion="on"] .cd-step.back { animation-name: cdBack; }
+@keyframes cdIn { from { opacity: 0; transform: translateX(22px); } }
+@keyframes cdBack { from { opacity: 0; transform: translateX(-22px); } }
+
+/* ---------- Schritt 1: Verbinden ---------- */
+
+.cd-hero {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  margin-top: 14px; padding: 18px 16px 16px; border-radius: var(--r-lg); text-align: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  background:
+    radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 60%),
+    radial-gradient(80% 120% at 100% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+    var(--surface-2);
+}
+.cd-art { flex: none; display: flex; align-items: center; gap: 7px; }
+.cd-phone {
+  position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: 2.5px;
+  width: 32px; height: 54px; padding: 11px 4px 6px; border-radius: 9px;
+  background: var(--surface); box-shadow: 0 0 0 2px var(--text), var(--shadow);
+}
+.cd-phone::before {
+  content: ""; position: absolute; top: 4px; left: 50%; width: 10px; height: 3px; border-radius: 2px;
+  background: var(--text); transform: translateX(-50%);
+}
+.cd-phone i { display: block; height: 6px; border-radius: 2px; background: var(--c); }
+.cd-phone i:nth-child(2) { width: 70%; }
+.cd-beam { display: flex; gap: 4px; }
+.cd-beam i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0.35; }
+:root[data-motion="on"] .cd-beam i { animation: cdBeam 1.4s ease-in-out infinite; }
+:root[data-motion="on"] .cd-beam i:nth-child(2) { animation-delay: 0.18s; }
+:root[data-motion="on"] .cd-beam i:nth-child(3) { animation-delay: 0.36s; }
+@keyframes cdBeam { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.15); } }
+.cd-tile {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md);
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--accent) 90%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.cd-hero-text { min-width: 0; }
+.cd-hero-text strong { display: block; font-family: var(--font-display); font-size: 16.5px; line-height: 1.25; letter-spacing: -0.015em; }
+.cd-hero-text p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.4; color: var(--text-2); }
+
+.cd-demo {
+  display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border-radius: var(--r-md);
+  font-size: 13px; font-weight: 600; line-height: 1.35;
+  background: var(--accent-soft); color: var(--accent-2);
+}
+
+.cd-howto { margin-top: 18px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--surface-2); }
+.cd-howto h3 {
+  margin: 0 0 10px; font-size: 12px; font-weight: 750; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.cd-howto ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.cd-howto li { display: flex; align-items: flex-start; gap: 11px; font-size: 13.5px; line-height: 1.4; }
+.cd-howto li b {
+  flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; margin-top: -1px;
+  font-size: 12px; background: var(--surface); color: var(--accent-2); box-shadow: inset 0 0 0 1.5px var(--accent-soft), var(--shadow-sm);
+}
+.cd-howto a { font-weight: 650; }
+
+.cd-pass { position: relative; }
+.cd-pass .input { padding-right: 92px; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+.cd-show {
+  position: absolute; top: 50%; right: 5px; transform: translateY(-50%); height: 34px; min-width: 44px; padding: 0 10px;
+  border-radius: calc(var(--r-md) - 3px); font-size: 13px; font-weight: 650; color: var(--accent-2);
+}
+
+.cd-other { margin-top: 16px; }
+.cd-other .field { margin-top: 10px; }
+.cd-hint { margin: 8px 0 0; font-size: 12.5px; color: var(--text-3); line-height: 1.4; }
+
+.cd-error {
+  display: flex; align-items: flex-start; gap: 9px; margin-top: 16px; padding: 11px 13px; border-radius: var(--r-md);
+  font-size: 13.5px; font-weight: 600; line-height: 1.4; color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 22%, transparent);
+}
+.cd-error .icon { margin-top: 1px; }
+:root[data-motion="on"] .cd-error { animation: shake 0.4s; }
+
+.cd-privacy { display: flex; align-items: flex-start; gap: 10px; margin: 18px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+.cd-lock {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface-2); color: var(--text-2);
+}
+.cd-lock .icon { width: 15px; height: 15px; }
+
+/* ---------- Schritt 2: Auswählen ---------- */
+
+.cd-account {
+  display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 8px 12px 12px; border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+.cd-acc-icon {
+  flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: var(--r-md);
+  background: var(--accent); color: var(--on-accent);
+}
+.cd-acc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cd-acc-main strong { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.cd-acc-main > span { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-ok { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 650; color: var(--online); }
+.cd-ok i { width: 7px; height: 7px; border-radius: 50%; background: var(--online); box-shadow: 0 0 0 3px color-mix(in srgb, var(--online) 22%, transparent); }
+
+.cd-list-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 20px 0 10px; }
+.cd-list-head h3 {
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  font-size: 12.5px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.07em;
+}
+.cd-all { height: 36px; padding: 0 10px; margin-right: -6px; border-radius: var(--r-sm); font-size: 13.5px; font-weight: 650; color: var(--accent-2); }
+
+.cd-list { display: flex; flex-direction: column; gap: 8px; }
+.cd-row {
+  position: relative; display: flex; align-items: center; gap: 13px; min-height: 60px; padding: 10px 14px 10px 16px;
+  border-radius: var(--r-lg); cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s var(--ease);
+}
+.cd-row:active { transform: scale(0.985); }
+.cd-row.on {
+  background: color-mix(in srgb, var(--c) 11%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, transparent), 0 8px 22px -14px color-mix(in srgb, var(--c) 80%, transparent);
+}
+.cd-row:has(.cd-box:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cd-box { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.cd-dot {
+  flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 20%, transparent);
+}
+.cd-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-check {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  color: transparent; box-shadow: inset 0 0 0 2px var(--line-2);
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.cd-row.on .cd-check { background: var(--c); color: var(--on-c, #fff); box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--c) 80%, transparent); }
+:root[data-motion="on"] .cd-row.on .cd-check .icon { animation: pop 0.35s var(--spring); }
+.cd-row.connected { cursor: default; opacity: 0.72; }
+.cd-row.connected:active { transform: none; }
+.cd-linked {
+  flex: none; display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 13px;
+  font-size: 12px; font-weight: 650; color: var(--text-2); background: var(--surface-2);
+}
+
+.cd-note {
+  display: flex; align-items: flex-start; gap: 10px; margin: 16px 0 0; padding: 12px 14px; border-radius: var(--r-md);
+  font-size: 13px; line-height: 1.45; color: var(--text-2); background: var(--surface-2);
+}
+.cd-note .icon { margin-top: 1px; color: var(--accent-2); }
+
+/* Verbindung nach neuem App-Passwort erneuert */
+.cd-renewed {
+  display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 0; padding: 11px 13px; border-radius: var(--r-md);
+  font-size: 13.5px; font-weight: 600; line-height: 1.4;
+  color: color-mix(in srgb, var(--online) 70%, var(--text));
+  background: color-mix(in srgb, var(--online) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--online) 26%, transparent);
+}
+.cd-renewed .icon { margin-top: 1px; }
+
+/* ---------- Kalender-Einstellungen: verbundene iPhone-Kalender ---------- */
+
+.sub-icon.phone { background: color-mix(in srgb, var(--c) 16%, var(--surface)); color: color-mix(in srgb, var(--c) 72%, var(--text)); }
+/* Konto und Stand lieber umbrechen als „aktualisiert gerade …“ abschneiden */
+.subs .m-main span { white-space: normal; overflow-wrap: anywhere; }
+.m-main span.sub-account { color: var(--text-2); }
+.cd-reconnect {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 34px; margin-top: 6px; padding: 0 12px;
+  border-radius: var(--r-sm); font-size: 13.5px; font-weight: 650;
+  color: var(--accent-2); background: var(--accent-soft);
+}
+
+/* Hover nur mit Maus – auf dem Handy bliebe er nach dem Tippen hängen */
+@media (hover: hover) {
+  .cd-show:hover, .cd-all:hover { background: var(--accent-soft); }
+  .cd-reconnect:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+  .cd-row:not(.on):not(.connected):hover { background: color-mix(in srgb, var(--c) 5%, var(--surface)); }
+}
+
+@media (min-width: 761px) {
+  .cd-hero { flex-direction: row; gap: 18px; padding: 18px 20px; text-align: left; }
+}
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  .import-sheet .seg button { height: 38px; }
+  .cd-step .input { height: 48px; font-size: 16px; }
+  .cd-row { min-height: 58px; }
+  .import-sheet .sheet-foot .btn { height: 46px; }
+  .import-sheet .sheet-foot .btn.primary { flex: 1; }
+}

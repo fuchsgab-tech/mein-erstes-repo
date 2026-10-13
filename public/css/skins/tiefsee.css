@@ -1,0 +1,339 @@
+/* Stil „Tiefsee“ – dunkel: Tiefsee mit leuchtenden Quallen und Lichtstrahlen, hell: sonnige Lagune mit Lichtnetzen (Szene: js/skins/tiefsee.js).
+   Regeln immer mit :root[data-skin="tiefsee"] beginnen. Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = Lagune, dunkel = Tiefsee ---------- */
+
+:root[data-skin="tiefsee"] {
+  --bg: #bdeeee;
+  --wallpaper:
+    radial-gradient(70% 45% at 76% -8%, rgba(255, 253, 225, 0.8), transparent 70%),
+    radial-gradient(60% 40% at 8% 106%, rgba(16, 140, 160, 0.3), transparent 70%),
+    linear-gradient(180deg, #d8f8f4 0%, #a6e8e7 38%, #6cd3db 74%, #45c2cf 100%);
+  --surface: #f7feff;
+  --card: rgba(247, 254, 255, 0.8);
+  --sidebar-bg: rgba(240, 252, 252, 0.8);
+  --surface-2: rgba(0, 110, 130, 0.07);
+  --surface-3: rgba(0, 110, 130, 0.14);
+  --line: rgba(0, 85, 105, 0.14);
+  --line-2: rgba(0, 85, 105, 0.26);
+  --text: #06303a;
+  --text-2: #2b5964;
+  --text-3: #456d77;
+  --accent: #0e7490;
+  --on-accent: #ffffff;
+  --danger: #cc2b48;
+  --online: #0b8f5d;
+  --mix: 18%;
+  --mix-text: 58%;
+  --blur: 12px;
+  --ev-glow-geo: 0 0 10px -4px;
+  --ev-glow-mix: 55%;
+  --shadow-sm: 0 1px 2px rgba(0, 80, 100, 0.06);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 0 0 1px rgba(0, 110, 130, 0.05), 0 16px 36px -22px rgba(0, 80, 110, 0.5);
+  --shadow-lg: 0 0 0 1px rgba(0, 110, 130, 0.12), 0 30px 70px -26px rgba(0, 60, 80, 0.5);
+  --toast-bg: #06303a;
+  --toast-text: #e6fdff;
+  --toast-icon: #5eead4;
+  --scrim: rgba(4, 40, 50, 0.3);
+  --ts-glow: rgba(14, 116, 144, 0.3);
+  --ts-edge: rgba(255, 255, 255, 0.95);
+  --ts-rim: color-mix(in srgb, var(--accent) 45%, transparent);
+  --ts-title: linear-gradient(90deg, #053440, #0e7490 62%, #0b8fa8);
+  --ts-pearl: radial-gradient(circle at 34% 28%, #ffffff 0 7%, color-mix(in srgb, var(--accent) 45%, white) 20%, var(--accent) 62%, color-mix(in srgb, var(--accent) 70%, black));
+  --ts-hero:
+    radial-gradient(60% 80% at 82% -20%, rgba(255, 255, 230, 0.9), transparent 60%),
+    linear-gradient(176deg, #e4fbf7 0%, #b4ecea 46%, #7fdbe0 100%);
+  --ts-jelly-filter: none;
+  --fx-a: #ffffff;
+  --fx-b: #ffffff;
+  --fx-c: #0b4f63;
+  --fx-d: #5eead4;
+  --fx-s1: #ffffff;
+  --fx-s2: #d8f8f4;
+  --fx-s3: #0f7f8c;
+  --fx-s4: #023047;
+  --fx-k: 0.9;
+}
+:root[data-skin="tiefsee"][data-mode="dark"] {
+  --bg: #010a14;
+  --wallpaper:
+    radial-gradient(80% 45% at 70% -12%, rgba(40, 170, 210, 0.36), transparent 70%),
+    radial-gradient(50% 35% at 15% 106%, rgba(30, 80, 170, 0.22), transparent 70%),
+    linear-gradient(180deg, #06314c 0%, #04192e 38%, #020c18 72%, #01060d 100%);
+  --surface: #051a2b;
+  --card: rgba(3, 21, 36, 0.68);
+  --sidebar-bg: rgba(2, 15, 27, 0.74);
+  --surface-2: rgba(90, 225, 255, 0.07);
+  --surface-3: rgba(90, 225, 255, 0.14);
+  --line: rgba(110, 225, 255, 0.12);
+  --line-2: rgba(110, 225, 255, 0.26);
+  --text: #dffcff;
+  --text-2: #a0d3df;
+  --text-3: #79abb9;
+  --accent: #2ee6d6;
+  --on-accent: #00211f;
+  --danger: #ff5c7a;
+  --online: #4dffb5;
+  --mix: 18%;
+  --mix-text: 42%;
+  --ev-glow-geo: 0 0 14px -3px;
+  --ev-glow-mix: 72%;
+  --shadow-sm: 0 0 0 1px rgba(46, 230, 214, 0.05);
+  --shadow: inset 0 1px 0 rgba(160, 250, 255, 0.07), 0 0 0 1px rgba(46, 230, 214, 0.05), 0 0 40px -18px rgba(46, 230, 214, 0.42), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  --shadow-lg: inset 0 1px 0 rgba(160, 250, 255, 0.08), 0 0 0 1px rgba(46, 230, 214, 0.16), 0 0 70px -22px rgba(46, 230, 214, 0.36), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #062a3c;
+  --toast-text: #dffcff;
+  --toast-icon: var(--accent);
+  --scrim: rgba(0, 6, 14, 0.62);
+  --ts-glow: rgba(46, 230, 214, 0.55);
+  --ts-edge: rgba(190, 255, 250, 0.9);
+  --ts-rim: color-mix(in srgb, var(--accent) 55%, transparent);
+  --ts-title: linear-gradient(90deg, #f0feff, #9ff6ee 55%, #4fd1ff);
+  --ts-pearl: radial-gradient(circle at 34% 28%, #ffffff 0 7%, color-mix(in srgb, var(--accent) 50%, white) 22%, var(--accent) 60%, color-mix(in srgb, var(--accent) 55%, #003a40));
+  --ts-hero:
+    radial-gradient(70% 90% at 78% -25%, rgba(60, 190, 230, 0.5), transparent 62%),
+    radial-gradient(40% 60% at 10% 110%, rgba(110, 80, 220, 0.3), transparent 70%),
+    linear-gradient(180deg, #073a58 0%, #04203a 55%, #021224 100%);
+  --ts-jelly-filter: drop-shadow(0 0 10px rgba(46, 230, 214, 0.55));
+  --fx-a: #9be8ff;
+  --fx-b: var(--accent);
+  --fx-c: #b58cff;
+  --fx-d: #ff7ad1;
+  --fx-s1: #bfefff;
+  --fx-s2: #06314c;
+  --fx-s3: #04192e;
+  --fx-s4: #01070f;
+  --fx-k: 1;
+}
+:root[data-skin="tiefsee"]:not([data-corners="sharp"]) { --r-lg: 18px; --r-xl: 24px; }
+:root[data-skin="tiefsee"][data-font="modern"] {
+  --font-display: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+/* Qualle als Bild – für den Überblick und die Tab-Leiste */
+:root[data-skin="tiefsee"] {
+  --ts-jelly: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 170'%3E%3Cdefs%3E%3CradialGradient id='b' cx='50' cy='20' r='48' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23f2fffd'/%3E%3Cstop offset='.45' stop-color='%2366f2e6' stop-opacity='.75'/%3E%3Cstop offset='1' stop-color='%232ee6d6' stop-opacity='.18'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='none' stroke='%2393f7ef' stroke-linecap='round' stroke-opacity='.55' stroke-width='1.6'%3E%3Cpath d='M20 50c-5 18 6 30 0 50s5 34 0 60'/%3E%3Cpath d='M34 52c-3 16 6 26 0 44s4 30 0 48'/%3E%3Cpath d='M66 52c3 16-6 26 0 44s-4 30 0 48'/%3E%3Cpath d='M80 50c5 18-6 30 0 50s-5 34 0 60'/%3E%3C/g%3E%3Cg fill='none' stroke='%23d2fffa' stroke-linecap='round' stroke-opacity='.6' stroke-width='4.5'%3E%3Cpath d='M44 48c-6 16 5 26-2 46'/%3E%3Cpath d='M56 48c6 16-5 26 2 46'/%3E%3C/g%3E%3Cpath d='M12 50C10 20 30 4 50 4s40 16 38 46Q50 36 12 50Z' fill='url(%23b)' stroke='%23c4fff9' stroke-width='1.6'/%3E%3Cg fill='none' stroke='%23e8fffd' stroke-opacity='.5' stroke-width='1.6'%3E%3Cellipse cx='39' cy='26' rx='5' ry='8'/%3E%3Cellipse cx='50' cy='22' rx='5' ry='8'/%3E%3Cellipse cx='61' cy='26' rx='5' ry='8'/%3E%3C/g%3E%3C/svg%3E");
+  --ts-fish: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 90' fill='%230b4f63'%3E%3Cdefs%3E%3Cpath id='f' d='M20 0q-8-6-18-1l-6-5 1 6-1 6 6-5q10 5 18-1z'/%3E%3C/defs%3E%3Cuse href='%23f' x='30' y='30'/%3E%3Cuse href='%23f' x='58' y='18' opacity='.85'/%3E%3Cuse href='%23f' x='62' y='44' opacity='.9'/%3E%3Cuse href='%23f' x='92' y='30'/%3E%3Cuse href='%23f' x='96' y='58' opacity='.8'/%3E%3Cuse href='%23f' x='122' y='16' opacity='.75'/%3E%3Cuse href='%23f' x='128' y='42'/%3E%3Cuse href='%23f' x='160' y='30' opacity='.85'/%3E%3C/svg%3E");
+}
+
+/* ---------- Gemeinsames für Live-Stile (wie in skins-live.css) ---------- */
+
+:root[data-skin="tiefsee"] { --live-bf: none; }
+:root[data-skin="tiefsee"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="tiefsee"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf); }
+:root[data-skin="tiefsee"] .sky-art svg { display: none; }
+:root[data-skin="tiefsee"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="tiefsee"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="tiefsee"] .heat .cell { --text-2: var(--text); }
+:root[data-skin="tiefsee"] .sky::before,
+:root[data-skin="tiefsee"] .sky::after,
+:root[data-skin="tiefsee"] .sky-art::before,
+:root[data-skin="tiefsee"] .sky-art::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Schrift: rund und weich, Titel schimmert wie Wasser ---------- */
+
+:root[data-skin="tiefsee"] .topbar .title {
+  background: var(--ts-title); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+:root[data-skin="tiefsee"][data-mode="dark"] .topbar .title { filter: drop-shadow(0 0 12px rgba(46, 230, 214, 0.35)); }
+:root[data-skin="tiefsee"] .topbar .title .year { -webkit-text-fill-color: var(--text-3); color: var(--text-3); font-weight: 600; }
+:root[data-skin="tiefsee"] :is(.dow, .wv-dayhead .wd) { color: color-mix(in srgb, var(--accent) 40%, var(--text-2)); letter-spacing: 0.1em; }
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) :is(.dow, .wv-dayhead .wd) { color: #1f6372; }
+:root[data-skin="tiefsee"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl, .mb-eyebrow) { letter-spacing: 0.12em; }
+:root[data-skin="tiefsee"][data-mode="dark"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: color-mix(in srgb, var(--accent) 55%, var(--text-2)); }
+:root[data-skin="tiefsee"] .cd-num { text-shadow: 0 0 22px var(--ts-glow); }
+:root[data-skin="tiefsee"] .brand img { box-shadow: 0 0 18px -4px var(--ts-glow); }
+
+/* ---------- Flächen: Glas unter Wasser mit leuchtender Oberkante ---------- */
+
+:root[data-skin="tiefsee"] :is(.month, .wv, .card) { border-color: color-mix(in srgb, var(--accent) 16%, var(--line)); }
+:root[data-skin="tiefsee"] :is(.month, .wv, .card)::after {
+  content: ""; position: absolute; z-index: 5; left: 8%; right: 8%; top: -1px; height: 1px; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, var(--ts-edge), transparent) -30% 0 / 30% 100% no-repeat,
+    linear-gradient(90deg, transparent, var(--ts-rim) 25%, var(--ts-rim) 75%, transparent);
+  box-shadow: 0 0 10px 0 var(--ts-glow);
+}
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) :is(.month, .wv, .card)::after { box-shadow: none; }
+:root[data-skin="tiefsee"][data-motion="on"] :is(.month, .wv, .card)::after { animation: ts-glint 9s ease-in-out infinite; }
+:root[data-skin="tiefsee"][data-motion="on"] .card:nth-child(2n)::after { animation-delay: -3s; }
+:root[data-skin="tiefsee"][data-motion="on"] .card:nth-child(3n)::after { animation-delay: -6s; }
+:root[data-skin="tiefsee"] .sidebar { border-right-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
+:root[data-skin="tiefsee"][data-mode="dark"] .sidebar { box-shadow: inset -1px 0 0 rgba(46, 230, 214, 0.06), 12px 0 40px -30px rgba(46, 230, 214, 0.5); }
+:root[data-skin="tiefsee"] .seg button.on { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 14px -4px var(--ts-glow); }
+:root[data-skin="tiefsee"] .topbar .seg { background: color-mix(in srgb, var(--surface) 70%, transparent); box-shadow: 0 0 0 1px var(--line); }
+/* Listeneinträge etwas dichter, damit eine vorbeischwebende Qualle die Schrift nicht stört */
+:root[data-skin="tiefsee"][data-mode="dark"] .item { background: color-mix(in srgb, var(--surface) 82%, transparent); }
+:root[data-skin="tiefsee"] .item:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+:root[data-skin="tiefsee"] :is(.lv-label, .lv-date) { text-shadow: 0 0 4px var(--bg), 0 0 12px var(--bg); }
+:root[data-skin="tiefsee"] .toast { box-shadow: 0 0 0 1px color-mix(in srgb, var(--toast-icon) 30%, transparent), 0 0 30px -10px var(--ts-glow), var(--shadow-lg); }
+
+/* ---------- Heute: leuchtende Perle, ein paar Bläschen steigen auf ---------- */
+
+:root[data-skin="tiefsee"] .day.today {
+  position: relative;
+  background: radial-gradient(110% 90% at 22% 0%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 72%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 0 26px -10px var(--ts-glow);
+}
+:root[data-skin="tiefsee"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: var(--ts-pearl); color: var(--on-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 18px -2px var(--ts-glow);
+}
+:root[data-skin="tiefsee"] .day.today::after {
+  content: ""; position: absolute; top: 3px; right: 9px; width: 10px; height: 28px; pointer-events: none; opacity: 0;
+  background:
+    radial-gradient(circle at 30% 85%, transparent 2.2px, color-mix(in srgb, var(--accent) 70%, white) 2.6px 3.4px, transparent 3.8px),
+    radial-gradient(circle at 70% 45%, transparent 1.4px, color-mix(in srgb, var(--accent) 70%, white) 1.8px 2.5px, transparent 2.9px),
+    radial-gradient(circle at 40% 12%, color-mix(in srgb, var(--accent) 60%, white) 0 1.4px, transparent 1.8px);
+}
+:root[data-skin="tiefsee"][data-motion="on"] .day.today::after { animation: ts-rise 5.5s ease-in 1s infinite; }
+:root[data-skin="tiefsee"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 3%, transparent)); }
+:root[data-skin="tiefsee"] .now-line { background: var(--accent); box-shadow: 0 0 10px var(--ts-glow); }
+:root[data-skin="tiefsee"] .now-line::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 12px var(--ts-glow); }
+:root[data-skin="tiefsee"] .mini-grid button.today { text-shadow: 0 0 10px var(--ts-glow); }
+:root[data-skin="tiefsee"] .dprog i { box-shadow: 0 0 8px var(--ts-glow); }
+
+/* ---------- Termine: leuchten wie Plankton ---------- */
+
+:root[data-skin="tiefsee"][data-mode="dark"] .bar.timed.now,
+:root[data-skin="tiefsee"][data-mode="dark"] .wv-ev.now { text-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
+:root[data-skin="tiefsee"][data-events="tint"] .bar.block { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 85%, white), var(--ev-glow); padding-left: 9px; }
+
+/* ---------- Knöpfe: Perlen mit Glanz ---------- */
+
+:root[data-skin="tiefsee"] .btn.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, white), var(--accent) 60%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), 0 8px 22px -10px var(--ts-glow);
+}
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) .btn.primary { background: linear-gradient(180deg, #13819f, var(--accent) 60%); }
+:root[data-skin="tiefsee"] .btn.primary:hover { filter: brightness(1.06); }
+:root[data-skin="tiefsee"] .fab {
+  border-radius: 50%; background: var(--ts-pearl);
+  box-shadow: inset 0 -4px 10px rgba(0, 40, 50, 0.25), 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 26px -2px var(--ts-glow), 0 14px 26px -12px rgba(0, 0, 0, 0.5);
+}
+:root[data-skin="tiefsee"][data-motion="on"] .fab { animation: ts-breathe 4.2s ease-in-out infinite; }
+:root[data-skin="tiefsee"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+
+/* ---------- Monatsbanner: Landschaft in Wasserfarben, wie durch Glas gesehen ---------- */
+
+:root[data-skin="tiefsee"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(0.6) brightness(1.04);
+  --mb-tint: linear-gradient(100deg, transparent 26%, rgba(20, 170, 185, 0.55) 58%, color-mix(in srgb, var(--accent) 55%, transparent));
+  --mb-tint-blend: color;
+  --mb-edge: color-mix(in srgb, var(--accent) 60%, transparent);
+  --mb-sky-accent: 30%;
+  --mb-fx-accent: 0.6;
+}
+:root[data-skin="tiefsee"][data-mode="dark"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(0.75) hue-rotate(-24deg) brightness(0.8);
+  --mb-tint: linear-gradient(100deg, rgba(10, 60, 120, 0.35) 10%, rgba(30, 120, 200, 0.45) 50%, color-mix(in srgb, var(--accent) 45%, transparent));
+  --mb-art-blend: luminosity;
+  --mb-art-opacity: 0.9;
+  --mb-edge: var(--accent);
+  --mb-sky-k: 18%;
+  --mb-sky-accent: 22%;
+  --mb-fx-accent: 0.75;
+}
+:root[data-skin="tiefsee"] .mb-chip { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--surface) 86%, transparent); }
+
+/* ---------- Übersicht: Blick ins Wasser mit Qualle (dunkel) bzw. Fischschwarm (hell) ---------- */
+
+:root[data-skin="tiefsee"] .sky {
+  --sky: var(--ts-hero);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow);
+}
+:root[data-skin="tiefsee"][data-mode="dark"] .sky .greet { text-shadow: 0 0 24px rgba(46, 230, 214, 0.45); }
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) .sky .greet { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+:root[data-skin="tiefsee"] .sky .date { color: var(--text-2); opacity: 1; }
+:root[data-skin="tiefsee"] .sky-pill { background: color-mix(in srgb, var(--surface) 62%, transparent); border-color: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--text); }
+:root[data-skin="tiefsee"] .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
+/* Lichtstrahlen von oben */
+:root[data-skin="tiefsee"] .sky::before {
+  inset: -20% -10% 0 30%; transform-origin: 70% 0; transform: skewX(-18deg);
+  background: repeating-linear-gradient(90deg, transparent 0 34px, rgba(200, 250, 255, 0.16) 40px 52px, transparent 60px 92px, rgba(200, 250, 255, 0.09) 98px 104px, transparent 110px 150px);
+  -webkit-mask: linear-gradient(180deg, #000, transparent 85%); mask: linear-gradient(180deg, #000, transparent 85%);
+}
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) .sky::before { background: repeating-linear-gradient(90deg, transparent 0 34px, rgba(255, 255, 255, 0.5) 40px 52px, transparent 60px 92px, rgba(255, 255, 255, 0.32) 98px 104px, transparent 110px 150px); }
+:root[data-skin="tiefsee"][data-motion="on"] .sky::before { animation: ts-rays 12s ease-in-out infinite; }
+/* Grund mit Felsen und Seegras */
+:root[data-skin="tiefsee"] .sky::after {
+  left: 0; right: 0; bottom: 0; height: 34%;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fx-s4) 55%, transparent), var(--fx-s4));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 100' preserveAspectRatio='none'%3E%3Cpath fill-opacity='.45' d='M0 100V70C40 60 70 66 100 58S170 40 210 52 280 66 330 54 420 34 470 48 560 60 600 50V100Z'/%3E%3Cpath d='M0 100V86C60 80 110 88 170 80S270 74 320 82 430 90 480 80 560 76 600 82V100Z'/%3E%3Cg fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M120 84C114 64 128 50 118 26'/%3E%3Cpath d='M128 84C134 70 124 58 134 42'/%3E%3Cpath d='M452 82C446 62 460 46 450 20'/%3E%3Cpath d='M462 82C468 66 458 54 468 38'/%3E%3Cpath d='M540 80C536 66 546 56 540 40'/%3E%3C/g%3E%3C/svg%3E") right bottom / 640px 100% repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 100' preserveAspectRatio='none'%3E%3Cpath fill-opacity='.45' d='M0 100V70C40 60 70 66 100 58S170 40 210 52 280 66 330 54 420 34 470 48 560 60 600 50V100Z'/%3E%3Cpath d='M0 100V86C60 80 110 88 170 80S270 74 320 82 430 90 480 80 560 76 600 82V100Z'/%3E%3Cg fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M120 84C114 64 128 50 118 26'/%3E%3Cpath d='M128 84C134 70 124 58 134 42'/%3E%3Cpath d='M452 82C446 62 460 46 450 20'/%3E%3Cpath d='M462 82C468 66 458 54 468 38'/%3E%3Cpath d='M540 80C536 66 546 56 540 40'/%3E%3C/g%3E%3C/svg%3E") right bottom / 640px 100% repeat-x;
+}
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) .sky::after { background: linear-gradient(180deg, rgba(15, 127, 140, 0.16), rgba(15, 127, 140, 0.34)); }
+/* Qualle (dunkel) */
+:root[data-skin="tiefsee"] .sky-art::before {
+  top: 14px; right: 12%; width: 92px; height: 156px;
+  background: var(--ts-jelly) center top / contain no-repeat; filter: var(--ts-jelly-filter);
+}
+:root[data-skin="tiefsee"][data-motion="on"] .sky-art::before { animation: ts-swim 6s ease-in-out infinite; }
+/* Fischschwarm (hell) bzw. Blasenkette (dunkel) */
+:root[data-skin="tiefsee"] .sky-art::after {
+  right: calc(12% + 120px); bottom: 26%; width: 16px; height: 120px; opacity: 0.8;
+  background:
+    radial-gradient(circle at 40% 92%, transparent 3.4px, rgba(190, 250, 255, 0.85) 4px 5px, transparent 5.6px),
+    radial-gradient(circle at 60% 66%, transparent 2.4px, rgba(190, 250, 255, 0.8) 3px 3.8px, transparent 4.4px),
+    radial-gradient(circle at 35% 40%, transparent 1.8px, rgba(190, 250, 255, 0.7) 2.3px 3px, transparent 3.5px),
+    radial-gradient(circle at 55% 14%, rgba(190, 250, 255, 0.7) 0 2px, transparent 2.5px);
+}
+:root[data-skin="tiefsee"][data-motion="on"] .sky-art::after { animation: ts-bubbles 4s linear infinite; }
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) .sky-art::before {
+  top: auto; bottom: 34%; right: 8%; width: 240px; height: 108px; opacity: 0.55;
+  background: var(--ts-fish) center / contain no-repeat;
+}
+:root[data-skin="tiefsee"][data-motion="on"]:not([data-mode="dark"]) .sky-art::before { animation: ts-school 14s ease-in-out infinite; }
+:root[data-skin="tiefsee"]:not([data-mode="dark"]) .sky-art::after { right: 40%; bottom: 30%; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="tiefsee"] { --live-bf: none; --blur: 0px; }
+  :root[data-skin="tiefsee"] :is(.sheet, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root[data-skin="tiefsee"] .tabbar {
+    background: color-mix(in srgb, var(--surface) 93%, transparent); border-top: 0;
+    box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 30%, transparent), 0 -14px 30px -22px var(--ts-glow);
+  }
+  :root[data-skin="tiefsee"] .tabbar::before {
+    content: ""; position: absolute; left: 10%; right: 10%; top: -1px; height: 1px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--ts-edge), transparent);
+    box-shadow: 0 0 10px var(--ts-glow);
+  }
+  :root[data-skin="tiefsee"] .tab.on { color: var(--accent); }
+  :root[data-skin="tiefsee"]:not([data-mode="dark"]) .tab.on { color: #0b6178; }
+  :root[data-skin="tiefsee"] .tab.on .tab-ic {
+    background: radial-gradient(70% 90% at 50% 100%, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 16px -4px var(--ts-glow);
+  }
+  :root[data-skin="tiefsee"] :is(.month, .wv)::after { left: 0; right: 0; }
+  :root[data-skin="tiefsee"] .day.today::after { right: 3px; top: 1px; height: 22px; }
+  :root[data-skin="tiefsee"] .sky-art::before { right: 6%; width: 62px; height: 106px; top: 10px; }
+  :root[data-skin="tiefsee"] .sky-art::after { right: calc(6% + 76px); height: 90px; }
+  :root[data-skin="tiefsee"]:not([data-mode="dark"]) .sky-art::before { width: 150px; height: 68px; right: 4%; bottom: 44%; }
+  :root[data-skin="tiefsee"] .sky::after { height: 26%; -webkit-mask-size: 520px 100%; mask-size: 520px 100%; }
+}
+
+@keyframes ts-glint { 0%, 30% { background-position: -30% 0, 0 0; } 70%, 100% { background-position: 130% 0, 0 0; } }
+@keyframes ts-rise {
+  0% { opacity: 0; transform: translateY(10px); }
+  20% { opacity: 0.9; }
+  75% { opacity: 0.6; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes ts-breathe { 50% { box-shadow: inset 0 -4px 10px rgba(0, 40, 50, 0.25), 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent), 0 0 36px 0 var(--ts-glow), 0 14px 26px -12px rgba(0, 0, 0, 0.5); } }
+@keyframes ts-rays { 50% { transform: skewX(-12deg) translateX(-14px); opacity: 0.75; } }
+@keyframes ts-swim {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  20% { transform: translateY(-3px) scale(0.92, 1.06); }
+  55% { transform: translateY(-9px) scale(1.02, 0.98); }
+}
+@keyframes ts-bubbles {
+  0% { opacity: 0; transform: translateY(16px); }
+  20% { opacity: 0.8; }
+  85% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-34px); }
+}
+@keyframes ts-school { 50% { transform: translate(-36px, 6px); } }

@@ -1,14 +1,198 @@
-# Mein erstes Repo
+# 🌿 Zeitgarten
 
-Willkomen bei meinem ersten GitHub-Projekt!
+**Der gemeinsame Kalender – wie TimeTree, nur schöner.**
+Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehenden Kalender mit einem Klick dazu und gib Zeitgarten deinen eigenen Look.
 
-Dieses Repository dient als Einstieg in die Welt von Git und GitHub.
+![Die Übersicht „Heute“ mit Himmel nach Tageszeit, Countdown, Wochen-Grafik und Heatmap](docs/heute.png)
 
-## Was ist Git?
+![Auf dem Handy: Übersicht, Monat, Termin mit Reaktionen, Grafiken](docs/handy.png)
 
-Git ist ein Versionskontrollsystem, das Änderungen an Dateien nachverfolgt.
+## Was die App kann
 
-## Erste Schritte
+### Zusammen planen – live
+- **Freunde per Link einladen**: Link kopieren, über WhatsApp oder das Teilen-Menü schicken. Im Chat erscheint eine hübsche Vorschau („Lena lädt dich in „🏠 WG“ ein“). Wer den Link öffnet, gibt nur seinen Namen ein, wählt seinen Look und ist dabei, ohne Passwort und ohne E-Mail
+- **Gemeinsame Kalender** für Familie, WG, Verein, Team – jeder mit eigener Farbe und Emoji
+- **Alles live**: Neue Termine, Zusagen und Kommentare der anderen erscheinen sofort
+- **Wer ist online?** Grüner Punkt an allen, die Zeitgarten gerade offen haben
+- **„Max schreibt …“** – du siehst, wenn jemand gerade einen Kommentar tippt
+- **Reaktionen** ❤️ 👍 🎉 😂 auf Termine, mit kleinem Emoji-Feuerwerk
+- **„Ich bin dabei“** mit Konfetti, und **Kommentare** („Wer bringt was mit?“). Bei Serien gilt die Zusage für den einzelnen Termin, nicht für alle Wochen
+- **Termine teilen**: Ein Tipp auf „Teilen“ schickt den Termin mit Datum und Link in den Chat
+- **„Wann habt ihr Zeit?“**: Freunde antippen, Zeitraum (diese Woche, nächste 7 oder 14 Tage), Tageszeit (abends, tagsüber, ganztags, Wochenende) und Dauer wählen. Eine Heatmap zeigt, wann wie viele frei sind, dazu die 5 besten Zeiten („Sa., 18. Okt. · 18:00–21:00 · alle 4 frei ✓“ oder „3 von 4 frei – Max nicht“). Ein Tipp legt den Termin an, gleich im gemeinsamen Kalender. „Vorschläge teilen“ schickt die 3 besten in den Chat. Zu finden in der Seitenleiste, im Kalender-Fenster und in der Übersicht „Heute“
+  - Geteilt wird nur „frei“ oder „belegt“, nie was jemand vorhat. Es zählen Termine mit Uhrzeit (auch Serien und Kalender vom iPhone) und mehrtägige wie Urlaub, Geburtstage nicht. In gemeinsamen Kalendern zählt ein Termin nur für die, die ihn eingetragen haben oder dabei sind
+  - Im Profil lässt sich das Teilen abschalten. Dann sehen Freunde nur Termine aus euren gemeinsamen Kalendern
+- **Emoji-Profilbild**: Statt Anfangsbuchstaben ein eigenes Emoji
+- **Neuigkeiten** 🔔: Glocke mit Zähler, Live-Meldungen und auf Wunsch Browser-Benachrichtigungen
+
+### Schön & persönlich
+- **7 Designs** zum Umschalten – jeweils hell und dunkel: Garten, Aurora (Glas & Polarlicht), Neon, Sunset, Ozean, Pastell, Mono
+- **12 Live-Stile** mit bewegtem Hintergrund, jeweils hell und dunkel:
+  - **Jarvis**: Hologramm-HUD mit Radar, Ringen und Leuchtrahmen
+  - **Synthwave**: Retro-Neon mit Sonne, Bergen und Raster-Horizont
+  - **Cyberpunk**: Night City mit Skyline, Regen und Warnstreifen
+  - **Galaxie**: Sterne, Nebel und Sternschnuppen
+  - **Matrix**: grüner Zeichen-Regen und Terminal-Look
+  - **Arcade**: 8-Bit-Sterne, Pixel-Aliens und Röhrenbild
+  - **Sakura**: fallende Kirschblüten, nachts mit Laternen und Mond
+  - **Comic**: Pop-Art mit Rasterpunkten, dicken Konturen und ab und zu „ZACK!“
+  - **Tiefsee**: leuchtende Quallen, Lichtstrahlen und Blasen
+  - **Lagerfeuer**: aufsteigende Funken und Glut unter dem Sternenhimmel
+  - **Liquid Glass**: schimmerndes Glas mit wandernden Farbwolken
+  - **Lavalampe**: wabernde Blasen im 70er-Stil
+
+![Die 8 neuen Live-Stile auf dem iPhone](docs/neue-designs.png)
+
+- Neue Freunde wählen direkt nach dem Beitreten unter „Wähl deinen Look“ ihren Stil. Live-Stile wechseln dabei automatisch auf Dunkel, dort wirken sie am besten
+- **Selbst einstellen**: Akzentfarbe, Termin-Stil (getönt, kräftig, Linie), Schrift für Überschriften (modern, rund, elegant, technisch), Ecken (eckig bis extra rund), Abstände, Kalenderwochen, bewegter Hintergrund, Effekte
+- Dein Design wird **auf allen deinen Geräten** übernommen
+
+![Sechs der sieben Designs](docs/stile.png)
+
+### Übersicht „Heute“
+- Himmel, der sich mit der **Tageszeit** ändert (Sonnenaufgang, Tag, Abendrot, Sternenhimmel)
+- **Countdown** bis zum nächsten Termin, bei laufenden Terminen mit Fortschrittsbalken
+- **Tagesablauf** mit „Jetzt“-Linie, **Wochen-Grafik** (verplante Stunden) und **Heatmap** der nächsten 5 Wochen
+- **Vorfreude**: Wie viele Tage noch bis zum Urlaub, zur Hochzeit, …
+
+### Kalender
+- **Monat, Woche, Liste** mit Suche – plus Mini-Kalender
+- **Lebendige Monatsansicht**: Ein Banner zur Jahreszeit (fallende Blätter im Herbst, Schnee im Winter …) mit dem nächsten Termin und den Zahlen des Monats, Emojis an den Terminen, Geburtstage hervorgehoben, ein roter Live-Punkt an allem, was gerade läuft, und ein Tagesfortschritt am heutigen Tag
+- **Woche und Liste** mit „Jetzt“-Linie, leicht schraffierten vergangenen Stunden und Terminfarben zum Durchblättern
+- **Emojis überall**: Passende Emojis zu Termintiteln (Pizza → 🍕, Zahnarzt → 🦷), auch ohne Emoji im Titel. Beim Anlegen gibt es eine Emoji-Auswahl und Vorschläge
+- **Am Handy**: Im Monat stehen Titel in bis zu zwei Zeilen statt abgeschnitten; die Woche zeigt drei Tage auf einmal und lässt sich seitwärts wischen
+- **Einzelne Termine einer Serie** verschieben, ändern oder absagen – die anderen sehen genau, welches Datum betroffen ist
+- **Ziehen & Ablegen**: Termine in der Monatsansicht einfach auf einen anderen Tag ziehen (am Handy: lange drücken), mit „Rückgängig“
+- **Wiederholungen**: täglich, werktags, wöchentlich, alle 2 Wochen, monatlich, jährlich – auf Wunsch mit Enddatum
+- **Kalender importieren**
+  - **direkt vom iPhone** (iCloud): Apple-ID und ein app-spezifisches Passwort eingeben, dann die Kalender **antippen und auswählen**, ganz ohne Datei. Sie bleiben verbunden und aktualisieren sich etwa alle halbe Stunde von selbst. Über „Anderer Kalender-Server“ geht das auch mit Nextcloud, mailbox.org, Fastmail & Co.
+  - als **.ics-Datei** (Export aus Google Kalender, Apple Kalender oder Outlook)
+  - als **Internet-Link** (z. B. die „Privatadresse im iCal-Format“ von Google oder ein öffentlicher iCloud-Kalender). Ein Link-Import ist ein **Abo** und aktualisiert sich alle 6 Stunden von selbst.
+  - Feiertage für Deutschland und Österreich mit einem Klick
+- **Export**: Jeder Kalender hat einen persönlichen Abo-Link, mit dem du ihn auch in Apple, Google oder Outlook siehst. „In Apple Kalender anzeigen“ öffnet das Abo auf dem iPhone direkt – dann erscheinen die Termine auch im Widget und auf der Apple Watch
+- **Fürs Handy gemacht**: Tab-Leiste unten, Wischen zum Blättern, Fenster nach unten wegwischen. Auf dem iPhone erklärt ein Hinweis, wie du Zeitgarten als App auf den Home-Bildschirm legst
+- **Mehrere Geräte**: Im Profil unter „Auf anderem Gerät anmelden“ bekommst du einen Code (10 Minuten gültig). Auf dem anderen Gerät – z. B. der App auf dem Home-Bildschirm – tippst du „Ich hab schon ein Profil“ und gibst ihn ein. Alternativ geht dein persönlicher Anmelde-Link
+- **Nichts geht verloren**: Das Termin-Fenster fragt nach, bevor Eingetipptes verworfen wird, und die Live-Verbindung baut sich nach Abbrüchen selbst wieder auf
+
+![Termin per Ziehen & Ablegen auf einen anderen Tag verschieben](docs/monat.png)
+
+<p align="center">
+  <img src="docs/live.png" alt="Live: Max schreibt gerade, neue Termine erscheinen sofort" width="380">
+  <img src="docs/design.png" alt="Design & Stil anpassen" width="460">
+</p>
+
+### Tastenkürzel (am Computer)
+
+| Taste | Aktion |
+| --- | --- |
+| `←` / `→` | Zurück / weiter blättern |
+| `T` | Heute |
+| `N` | Neuer Termin |
+| `H` `M` `W` `L` | Übersicht, Monat, Woche, Liste |
+| `D` | Design & Stil |
+
+## Starten auf deinem Computer
+
+Du brauchst nur [Node.js](https://nodejs.org) (Version 20 oder neuer). Andere Pakete musst du nicht installieren.
+
+```bash
+npm start
+```
+
+Dann im Browser **http://localhost:3000** öffnen. Fertig.
+
+> Tipp: Mit `npm run dev` startet der Server bei jeder Änderung am Code automatisch neu.
+
+## Demo ohne Server
+
+Zum Ausprobieren gibt es eine Demo-Version, die komplett im Browser läuft. Sie nutzt dieselbe Logik wie der Server (`server/core.js`), speichert aber alles nur auf dem eigenen Gerät. Zwei Beispiel-Freunde, Max und Lena, machen live mit: Sie kommen online, tragen Termine ein, antworten auf Kommentare und reagieren auf neue Termine.
+
+```bash
+npm run demo
+```
+
+Das baut die Demo nach `demo/dist/`. Den Ordner kannst du auf jeden statischen Hoster legen, zum Beispiel GitHub Pages. Einladungslinks und Kalender-Abos per Link funktionieren in der Demo nicht, dafür braucht es den echten Server. Auch der iPhone-Import wird in der Demo nur nachgespielt: Er zeigt Beispiel-Kalender, egal was man eingibt.
+
+## Mit Freunden nutzen (online stellen)
+
+Damit deine Freunde den Einladungslink öffnen können, muss die App im Internet erreichbar sein. Dafür gibt es mehrere Wege:
+
+| Weg | Gut für | So geht’s |
+| --- | --- | --- |
+| **Schneller Test-Tunnel** | Einen Abend lang ausprobieren | App starten und dann [`cloudflared tunnel --url http://localhost:3000`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) ausführen. Du bekommst eine `https://…trycloudflare.com`-Adresse, die du teilen kannst. Sie funktioniert nur, solange dein Computer läuft. |
+| **Hosting mit Docker** (z. B. Railway, Fly.io, Render) | Dauerhaft | Das Projekt enthält ein `Dockerfile`. **Wichtig:** Lege beim Anbieter ein dauerhaftes Volume an und hänge es unter `/data` ein. Sonst sind die Kalender nach jedem Neustart weg. |
+| **Eigener Server oder Raspberry Pi** | Dauerhaft, volle Kontrolle | `npm start` laufen lassen und für HTTPS z. B. [Caddy](https://caddyserver.com) davorschalten. |
+
+Einstellungen über Umgebungsvariablen:
+
+| Variable | Bedeutung | Standard |
+| --- | --- | --- |
+| `PORT` | Port des Servers | `3000` |
+| `DATA_DIR` | Ordner, in dem die Daten gespeichert werden | `./data` |
+| `ZEITGARTEN_SECRET` | Schlüssel, mit dem die iCloud-Passwörter verschlüsselt gespeichert werden | zufällig, in `DATA_DIR/secret.key` |
+| `PUBLIC_URL` | Öffentliche Adresse für die Link-Vorschau in WhatsApp & Co., z. B. `https://kalender.example.de` | aus der Anfrage |
+| `TRUST_PROXY` | `1`, wenn ein Proxy (z. B. Caddy) davorsteht – dann zählt für den Schutz vor erratenen Codes die echte Adresse aus `X-Forwarded-For` | aus |
+
+Das Docker-Image richtet die Rechte eines leeren `/data`-Volumes selbst ein und meldet über `HEALTHCHECK` (`/api/health`), ob der Server läuft.
+
+## Deine Daten
+
+Alles wird in **einer Datei** gespeichert: `data/zeitgarten.json`. Zusätzlich legt der Server **jeden Tag eine Sicherungskopie** in `data/backups/` an (die letzten 14 bleiben). Ist `zeitgarten.json` einmal kaputt, wird sie als `zeitgarten.kaputt-<Zeit>.json` beiseitegelegt und die neueste Sicherung geladen. Für eine eigene Sicherung kopierst du den ganzen `data`-Ordner.
+
+Abo-Links sind persönlich: Wird jemand aus einem Kalender entfernt, funktioniert sein Abo-Link nicht mehr, und der Einladungslink wird erneuert. Ältere, gemeinsame Abo-Links zeigen nur noch einen Hinweis, dass es einen neuen Link gibt.
+Verbundene iPhone-Kalender brauchen dein app-spezifisches Passwort, damit sie sich später selbst aktualisieren können. Es wird **verschlüsselt** gespeichert und nie an den Browser zurückgeschickt. Der Schlüssel liegt in `data/secret.key` (oder kommt aus `ZEITGARTEN_SECRET`). Sichere ihn zusammen mit `zeitgarten.json`, sonst müssen die iPhone-Kalender nach einem Umzug neu verbunden werden. Du kannst das Passwort jederzeit unter account.apple.com widerrufen.
+Die App benutzt keine Tracker, keine Werbung und lädt keine fremden Schriften oder Skripte.
+
+## Tests
+
+```bash
+npm test
+```
+
+Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung, z. B. die Wochenansicht am 25. Oktober), die Wiederholungsregeln, die Emoji-Vorschläge, das sichere Speichern mit Sicherungskopien, die Link-Vorschau, „Wann habt ihr Zeit?“ (wer wen sehen darf, Serien, Urlaub, Privatsphäre) und die API mit Einladungen, Anmelde-Codes, Zusagen pro Termin, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
+
+## So ist das Projekt aufgebaut
+
+```
+server/
+  index.js        Webserver: HTTP, Live-Verbindungen, Dateien
+  core.js         Die eigentliche Logik (Kalender, Einladungen, Termine, Neuigkeiten …), auch für die Demo
+  ics.js          .ics-Dateien lesen und schreiben
+  safe-fetch.js   Kalender-Links sicher aus dem Internet laden
+  caldav.js       iPhone-/iCloud-Kalender finden und Termine abholen (CalDAV)
+  xml.js          Kleiner XML-Leser für die Antworten von iCloud
+  store.js        Speichern in einer JSON-Datei, mit täglicher Sicherungskopie
+public/
+  index.html      Einstieg der App
+  css/app.css     Das ganze Design: 7 Stile, hell und dunkel, alle Einstellungen
+  css/skins-live.css  Die Live-Stile Jarvis, Synthwave, Cyberpunk und Galaxie
+  css/skins/       Die weiteren Live-Stile, je eine Datei (Matrix, Arcade, Sakura, …)
+  css/calendar.css    Die lebendige Monats-, Wochen- und Listenansicht
+  css/caldav.css      Der iPhone-Import
+  css/finder.css      „Wann habt ihr Zeit?“
+  js/app.js       Start, Seitenleiste, Navigation, Live-Updates
+  js/dashboard.js Übersicht „Heute“ mit Himmel, Countdown und Grafiken
+  js/finder.js    „Wann habt ihr Zeit?“: freie Zeit mit Freunden finden
+  js/views.js     Monats-, Wochen- und Listenansicht, Ziehen & Ablegen
+  js/emoji-hints.js  Passende Emojis zu Termintiteln
+  js/sheets.js    Fenster: Termin, Editor, Kalender, Import, Profil, Neuigkeiten, Design, „Wähl deinen Look“
+  js/themes.js    Designs und persönliche Einstellungen
+  js/bgfx.js      Bewegte Hintergründe der Live-Stile
+  js/skins/       Die weiteren Live-Stile: Eintrag für die Auswahl und bewegter Hintergrund, je eine Datei
+  js/season.js    Jahreszeiten-Banner im Monat
+  js/fx.js        Konfetti, Emoji-Regen und Tooltips
+  js/recur.js     Wiederkehrende Termine
+  js/time.js      Datum, Zeitzonen und Kalenderwochen
+demo/
+  api.js          Ersetzt in der Demo den Server: alles im Browser, mit Max und Lena als Beispiel-Freunden
+  build.mjs       Baut die Demo nach demo/dist/
+test/             Automatische Tests
+```
+
+Es gibt keine Abhängigkeiten und keinen Build-Schritt. Was im Ordner steht, läuft so.
+
+## Über dieses Repo
+
+Dieses Repository war mein Einstieg in die Welt von Git und GitHub. Git ist ein Versionskontrollsystem, das Änderungen an Dateien nachverfolgt.
 
 1. Repository klonen
 2. Änderungen vornehmen

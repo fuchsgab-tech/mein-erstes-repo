@@ -1,0 +1,358 @@
+/* Stil „Comic“ – Pop-Art-Comicseite mit dicken Tuschrändern, harten Schatten und Sprechblasen (Szene: js/skins/comic.js).
+   Dunkel: Comic-Nacht in Marineblau mit Cyan und Gelb. Regeln immer mit :root[data-skin="comic"] beginnen.
+   Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = Zeitungspapier & Grundfarben, dunkel = Comic-Nacht ---------- */
+
+:root[data-skin="comic"] {
+  --bg: #fff1bd;
+  --wallpaper: linear-gradient(180deg, #fff6d6, #ffe9a3);
+  --surface: #ffffff;
+  --card: rgba(255, 255, 255, 0.92);
+  --sidebar-bg: rgba(255, 252, 242, 0.96);
+  --surface-2: rgba(17, 17, 17, 0.06);
+  --surface-3: rgba(17, 17, 17, 0.12);
+  --line: rgba(17, 17, 17, 0.16);
+  --line-2: rgba(17, 17, 17, 0.38);
+  --text: #111111;
+  --text-2: #36363f;
+  --text-3: #55555f;
+  --accent: #d6153f;
+  --on-accent: #ffffff;
+  --danger: #b80f2a;
+  --online: #0e9a47;
+  --mix: 24%;
+  --mix-text: 56%;
+  --blur: 0px;
+  --ev-glow-geo: 0 0 0 0;
+  --ev-glow-mix: 0%;
+  --shadow-sm: 2px 2px 0 var(--cm-ink);
+  --shadow: 4px 4px 0 var(--cm-ink);
+  --shadow-lg: 7px 7px 0 var(--cm-ink), 0 30px 60px -24px rgba(0, 0, 0, 0.35);
+  --toast-bg: #ffffff;
+  --toast-text: #111111;
+  --toast-icon: #d6153f;
+  --scrim: rgba(17, 17, 17, 0.38);
+  --cm-ink: #111111;
+  --cm-sh: #111111;
+  --cm-y: #ffd23f;
+  --cm-c: #00a6f0;
+  --cm-r: #e11d48;
+  --cm-dots: rgba(0, 120, 200, 0.22);
+  --cm-title: #111111;
+  --cm-title-sh: #ffd23f;
+  --fx-a: #e11d48;
+  --fx-b: #00a6f0;
+  --fx-c: #ffd23f;
+  --fx-d: #111111;
+  --fx-s1: #fff4c7;
+  --fx-s2: #ff8a00;
+  --fx-s3: #ffffff;
+  --fx-s4: #2b59ff;
+  --fx-k: 1;
+}
+:root[data-skin="comic"][data-mode="dark"] {
+  --bg: #0b1030;
+  --wallpaper: linear-gradient(180deg, #0f1745, #070b24);
+  --surface: #151d4c;
+  --card: rgba(20, 28, 74, 0.92);
+  --sidebar-bg: rgba(12, 18, 52, 0.96);
+  --surface-2: rgba(140, 220, 255, 0.08);
+  --surface-3: rgba(140, 220, 255, 0.16);
+  --line: rgba(160, 220, 255, 0.17);
+  --line-2: rgba(160, 220, 255, 0.36);
+  --text: #fffbe8;
+  --text-2: #d3daf5;
+  --text-3: #a8b1da;
+  --accent: #ffd23f;
+  --on-accent: #111111;
+  --danger: #ff5a6e;
+  --online: #3dff9a;
+  --mix: 26%;
+  --mix-text: 40%;
+  --ev-glow-geo: 0 0 0 0;
+  --ev-glow-mix: 0%;
+  --shadow-sm: 2px 2px 0 var(--cm-sh);
+  --shadow: 4px 4px 0 var(--cm-sh);
+  --shadow-lg: 7px 7px 0 var(--cm-sh), 0 30px 70px -24px rgba(0, 0, 0, 0.8);
+  --toast-bg: #fffbe8;
+  --toast-text: #111111;
+  --toast-icon: #e11d48;
+  --scrim: rgba(3, 5, 20, 0.62);
+  --cm-ink: #000000;
+  --cm-sh: #00b8f0;
+  --cm-dots: rgba(0, 208, 255, 0.2);
+  --cm-title: #fffbe8;
+  --cm-title-sh: #e11d48;
+  --fx-a: #ff3d6e;
+  --fx-b: #00d0ff;
+  --fx-c: #ffd23f;
+  --fx-d: #000000;
+  --fx-s1: #0b1030;
+  --fx-s2: #ff8a00;
+  --fx-s3: #fffbe8;
+  --fx-s4: #3d6bff;
+  --fx-k: 1;
+}
+:root[data-skin="comic"]:not([data-corners="pill"]) { --r-xs: 3px; --r-sm: 5px; --r-md: 7px; --r-lg: 9px; --r-xl: 12px; }
+:root[data-skin="comic"][data-font="modern"] {
+  --font-display: "Avenir Next Condensed", "Futura", Impact, "Arial Black", "Segoe UI Black", system-ui, -apple-system, sans-serif;
+}
+:root[data-skin="comic"] {
+  --cm-burst: polygon(50% 0%, 59.6% 14.3%, 75% 6.7%, 76.2% 23.8%, 93.3% 25%, 85.7% 40.4%, 100% 50%, 85.7% 59.6%, 93.3% 75%, 76.2% 76.2%, 75% 93.3%, 59.6% 85.7%, 50% 100%, 40.4% 85.7%, 25% 93.3%, 23.8% 76.2%, 6.7% 75%, 14.3% 59.6%, 0% 50%, 14.3% 40.4%, 6.7% 25%, 23.8% 23.8%, 25% 6.7%, 40.4% 14.3%);
+}
+
+/* ---------- Gemeinsames für Live-Stile (wie in skins-live.css) ---------- */
+
+:root[data-skin="comic"] { --live-bf: none; }
+:root[data-skin="comic"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="comic"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf); }
+:root[data-skin="comic"] .sky-art svg { display: none; }
+:root[data-skin="comic"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="comic"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="comic"] .heat .cell { --text-2: var(--text); }
+:root[data-skin="comic"] .sky::before,
+:root[data-skin="comic"] .sky::after,
+:root[data-skin="comic"] .sky-art::before,
+:root[data-skin="comic"] .sky-art::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Schrift: fett, schmal, ein bisschen schief ---------- */
+
+:root[data-skin="comic"] :is(.topbar .title, .sheet-head h2, .sky .greet, .brand, .mb-mood, .ev-title, .lv-month strong) {
+  font-weight: 900; letter-spacing: 0.005em;
+}
+:root[data-skin="comic"] .topbar .title {
+  display: inline-block; text-transform: uppercase; color: var(--cm-title); transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--cm-title-sh);
+}
+:root[data-skin="comic"] .topbar .title .year { color: var(--accent); }
+:root[data-skin="comic"]:not([data-mode="dark"]) .topbar .title .year { color: var(--cm-r); text-shadow: 3px 3px 0 var(--cm-ink); }
+:root[data-skin="comic"] .brand { text-transform: uppercase; font-style: italic; }
+:root[data-skin="comic"] .brand img { box-shadow: 2px 2px 0 var(--cm-sh); border: 2px solid var(--cm-ink); }
+:root[data-skin="comic"] :is(.sheet-head h2, .ev-title) { transform: rotate(-1deg); }
+:root[data-skin="comic"] :is(.dow, .wv-dayhead .wd) { color: var(--text); font-weight: 900; letter-spacing: 0.12em; }
+:root[data-skin="comic"] .dow.we { color: var(--danger); }
+:root[data-skin="comic"][data-mode="dark"] .dow.we { color: var(--cm-sh); }
+:root[data-skin="comic"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl, .mb-eyebrow) { color: var(--text); font-weight: 900; letter-spacing: 0.12em; }
+/* Überschriften der Karten als gelbes Erzählkästchen */
+:root[data-skin="comic"] .card-head h3 { flex: 0 1 auto; margin-right: auto; padding: 4px 9px 3px; background: var(--cm-y); color: #111; border: 2px solid var(--cm-ink); box-shadow: 2px 2px 0 var(--cm-ink); transform: rotate(-1.5deg); }
+:root[data-skin="comic"] :is(.day .num, .wv-dayhead .dn, .lv-date .dn, .cd-num) { font-weight: 900; }
+:root[data-skin="comic"] .cd-num { text-shadow: 3px 3px 0 var(--cm-title-sh); }
+
+/* ---------- Flächen: Comic-Panels mit Tuschrand und hartem Schatten ---------- */
+
+:root[data-skin="comic"] :is(.month, .wv, .card) {
+  border: 2.5px solid var(--cm-ink);
+  box-shadow: 5px 5px 0 var(--cm-sh);
+}
+:root[data-skin="comic"] :is(.month, .wv, .card)::after {
+  /* feines Druckraster unten rechts im Panel */
+  content: ""; position: absolute; z-index: -1; right: 0; bottom: 0; width: 46%; height: 42%; pointer-events: none;
+  background: radial-gradient(circle, var(--cm-dots) 1.3px, transparent 1.8px) 0 0 / 7px 7px;
+  -webkit-mask-image: radial-gradient(farthest-side at 100% 100%, #000, transparent);
+  mask-image: radial-gradient(farthest-side at 100% 100%, #000, transparent);
+}
+:root[data-skin="comic"] .month-head { border-bottom: 2.5px solid var(--cm-ink); }
+:root[data-skin="comic"] .sidebar { border-right: 3px solid var(--cm-ink); }
+:root[data-skin="comic"] .seg { padding: 3px; background: var(--surface); box-shadow: 0 0 0 2px var(--cm-ink), 3px 3px 0 2px var(--cm-sh); }
+:root[data-skin="comic"] .seg button { font-weight: 800; }
+:root[data-skin="comic"] .seg button.on { background: var(--cm-y); color: #111; box-shadow: inset 0 0 0 2px var(--cm-ink); }
+:root[data-skin="comic"] .topbar .today-btn { border: 2px solid var(--cm-ink); box-shadow: 2px 2px 0 var(--cm-sh); background: var(--surface); font-weight: 800; }
+:root[data-skin="comic"] :is(.item, .search-box) { border: 2px solid var(--cm-ink); box-shadow: 3px 3px 0 var(--cm-sh); }
+:root[data-skin="comic"] .item:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--cm-sh); }
+:root[data-skin="comic"] .item .stripe { border-radius: 0; width: 6px; }
+:root[data-skin="comic"] .sheet { position: relative; border: 3px solid var(--cm-ink); }
+:root[data-skin="comic"] .mini-grid button.today { box-shadow: inset 0 0 0 2px var(--cm-ink); font-weight: 900; }
+
+/* Meldungen als Sprechblase mit Zipfel */
+:root[data-skin="comic"] .toast {
+  position: relative; border: 2.5px solid var(--cm-ink); border-radius: 22px; box-shadow: 4px 4px 0 var(--cm-sh); font-weight: 750; overflow: visible;
+}
+:root[data-skin="comic"] .toast::before,
+:root[data-skin="comic"] .toast::after {
+  content: ""; position: absolute; left: 30px; top: 100%; pointer-events: none;
+  clip-path: polygon(0 0, 100% 0, 10% 100%);
+}
+:root[data-skin="comic"] .toast::before { width: 24px; height: 16px; margin-top: 0; background: var(--cm-ink); }
+:root[data-skin="comic"] .toast::after { left: 33.5px; width: 16px; height: 10px; margin-top: -3px; background: var(--toast-bg); }
+:root[data-skin="comic"] .toast.error { border-color: var(--danger); }
+
+/* ---------- Heute: Sprechblase mit Rasterpunkten ---------- */
+
+:root[data-skin="comic"] .day.today {
+  position: relative; isolation: isolate;
+  background: color-mix(in srgb, var(--cm-y) 16%, transparent);
+  box-shadow: inset 0 0 0 2.5px var(--cm-ink);
+}
+:root[data-skin="comic"][data-mode="dark"] .day.today { background: rgba(255, 210, 63, 0.07); box-shadow: inset 0 0 0 2.5px var(--cm-y); }
+/* Rasterpunkte nur oben rechts in der Ecke – die Termine bleiben ruhig */
+:root[data-skin="comic"] .day.today::after {
+  content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+  background: radial-gradient(circle, var(--cm-y) 1.6px, transparent 2.1px) 0 0 / 7px 7px;
+  -webkit-mask-image: radial-gradient(farthest-side at 100% 0%, #000, transparent 75%);
+  mask-image: radial-gradient(farthest-side at 100% 0%, #000, transparent 75%);
+}
+:root[data-skin="comic"][data-mode="dark"] .day.today::after { opacity: 0.55; }
+:root[data-skin="comic"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: var(--cm-y); color: #111; border: 2px solid var(--cm-ink); box-shadow: 2px 2px 0 var(--cm-ink); border-radius: 50%;
+}
+:root[data-skin="comic"] .day.today .num { min-width: 29px; height: 27px; }
+/* Zipfel der Sprechblase */
+:root[data-skin="comic"] .day.today .num::before {
+  inset: auto; left: 0; bottom: -7px; width: 11px; height: 9px; border-radius: 0; box-shadow: none; opacity: 1; transform: none; animation: none;
+  background: var(--cm-ink); clip-path: polygon(30% 0, 100% 0, 0 100%);
+}
+:root[data-skin="comic"] .wv-dayhead.today .dn { position: relative; }
+:root[data-skin="comic"] .wv-col.today {
+  background: radial-gradient(circle, color-mix(in srgb, var(--cm-y) 26%, transparent) 1.2px, transparent 1.7px) 0 0 / 9px 9px, color-mix(in srgb, var(--cm-y) 10%, transparent);
+}
+:root[data-skin="comic"] .now-line { background: var(--cm-r); height: 3px; box-shadow: 0 1px 0 var(--cm-ink); }
+:root[data-skin="comic"] .now-line::before { background: var(--cm-r); box-shadow: 0 0 0 2px var(--cm-ink); }
+:root[data-skin="comic"] .dprog i { border-radius: 0; background: repeating-linear-gradient(-45deg, var(--cm-r) 0 5px, color-mix(in srgb, var(--cm-r) 60%, transparent) 5px 9px); }
+/* Texte direkt auf dem Bild bekommen einen ruhigen Hof */
+:root[data-skin="comic"] :is(.lv-dtext, .lv-count, .lv-date) { text-shadow: 0 0 4px var(--bg), 0 0 10px var(--bg), 0 0 2px var(--bg); }
+:root[data-skin="comic"] .lv-day.today .lv-date .dn { text-shadow: 3px 3px 0 var(--cm-title-sh); }
+
+/* ---------- Termine: kräftig, mit Tuschkante ---------- */
+
+:root[data-skin="comic"] :is(.bar, .wv-ev) { font-weight: 800; }
+:root[data-skin="comic"][data-events="tint"] .bar.block { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 45%, var(--cm-ink)); }
+:root[data-skin="comic"][data-events="tint"] .wv-ev { box-shadow: inset 4px 0 0 var(--c), inset 0 0 0 1.5px color-mix(in srgb, var(--c) 45%, var(--cm-ink)), 2px 2px 0 color-mix(in srgb, var(--cm-sh) 70%, transparent); }
+:root[data-skin="comic"] .bar.timed::before { border: 1.5px solid var(--cm-ink); width: 9px; height: 9px; }
+
+/* ---------- Knöpfe: dicke Ränder, harte Schatten, Plus als Zackenstern ---------- */
+
+:root[data-skin="comic"] .btn.primary {
+  border: 2.5px solid var(--cm-ink); box-shadow: 3px 3px 0 var(--cm-sh);
+  text-transform: uppercase; font-weight: 900; letter-spacing: 0.04em; font-style: italic;
+}
+:root[data-skin="comic"] .btn.primary:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--cm-sh); }
+:root[data-skin="comic"] .btn.primary:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--cm-sh); }
+:root[data-skin="comic"] .fab { background: transparent; box-shadow: none; border-radius: 0; isolation: isolate; }
+:root[data-skin="comic"] .fab::before,
+:root[data-skin="comic"] .fab::after {
+  content: ""; position: absolute; z-index: -1; inset: -9px; pointer-events: none; clip-path: var(--cm-burst);
+}
+:root[data-skin="comic"] .fab::before { background: var(--cm-ink); transform: translate(4px, 4px) scale(1.06); }
+:root[data-skin="comic"] .fab::after { background: var(--accent); inset: -6px; }
+:root[data-skin="comic"][data-motion="on"] .fab::after { animation: cm-wobble 2.6s ease-in-out infinite; }
+:root[data-skin="comic"] .fab svg { filter: drop-shadow(1.5px 1.5px 0 var(--cm-ink)); }
+:root[data-skin="comic"][data-mode="dark"] .fab svg { filter: none; }
+:root[data-skin="comic"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+:root[data-skin="comic"] .meter > i { border-radius: 0; }
+
+/* ---------- Monatsbanner: Pop-Art-Druck mit Rasterpunkten ---------- */
+
+:root[data-skin="comic"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(1.7) contrast(1.15);
+  --mb-tint: radial-gradient(circle, rgba(17, 17, 17, 0.2) 1.1px, transparent 1.6px) 0 0 / 6px 6px, linear-gradient(100deg, transparent 38%, rgba(255, 210, 63, 0.55) 68%, rgba(225, 29, 72, 0.4));
+  --mb-tint-blend: multiply;
+  --mb-sky-accent: 18%;
+  --mb-fx-accent: 0.5;
+}
+:root[data-skin="comic"][data-mode="dark"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(1.5) contrast(1.1) brightness(0.8);
+  --mb-tint: radial-gradient(circle, rgba(0, 208, 255, 0.28) 1.1px, transparent 1.6px) 0 0 / 6px 6px, linear-gradient(100deg, transparent 38%, rgba(0, 150, 255, 0.35) 70%, rgba(255, 210, 63, 0.3));
+  --mb-tint-blend: screen;
+  --mb-sky-accent: 22%;
+}
+:root[data-skin="comic"] .mb { border-bottom: 2.5px solid var(--cm-ink); }
+:root[data-skin="comic"] .lv-month { border: 2.5px solid var(--cm-ink); box-shadow: 4px 4px 0 var(--cm-sh); }
+:root[data-skin="comic"] .mb-mood { text-transform: uppercase; font-style: italic; letter-spacing: 0.01em; }
+:root[data-skin="comic"] .mb-chip { border: 2px solid var(--cm-ink); box-shadow: 2px 2px 0 var(--cm-sh); background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* ---------- Übersicht: Titelbild mit Strahlen, Rastern und einem „BÄM!“ ---------- */
+
+:root[data-skin="comic"] .sky {
+  --sky:
+    radial-gradient(circle, rgba(0, 150, 230, 0.3) 1.8px, transparent 2.3px) 0 0 / 9px 9px,
+    repeating-conic-gradient(from 0deg at calc(100% - 150px) 46%, rgba(255, 255, 255, 0.45) 0 6deg, transparent 6deg 14deg),
+    radial-gradient(circle at calc(100% - 150px) 46%, #fff3a8, #ffd23f 45%, #ffb21f);
+  color: #111;
+  border: 2.5px solid var(--cm-ink);
+  box-shadow: 5px 5px 0 var(--cm-sh);
+}
+:root[data-skin="comic"][data-mode="dark"] .sky {
+  --sky:
+    radial-gradient(circle, rgba(0, 208, 255, 0.24) 1.8px, transparent 2.3px) 0 0 / 9px 9px,
+    repeating-conic-gradient(from 0deg at calc(100% - 150px) 46%, rgba(0, 208, 255, 0.12) 0 6deg, transparent 6deg 14deg),
+    radial-gradient(circle at calc(100% - 150px) 46%, #24307a, #121a4d 50%, #0a0f30);
+  color: var(--text);
+}
+:root[data-skin="comic"] .sky .greet { text-transform: uppercase; font-style: italic; text-shadow: 3px 3px 0 #fff; transform: rotate(-1.5deg); transform-origin: 0 100%; }
+:root[data-skin="comic"][data-mode="dark"] .sky .greet { text-shadow: 3px 3px 0 var(--cm-r); }
+:root[data-skin="comic"] .sky .date { font-weight: 800; opacity: 1; }
+:root[data-skin="comic"] .sky-pill { border: 2px solid var(--cm-ink); background: #fff; color: #111; box-shadow: 2px 2px 0 var(--cm-ink); }
+:root[data-skin="comic"][data-mode="dark"] .sky-pill { background: var(--surface); color: var(--text); box-shadow: 2px 2px 0 var(--cm-sh); }
+:root[data-skin="comic"] .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--cm-ink); }
+/* Raster nach unten links ausblenden, damit der Text ruhig steht */
+:root[data-skin="comic"] .sky-art::before {
+  inset: 0;
+  background: radial-gradient(70% 90% at 0% 100%, color-mix(in srgb, var(--bg) 70%, transparent), transparent 70%);
+}
+:root[data-skin="comic"]:not([data-mode="dark"]) .sky-art::before { background: radial-gradient(70% 90% at 0% 100%, rgba(255, 246, 200, 0.85), transparent 70%); }
+/* Zackenstern mit Lautwort */
+:root[data-skin="comic"] .sky::before {
+  width: 190px; height: 150px; top: 50%; right: 55px; margin-top: -75px;
+  background: var(--cm-ink); clip-path: var(--cm-burst); transform: translate(5px, 5px) rotate(-8deg);
+}
+:root[data-skin="comic"] .sky::after {
+  content: "BÄM!"; content: "BÄM!" / "";
+  display: grid; place-items: center; width: 180px; height: 140px; top: 50%; right: 60px; margin-top: -70px;
+  background: var(--cm-r); clip-path: var(--cm-burst); transform: rotate(-8deg);
+  font: italic 900 38px/1 var(--font-display); color: var(--cm-y); letter-spacing: 0.02em;
+  text-shadow: 2px 2px 0 #111, -1px -1px 0 #111, 1px -1px 0 #111, -1px 1px 0 #111, 3px 3px 0 #111;
+}
+:root[data-skin="comic"][data-mode="dark"] .sky::after { background: var(--cm-y); color: var(--cm-r); }
+:root[data-skin="comic"][data-motion="on"] .sky::after { animation: cm-pop 4.5s var(--spring) infinite; }
+:root[data-skin="comic"][data-motion="on"] .sky::before { animation: cm-pop-sh 4.5s var(--spring) infinite; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="comic"] { --live-bf: none; --blur: 0px; }
+  :root[data-skin="comic"] :is(.sheet, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root[data-skin="comic"] :is(.month, .wv) { border-width: 2.5px 0 0; box-shadow: none; }
+  :root[data-skin="comic"] .topbar .title { text-shadow: 2px 2px 0 var(--cm-title-sh); }
+  :root[data-skin="comic"]:not([data-mode="dark"]) .topbar .title .year { text-shadow: 2px 2px 0 var(--cm-ink); }
+  :root[data-skin="comic"] .tabbar {
+    background: var(--surface); border-top: 0;
+    box-shadow: 0 -3px 0 var(--cm-ink);
+  }
+  :root[data-skin="comic"] .tab { font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; font-size: 10px; color: var(--text-2); }
+  :root[data-skin="comic"] .tab.on { color: var(--text); }
+  :root[data-skin="comic"] .tab.on .tab-ic {
+    background: var(--cm-y); color: #111; border-radius: 10px; transform: rotate(-3deg);
+    box-shadow: inset 0 0 0 2px var(--cm-ink), 2px 2px 0 var(--cm-sh);
+  }
+  :root[data-skin="comic"] .day.today .num { min-width: 27px; height: 25px; }
+  :root[data-skin="comic"] .sheet { border-width: 3px 0 0; }
+  :root[data-skin="comic"] .sky::before { width: 96px; height: 76px; right: 8px; top: 8px; margin-top: 0; }
+  :root[data-skin="comic"] .sky::after { width: 90px; height: 70px; right: 11px; top: 10px; margin-top: 0; font-size: 19px; }
+  :root[data-skin="comic"] .sky {
+    --sky:
+      radial-gradient(circle, rgba(0, 150, 230, 0.3) 1.6px, transparent 2.1px) 0 0 / 8px 8px,
+      repeating-conic-gradient(from 0deg at calc(100% - 56px) 44px, rgba(255, 255, 255, 0.45) 0 6deg, transparent 6deg 14deg),
+      radial-gradient(circle at calc(100% - 56px) 44px, #fff3a8, #ffd23f 45%, #ffb21f);
+  }
+  :root[data-skin="comic"][data-mode="dark"] .sky {
+    --sky:
+      radial-gradient(circle, rgba(0, 208, 255, 0.24) 1.6px, transparent 2.1px) 0 0 / 8px 8px,
+      repeating-conic-gradient(from 0deg at calc(100% - 56px) 44px, rgba(0, 208, 255, 0.12) 0 6deg, transparent 6deg 14deg),
+      radial-gradient(circle at calc(100% - 56px) 44px, #24307a, #121a4d 50%, #0a0f30);
+  }
+}
+
+@keyframes cm-wobble { 50% { transform: rotate(9deg) scale(1.04); } }
+@keyframes cm-pop {
+  0%, 70%, 100% { transform: rotate(-8deg) scale(1); }
+  76% { transform: rotate(-4deg) scale(1.12); }
+  82% { transform: rotate(-10deg) scale(0.97); }
+}
+@keyframes cm-pop-sh {
+  0%, 70%, 100% { transform: translate(5px, 5px) rotate(-8deg) scale(1); }
+  76% { transform: translate(5px, 5px) rotate(-4deg) scale(1.12); }
+  82% { transform: translate(5px, 5px) rotate(-10deg) scale(0.97); }
+}

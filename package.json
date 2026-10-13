@@ -1,0 +1,17 @@
+{
+  "name": "zeitgarten",
+  "version": "1.0.0",
+  "description": "Der schöne gemeinsame Kalender – Freunde per Link einladen, zusammen planen und Kalender importieren.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test",
+    "demo": "node demo/build.mjs"
+  }
+}
