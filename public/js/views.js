@@ -4,9 +4,10 @@ import { dayLong, monthName, relDay, time, untilText, weekdayName, WEEKDAYS } fr
 import { occFirstDay, occLastDay } from './recur.js';
 import { eventColor, hooks, state, visibleOccurrences } from './state.js';
 import { prefs } from './themes.js';
-import { addDays, addMonths, daysBetween, isoWeek, parseYmd, sameDay, startOfDay, startOfWeek, ymd } from './time.js';
+import { addDays, addMonths, dayFraction, dayMinutes, daysBetween, isoWeek, parseYmd, sameDay, startOfDay, startOfWeek, ymd } from './time.js';
 import { moveOccurrence, occItem, openDay, openEditor, openEvent } from './sheets.js';
 import { mountSeasonFx, seasonArt, seasonOf } from './season.js';
+import { suggestEmoji } from './emoji-hints.js';
 import { textOn } from './ui.js';
 
 const isNarrow = () => matchMedia('(max-width: 760px)').matches;
@@ -56,10 +57,11 @@ const FESTIVE = /🎂|🥳|geburtstag|birthday|jahrestag|anniversary/i;
 const isFestive = (o) => (o.allDay && /FREQ=YEARLY/i.test(o.ev.rrule || '')) || FESTIVE.test(o.ev.title);
 const festiveEmoji = (title) => (BIRTHDAY.test(title) ? '🎂' : /hochzeit|💍/i.test(title) ? '💍' : '🎉');
 
+// Symbol eines Termins: Emoji aus dem Titel, sonst das Fest-Emoji, sonst ein passender Vorschlag („Pizza“ → 🍕)
 function symbolOf(o) {
   const { emoji, text } = splitEmoji(o.ev.title);
   const festive = isFestive(o);
-  return { emoji, text, festive, sym: emoji || (festive ? festiveEmoji(o.ev.title) : '') };
+  return { emoji, text, festive, sym: emoji || (festive ? festiveEmoji(o.ev.title) : suggestEmoji(text)) };
 }
 
 function liveState(o, t) {
@@ -195,7 +197,8 @@ function attachDrag(el, o) {
       }
       ev.preventDefault();
       place(ev);
-      const under = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day');
+      // Tag unter dem Finger – auch wenn dort gerade ein anderer Termin liegt
+      const under = document.elementsFromPoint(ev.clientX, ev.clientY).find((n) => n.classList?.contains('day'));
       if (under !== target) {
         target?.classList.remove('drop-target');
         target = under;
@@ -211,24 +214,28 @@ function attachDrag(el, o) {
   });
 }
 
-function barEl(s, { lane, top, showTime, draggable = false, t = Date.now(), delay = 0 }) {
+// lane/top gesetzt: feste Spur (Woche, ganztags). Sonst setzt der Monat Lage und Höhe nach dem Messen.
+// wrap: am Handy darf der Titel zwei Zeilen haben, das Emoji steht dann klein im Text.
+function barEl(s, { lane, top, showTime, wrap = false, draggable = false, t = Date.now(), delay = 0 }) {
   const o = s.o;
   const ev = o.ev;
   const color = eventColor(ev);
   const { text, festive, sym } = symbolOf(o);
   const people = ev.attendees?.length || 0;
-  const cls = [s.block ? 'block' : 'timed', s.contL && 'cont-l', s.contR && 'cont-r', festive && 'festive', sym && 'has-ej']
+  const cls = [s.block ? 'block' : 'timed', s.contL && 'cont-l', s.contR && 'cont-r', festive && 'festive', sym && 'has-ej', wrap && 'wrap']
     .filter(Boolean).join(' ');
+  const gx = wrap ? 1 : 2;
+  const ej = sym ? h('span.ej', { 'aria-hidden': 'true' }, sym) : null;
   const el = h('button.bar', {
     class: cls,
     style: {
       '--c': color,
       '--on-c': textOn(color),
       '--d': delay,
-      left: `calc(${s.col} * 100% / 7 + 2px)`,
-      width: `calc(${s.span} * 100% / 7 - 4px)`,
-      top: `${top + s.lane * lane}px`,
-      height: `${lane - 3}px`,
+      left: `calc(${s.col} * 100% / 7 + ${gx}px)`,
+      width: `calc(${s.span} * 100% / 7 - ${2 * gx}px)`,
+      top: lane ? `${top + s.lane * lane}px` : null,
+      height: lane ? `${lane - 3}px` : null,
     },
     title: ev.title,
     'data-k': `${ev.id}|${o.orig || ''}`,
@@ -237,9 +244,10 @@ function barEl(s, { lane, top, showTime, draggable = false, t = Date.now(), dela
       if (!suppressClick) openEvent(o);
     },
   },
-  sym ? h('span.ej', { 'aria-hidden': 'true' }, sym) : null,
+  wrap ? null : ej,
   !s.block && showTime ? h('span.t', null, time(o.start)) : null,
-  h('span.label', null, text),
+  // Wortverbinder: das Emoji klebt am ersten Wort, sonst stünde es allein in der ersten Zeile
+  h('span.label', null, wrap && ej ? [ej, '\u2060'] : null, text),
   o.allDay ? null : pulse(),
   showTime && people > 1 ? h('span.ppl', { 'aria-hidden': 'true' }, icon('users', 11), people) : null);
   applyLive(el, o, t);
@@ -362,7 +370,7 @@ export function renderMonth(container) {
   const refocus = focused?.closest('.day')?.dataset.date;
   const refocusBar = focused?.closest('.bar')?.dataset.k;
   const prog = h('span.dprog', { 'aria-hidden': 'true' }, h('i'));
-  const setProgress = () => prog.style.setProperty('--p', Math.min(1, Math.max(0, (Date.now() - today) / 864e5)).toFixed(4));
+  const setProgress = () => prog.style.setProperty('--p', dayFraction(Date.now()).toFixed(4)); // nach der Uhr, auch an 23- und 25-Stunden-Tagen
   setProgress();
 
   // Pfeiltasten wandern durch die Tage, Enter öffnet den Tag
@@ -432,42 +440,91 @@ export function renderMonth(container) {
   if (refocus) tabStop.focus();
 
   let liveBars = [];
+  // Erst alle Balken einsetzen, dann messen (am Handy ein- oder zweizeilig), dann stapeln
   const layout = () => {
-    const lane = cssPx(month, '--lane', 22);
+    const narrow = isNarrow();
+    const lane = cssPx(month, '--lane', 22); // Höhe einer einzeiligen Spur samt Abstand
     const top = cssPx(month, '--dayhead', 30);
-    const showTime = !isNarrow();
+    const gap = narrow ? 2 : 3;
     const t = Date.now();
     liveBars = [];
+    const plan = rows.map((row, r) => {
+      const items = weekSegments(occs, row.ws).sort((a, b) => a.lane - b.lane || a.col - b.col).map((s) => ({
+        s,
+        cols: Array.from({ length: s.span }, (_, i) => s.col + i),
+        el: barEl(s, { showTime: !narrow, wrap: narrow, draggable: true, t, delay: r * 45 + s.col * 14 + s.lane * 10 }),
+      }));
+      row.layer.replaceChildren(...items.map((it) => it.el));
+      return items;
+    });
+    if (narrow) {
+      // Bricht das erste Wort neben dem Emoji mitten durch („Laufe|n“), obwohl es allein in eine Zeile passt,
+      // darf das Emoji allein oben stehen. Lange Wörter („Fußballtraining“) werden ohnehin getrennt.
+      const loose = [];
+      for (const items of plan) {
+        for (const it of items) {
+          const glue = it.el.querySelector('.label > .ej')?.nextSibling;
+          const word = glue?.nextSibling;
+          if (word?.nodeType !== Node.TEXT_NODE) continue;
+          const r = document.createRange();
+          r.setStart(word, 0);
+          r.setEnd(word, word.data.search(/\s|$/));
+          const parts = [...r.getClientRects()];
+          if (parts.length > 1 && parts.reduce((w, p) => w + p.width, 0) <= glue.parentElement.clientWidth) loose.push(glue);
+        }
+      }
+      for (const glue of loose) glue.remove();
+    }
+    const room = rows.map((row) => row.el.clientHeight - 2);
+    for (const items of plan) for (const it of items) it.h = narrow ? Math.max(lane - gap, it.el.offsetHeight) : lane - gap;
+
     rows.forEach((row, r) => {
-      const maxLanes = Math.max(1, Math.floor((row.el.clientHeight - top - 2) / lane));
-      const segs = weekSegments(occs, row.ws);
-      const need = Array(7).fill(0);
-      for (const s of segs) for (let i = s.col; i < s.col + s.span; i++) need[i] = Math.max(need[i], s.lane + 1);
-      const over = need.map((n) => n > maxLanes);
+      const items = plan[r];
+      // Jeder Balken liegt direkt unter dem, was in seinen Tagen schon liegt. Was nicht mehr passt,
+      // wird zu „+N weitere“ – in diesen Tagen bleibt dafür unten eine Spur frei.
+      const stack = (over) => {
+        const bottom = Array(7).fill(top);
+        const closed = Array(7).fill(false);
+        for (const it of items) {
+          it.y = Math.max(...it.cols.map((c) => bottom[c]));
+          it.shown = it.cols.every((c) => !closed[c] && it.y + it.h + gap <= room[r] - (over[c] ? lane : 0));
+          for (const c of it.cols) {
+            if (it.shown) bottom[c] = it.y + it.h + gap;
+            else closed[c] = true;
+          }
+        }
+        return { bottom, closed };
+      };
+      let over = Array(7).fill(false);
+      let res = stack(over);
+      while (res.closed.some((x, c) => x && !over[c])) {
+        over = over.map((x, c) => x || res.closed[c]);
+        res = stack(over);
+      }
+
       const hidden = Array(7).fill(0);
-      const out = [];
-      for (const s of segs) {
-        const cols = Array.from({ length: s.span }, (_, i) => s.col + i);
-        const visible = s.lane < maxLanes - 1 || (s.lane === maxLanes - 1 && !cols.some((i) => over[i]));
-        if (visible) {
-          const el = barEl(s, { lane, top, showTime, draggable: true, t, delay: r * 45 + s.col * 14 + s.lane * 10 });
-          if (!s.o.allDay) liveBars.push({ el, o: s.o });
-          out.push(el);
-        } else for (const i of cols) hidden[i]++;
+      for (const it of items) {
+        if (!it.shown) {
+          it.el.remove();
+          for (const c of it.cols) hidden[c]++;
+          continue;
+        }
+        it.el.style.top = `${it.y}px`;
+        it.el.style.height = `${it.h}px`;
+        if (!it.s.o.allDay) liveBars.push({ el: it.el, o: it.s.o });
       }
       hidden.forEach((n, i) => {
         if (!n) return;
         const d = addDays(row.ws, i);
-        out.push(h('button.more', {
-          style: { left: `calc(${i} * 100% / 7 + 2px)`, width: `calc(100% / 7 - 4px)`, top: `${top + (maxLanes - 1) * lane}px`, height: `${lane - 3}px` },
+        row.layer.append(h('button.more', {
+          style: { left: `calc(${i} * 100% / 7 + ${narrow ? 1 : 2}px)`, width: `calc(100% / 7 - ${narrow ? 2 : 4}px)`, top: `${res.bottom[i]}px`, height: `${lane - gap}px` },
           'aria-label': `${plural(n, 'weiterer Termin', 'weitere Termine')} am ${dayLong(d)}`,
           onclick: (e) => {
             e.stopPropagation();
             openDay(d);
           },
-        }, isNarrow() ? `+${n}` : `+${n} weitere`));
+        }, narrow ? `+${n}` : `+${n} weitere`));
       });
-      row.layer.replaceChildren(...out);
     });
   };
   layout();
@@ -500,6 +557,9 @@ export function renderMonth(container) {
 // ---------- Woche ----------
 
 let weekScroll = null;
+// Am Handy scrollt die Woche auch seitwärts: Stelle merken, solange dieselbe Woche zu sehen ist
+let weekX = { key: '', left: 0 };
+let weekEnterEnd = ''; // nach Wischen zurück: die vorige Woche zeigt zuerst den Sonntag
 
 function columnize(items) {
   items.sort((a, b) => a.s - b.s || b.e - a.e);
@@ -560,12 +620,8 @@ export function renderWeek(container) {
   const evEls = [];
   const pastShade = h('div.wv-past', { 'aria-hidden': 'true' });
   const cols = days.map((d, di) => {
-    const dayStart = d.getTime();
-    const items = columnize(timed.filter((o) => sameDay(occFirstDay(o), d)).map((o) => ({
-      o,
-      s: Math.max(0, (o.start - dayStart) / 60000),
-      e: Math.min(1440, Math.max((o.end - dayStart) / 60000, (o.start - dayStart) / 60000 + 20)),
-    })));
+    // Lage nach der Wanduhr – an Tagen mit Zeitumstellung stimmt die Stundenskala sonst nicht
+    const items = columnize(timed.filter((o) => sameDay(occFirstDay(o), d)).map((o) => ({ o, ...dayMinutes(o.start, o.end, d, 20) })));
     const isToday = sameDay(d, today);
     const col = h('div.wv-col', {
       class: [isToday && 'today', di >= 5 && 'we'].filter(Boolean).join(' '),
@@ -578,7 +634,7 @@ export function renderWeek(container) {
       const dur = it.e - it.s;
       const ev = it.o.ev;
       const short = dur < 45;
-      const { emoji, text } = splitEmoji(ev.title);
+      const { text, sym } = symbolOf(it.o);
       const el = h('button.wv-ev', {
         class: short ? 'short' : '',
         style: {
@@ -593,9 +649,9 @@ export function renderWeek(container) {
         onclick: () => openEvent(it.o),
       },
       h('span.tt', null, pulse(), short ? h('span.tm', null, `${time(it.o.start)} `) : null,
-        emoji && text ? h('span.ej', { 'aria-hidden': 'true' }, emoji) : null, text || ev.title),
+        sym && text ? h('span.ej', { 'aria-hidden': 'true' }, sym) : null, text || ev.title),
       short ? null : h('span.tm', null, `${time(it.o.start)} – ${time(it.o.end)}`),
-      emoji && dur >= 100 ? h('span.wm', { 'aria-hidden': 'true' }, emoji) : null);
+      sym && dur >= 100 ? h('span.wm', { 'aria-hidden': 'true' }, sym) : null);
       applyLive(el, it.o, t0);
       evEls.push({ el, o: it.o });
       return el;
@@ -605,18 +661,23 @@ export function renderWeek(container) {
 
   const nowTag = h('span.now-tag');
   const nowLine = h('div.now-line', { 'aria-hidden': 'true' }, h('span.now-rail'), nowTag);
+  // Am Handy bleibt die Uhrzeit in der festen Stundenspalte stehen, wenn die Tage seitwärts scrollen
+  const hourTag = h('b.wv-now-tag', { 'aria-hidden': 'true' });
   const colsEl = h('div.wv-cols', null, cols, nowLine);
   const placeNow = () => {
     const n = new Date();
     const i = days.findIndex((d) => sameDay(d, n));
     const top = `calc(${(n.getHours() * 60 + n.getMinutes()) / 60} * var(--hour))`;
     nowLine.hidden = i < 0;
+    hourTag.hidden = i < 0;
     if (i >= 0) {
       nowLine.style.left = `calc(${i} * 100% / 7)`;
       nowLine.style.width = 'calc(100% / 7)';
       nowLine.style.top = top;
       nowLine.style.setProperty('--i', i);
       nowTag.textContent = time(n);
+      hourTag.textContent = time(n);
+      hourTag.style.top = top;
       pastShade.style.height = top;
     }
     for (const x of evEls) applyLive(x.el, x.o, n.getTime());
@@ -625,21 +686,61 @@ export function renderWeek(container) {
 
   const scroll = h('div.wv-scroll', { onscroll: () => (weekScroll = scroll.scrollTop) },
     h('div.wv-grid', null,
-      h('div.wv-hours', null, Array.from({ length: 23 }, (_, i) => h('span', { style: { top: `calc(${i + 1} * var(--hour))` } }, `${String(i + 1).padStart(2, '0')}:00`))),
+      h('div.wv-hours', null, Array.from({ length: 23 }, (_, i) => h('span', { style: { top: `calc(${i + 1} * var(--hour))` } }, `${String(i + 1).padStart(2, '0')}:00`)), hourTag),
       colsEl,
     ),
   );
 
-  const view = h('div.wv', null, head,
-    h('div.wv-allday', null, h('div.wv-gutter.wv-allday-label', { title: 'Ganztägig' }, icon('sun', 13), h('span', null, 'ganztags')), alldayLayer),
-    scroll);
-  container.replaceChildren(view);
-  scroll.scrollTop = weekScroll ?? cssPx(view, '--hour', 48) * 7 - 8;
+  // Am Handy (CSS) ist .wv-x der Scroller in beide Richtungen: Kopf oben und Stunden links bleiben stehen
+  const key = ymd(ws);
+  const x = h('div.wv-x', {
+    onscroll: () => {
+      weekScroll = x.scrollTop;
+      weekX = { key, left: x.scrollLeft };
+    },
+  },
+  h('div.wv-top', null, head,
+    h('div.wv-allday', null, h('div.wv-gutter.wv-allday-label', { title: 'Ganztägig' }, icon('sun', 13), h('span', null, 'ganztags')), alldayLayer)),
+  scroll);
+  // Wischen blättert erst am Rand in die nächste Woche – vorher scrollt es nur die Tage
+  let sx = 0;
+  let sl = 0;
+  x.addEventListener('touchstart', (e) => {
+    sx = e.touches[0]?.clientX ?? 0;
+    sl = x.scrollLeft;
+  }, { passive: true });
+  x.addEventListener('touchend', (e) => {
+    const max = x.scrollWidth - x.clientWidth;
+    if (max < 2) return;
+    const dx = (e.changedTouches[0]?.clientX ?? sx) - sx;
+    if (dx > 0 ? sl > 1 : sl < max - 1) e.stopPropagation();
+    else if (dx > 0) weekEnterEnd = ymd(addDays(ws, -7));
+  }, { passive: true });
 
-  return everyMinute(() => {
+  const view = h('div.wv', null, x);
+  container.replaceChildren(view);
+  // Farbe wie die Jetzt-Linie des Stils – auch nach einem Wechsel von Stil, Hell/Dunkel oder Akzentfarbe
+  const paintTag = () => (hourTag.style.background = getComputedStyle(nowLine).backgroundColor);
+  paintTag();
+  const look = new MutationObserver(paintTag);
+  look.observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-mode', 'style'] });
+  scroll.scrollTop = x.scrollTop = weekScroll ?? cssPx(view, '--hour', 48) * 7 - 8;
+  if (x.scrollWidth > x.clientWidth + 1) {
+    const colW = cols[0].offsetWidth;
+    const ti = days.findIndex((d) => sameDay(d, today));
+    x.scrollLeft = weekX.key === key ? weekX.left : weekEnterEnd === key ? x.scrollWidth : Math.max(0, ti) * colW;
+  }
+  weekEnterEnd = '';
+  weekX = { key, left: x.scrollLeft };
+
+  const stopTick = everyMinute(() => {
     if (!sameDay(today, new Date())) hooks.render(); // Mitternacht: neuer Tag
     else placeNow();
   });
+  return () => {
+    stopTick();
+    look.disconnect();
+  };
 }
 
 // ---------- Liste ----------

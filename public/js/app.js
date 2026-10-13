@@ -256,7 +256,7 @@ async function renderWelcome(code, { view = 'new', error = null } = {}) {
         h('button.btn.primary.lg.block', { type: 'button', onclick: () => show('login') }, icon('key', 18), 'Mit Code oder Link anmelden'),
         h('button.btn.lg.block', { type: 'button', onclick: () => show('new') }, icon('sparkle', 18), 'Neu anfangen'),
       ),
-      h('p.fine', null, 'Server wieder da? ', h('button.link-btn', { type: 'button', onclick: () => location.reload() }, 'Nochmal versuchen')),
+      h('p.fine', null, 'Vielleicht nur ein kurzer Aussetzer? ', h('button.link-btn', { type: 'button', onclick: () => location.reload() }, 'Nochmal versuchen')),
     ],
   };
 
@@ -650,6 +650,10 @@ function onLiveMessage(msg) {
     case 'reaction':
       if (msg.added) forEachSheet((s) => s.eventId === msg.eventId && s.onReaction?.(msg.emoji));
       return;
+    case 'paired':
+      // Ein anderes Gerät hat den Anmelde-Code benutzt: Code im Profil ausblenden
+      forEachSheet((s) => s.onPaired?.());
+      return;
     case 'activity':
       onActivity(msg.activity);
       scheduleLive();
@@ -899,7 +903,7 @@ function iosHintCard() {
         h('strong', null, 'Zeitgarten als App'),
         h('span', null, 'Auf den Home‑Bildschirm legen'),
       ),
-      h('span.ih-cta', null, 'So geht’s', icon('chevR', 16)),
+      h('span.ih-cta', null, h('span.ih-cta-lbl', null, 'So geht’s'), icon('chevR', 16)),
     ),
     h('button.icon-btn.sm.ih-x', { type: 'button', 'aria-label': 'Tipp ausblenden', title: 'Ausblenden', onclick: dismissIosHint }, icon('x', 16)),
   );

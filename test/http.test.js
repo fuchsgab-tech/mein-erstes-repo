@@ -120,6 +120,7 @@ test('Link-Vorschau: allgemein auf der Startseite, persönlich bei einer Einladu
   // Unbekannter Code: allgemeine Vorschau
   html = await (await fetch(`${base}/join/gibtsnicht`)).text();
   assert.equal(meta(html, 'og:title'), 'Zeitgarten – gemeinsam planen');
+  assert.equal(meta(html, 'og:url'), `${base}/`);
 
   // Erneut abgefragt: 304
   res = await fetch(`${base}/join/einladung1`);

@@ -131,3 +131,25 @@ export function zonedToUtc(y, m, d, h = 0, mi = 0, s = 0, tz) {
   if (o2 !== o1) ts = guess - o2;
   return ts;
 }
+
+// ---------- Lage im Tagesraster (Woche, Tagesfortschritt) ----------
+
+// Minuten seit Mitternacht, so wie die Uhr an der Wand sie zeigt. Nicht (t - Mitternacht) / 60000:
+// An Tagen mit Zeitumstellung hat der Tag 23 oder 25 Stunden, dann wäre alles ab 3 Uhr verschoben.
+export function wallMinutes(t) {
+  const d = new Date(t);
+  return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+}
+
+// Wie viel vom Tag schon vorbei ist (0 … 1), passend zur Stundenskala
+export const dayFraction = (t) => wallMinutes(t) / 1440;
+
+// Anfang und Ende eines Termins in der Spalte von `day` als Wand-Minuten { s, e } (0 … 1440).
+// Was vor oder nach dem Tag liegt, wird abgeschnitten; minLen hält kurze Termine sichtbar.
+export function dayMinutes(start, end, day, minLen = 0) {
+  const d0 = startOfDay(day).getTime();
+  const d1 = addDays(new Date(d0), 1).getTime();
+  const pos = (t) => (t <= d0 ? 0 : t >= d1 ? 1440 : wallMinutes(t));
+  const s = pos(+start);
+  return { s, e: Math.min(1440, Math.max(pos(+end), s + minLen)) };
+}

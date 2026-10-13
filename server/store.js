@@ -70,7 +70,12 @@ export function openStore(file, { log = console, retryMs = 2000, today = () => n
     } catch (e) {
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
       const aside = path.join(dir, `${name}.kaputt-${stamp}.json`);
-      fs.renameSync(file, aside);
+      try {
+        fs.renameSync(file, aside);
+      } catch {
+        // Lieber nicht starten, als die kaputte Datei (vielleicht noch zu retten) zu überschreiben
+        fs.copyFileSync(file, aside);
+      }
       log.error(`⚠️  ${file} ist beschädigt (${e.message}). Die Datei liegt jetzt unter ${aside}.`);
       for (const b of listBackups().reverse()) {
         try {

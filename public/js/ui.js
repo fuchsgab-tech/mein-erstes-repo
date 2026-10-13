@@ -27,7 +27,7 @@ function updateInert() {
 /**
  * Öffnet ein Fenster. `render(sheet)` liefert { title, body, foot, head }.
  * Mit sheet.refresh() wird der Inhalt neu gezeichnet (z. B. nach Live-Updates).
- * `isDirty()` → true: Schließen per Hintergrund, Esc oder Wischen fragt erst nach.
+ * `isDirty()` → true: Schließen per Hintergrund, Esc, X oder Wischen fragt erst nach.
  * sheet.close() schließt immer, sheet.requestClose() fragt bei Änderungen nach.
  */
 export function openSheet({ render, className, live = false, onClose, isDirty, alert = false }) {
@@ -44,7 +44,8 @@ export function openSheet({ render, className, live = false, onClose, isDirty, a
     const r = render(sheet);
     const head = r.head ?? h('div.sheet-head', null,
       h('h2', null, r.title || ''),
-      h('button.icon-btn', { onclick: close, 'aria-label': 'Schließen', title: 'Schließen' }, icon('x')),
+      // Das X ist wie Esc: bei ungespeicherten Änderungen erst nachfragen
+      h('button.icon-btn', { onclick: requestClose, 'aria-label': 'Schließen', title: 'Schließen' }, icon('x')),
     );
     box.replaceChildren(...[head, h('div.sheet-body', null, r.body), r.foot && h('div.sheet-foot', null, r.foot)].filter(Boolean));
     box.querySelector('.sheet-body').scrollTop = prev;

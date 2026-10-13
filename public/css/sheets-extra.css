@@ -1,1 +1,383 @@
 /* Zusätzliche Stile für Fenster (Termin, Editor, Design, Profil, Teilen) – vom App-Team ausgebaut. */
+
+/* ---------- Umschalter in Fenstern: immer mit Beschriftung ---------- */
+
+.sheet .seg .seg-label { display: inline; }
+.design-sheet .seg { display: flex; width: 100%; }
+.design-sheet .seg button { flex: 1 1 auto; min-width: 0; justify-content: center; padding: 0 8px; }
+.design-sheet .seg .seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.toggle.off { cursor: default; }
+.toggle.off > span:first-child { color: var(--text-2); }
+.toggle.off .track { opacity: 0.45; }
+
+/* ---------- Stil-Auswahl ---------- */
+
+.skin-group + .skin-group { margin-top: 16px; }
+.skin-group-h {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 10px;
+  font-size: 15px; font-weight: 750; color: var(--text);
+}
+.skin-group-h small { font-size: 12.5px; font-weight: 550; color: var(--text-3); }
+.skin { display: flex; flex-direction: column; min-width: 0; }
+.skin-name, .skin-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skin:active { transform: scale(0.97); }
+
+/* Mini-Vorschau: Hintergrund des Stils, Überschrift und Kalender-Karte mit Terminen */
+.skin-prev {
+  display: block; isolation: isolate; padding: 0; gap: 0; color: var(--p-text);
+  background: var(--p-bg);
+}
+.skin-prev > * { position: absolute; }
+.pv-fx { inset: 0; z-index: 0; pointer-events: none; }
+.pv-fx::before, .pv-fx::after { content: ""; position: absolute; }
+.pv-head { left: 9px; right: 9px; top: 9px; height: 10px; display: flex; align-items: center; gap: 6px; z-index: 1; }
+.pv-head b { width: 44%; height: 7px; border-radius: 4px; background: var(--p-text); opacity: 0.85; }
+.pv-head i { margin-left: auto; width: 16px; height: 9px; border-radius: 5px; background: var(--p-accent); }
+.pv-card {
+  left: 7px; right: 7px; bottom: 7px; top: 27px; z-index: 1; border-radius: 6px; overflow: hidden;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--p-text) 9%, transparent) 1px, transparent 1px) 0 0 / calc(100% / 7) 100%,
+    linear-gradient(color-mix(in srgb, var(--p-text) 9%, transparent) 1px, transparent 1px) 0 0 / 100% calc(100% / 3),
+    var(--p-surface);
+  display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px 2px 3px;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.45);
+}
+.pv-card em { align-self: end; height: 32%; min-height: 4px; margin: 0 1px 2px; border-radius: 2px; background: var(--p-accent); }
+.pv-card .b1 { grid-area: 1 / 3 / 2 / 6; }
+.pv-card .b2 { grid-area: 2 / 5 / 3 / 8; background: #f2675b; }
+.pv-card .b3 { grid-area: 3 / 1 / 4 / 3; background: #3d9df2; }
+.pv-card .b4 { grid-area: 2 / 1 / 3 / 2; background: #4fb477; }
+.pv-today { grid-area: 1 / 1 / 2 / 2; justify-self: start; align-self: start; width: 7px; height: 7px; margin: 3px; border-radius: 50%; background: var(--p-accent); }
+.skin-prev.glow .pv-card em:first-of-type, .skin-prev.glow .pv-head i, .skin-prev.glow .pv-today { box-shadow: 0 0 8px var(--p-accent); }
+.skin-prev.outline .pv-card { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--p-text) 60%, transparent); }
+.skin-prev.outline .pv-card em { background: transparent; box-shadow: inset 0 0 0 1.5px var(--p-text); }
+.pv-live {
+  z-index: 2; right: 6px; top: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px 2px 5px;
+  border-radius: 8px; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #fff; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.pv-live i { width: 5px; height: 5px; border-radius: 50%; background: #ff4d4f; box-shadow: 0 0 6px #ff4d4f; animation: pv-blink 1.6s ease-in-out infinite; }
+.skin-prev.live .pv-head { right: 52px; }
+.skin-prev.live .pv-head i { display: none; }
+
+/* Live-Stile: eigene Verzierung pro Stil (nur transform/opacity animiert) */
+.pv-jarvis .pv-fx::before {
+  width: 90%; aspect-ratio: 1; left: 72%; top: 50%; translate: -50% -50%; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 290deg, color-mix(in srgb, var(--p-accent) 55%, transparent) 360deg);
+  animation: pv-spin 3.6s linear infinite;
+}
+.pv-jarvis .pv-card { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p-accent) 55%, transparent), 0 0 12px -2px color-mix(in srgb, var(--p-accent) 45%, transparent); }
+.pv-synthwave .pv-fx::before { left: 0; right: 0; top: 66%; height: 2px; background: var(--p-accent); box-shadow: 0 0 10px 2px var(--p-accent); opacity: 0.8; }
+.pv-synthwave .pv-card, .pv-galaxie .pv-card, .pv-aurora .pv-card { left: 30%; }
+.pv-synthwave .pv-card { --p-surface: rgba(22, 8, 48, 0.4); }
+.pv-synthwave[data-pv="light"] .pv-card { --p-surface: rgba(255, 255, 255, 0.45); }
+.pv-cyberpunk .pv-fx::before {
+  left: 8%; top: 22%; width: 40%; height: 5px; background: #00f0ff; box-shadow: 14px 6px 0 -1px var(--p-accent);
+  animation: pv-glitch 2.4s steps(1) infinite;
+}
+.pv-cyberpunk .pv-card { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }
+.pv-galaxie .pv-fx::before {
+  inset: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 12% 70%, #fff, transparent), radial-gradient(1px 1px at 30% 40%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 8% 30%, #fff, transparent), radial-gradient(1px 1px at 22% 88%, #fff, transparent);
+  animation: pv-twinkle 2.2s ease-in-out infinite alternate;
+}
+.pv-galaxie .pv-fx::after {
+  width: 34px; height: 1.5px; left: 2%; top: 18%; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #fff); rotate: 20deg; animation: pv-shoot 3.2s ease-in infinite;
+}
+.pv-matrix .pv-fx::before {
+  inset: -100% 0 0; opacity: 0.75;
+  background:
+    linear-gradient(transparent, var(--p-accent)) 6% 10% / 2px 34% no-repeat,
+    linear-gradient(transparent, var(--p-accent)) 18% 40% / 2px 26% no-repeat,
+    linear-gradient(transparent, var(--p-accent)) 33% 0% / 2px 40% no-repeat,
+    linear-gradient(transparent, var(--p-accent)) 47% 60% / 2px 30% no-repeat,
+    linear-gradient(transparent, var(--p-accent)) 61% 20% / 2px 36% no-repeat,
+    linear-gradient(transparent, var(--p-accent)) 76% 70% / 2px 24% no-repeat,
+    linear-gradient(transparent, var(--p-accent)) 90% 30% / 2px 38% no-repeat;
+  animation: pv-rain 2.6s linear infinite;
+}
+.pv-matrix .pv-card { --p-surface: color-mix(in srgb, #04140a 78%, transparent); }
+.pv-matrix[data-pv="light"] .pv-card { --p-surface: rgba(255, 255, 255, 0.82); }
+.pv-arcade .pv-fx::before {
+  inset: 0; z-index: 3;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
+}
+.pv-arcade .pv-fx::after {
+  width: 2px; height: 2px; left: 50%; top: 6px; z-index: 2; background: var(--p-accent); color: var(--p-accent);
+  box-shadow: 4px 0, 12px 0, 16px 0, 6px 2px, 8px 2px, 10px 2px, 4px 4px, 6px 4px, 8px 4px, 10px 4px, 12px 4px,
+    2px 6px, 4px 6px, 8px 6px, 12px 6px, 14px 6px, 0 8px, 4px 8px, 6px 8px, 8px 8px, 10px 8px, 12px 8px, 16px 8px, 4px 10px, 12px 10px;
+  animation: pv-hop 1s steps(2) infinite;
+}
+.pv-arcade .pv-head b { width: 34%; }
+.pv-sakura .pv-fx::before, .pv-sakura .pv-fx::after {
+  inset: -40% 0 0;
+  background:
+    radial-gradient(6px 4px at 12% 20%, #ffb7cf 60%, transparent), radial-gradient(5px 3.5px at 46% 8%, #ff9ec0 60%, transparent),
+    radial-gradient(6px 4px at 78% 28%, #ffc4d8 60%, transparent), radial-gradient(5px 3.5px at 92% 12%, #ff9ec0 60%, transparent),
+    radial-gradient(5px 3px at 30% 34%, #ffd1e0 60%, transparent), radial-gradient(4px 3px at 62% 18%, #ffb7cf 60%, transparent);
+  animation: pv-fall 4.5s linear infinite;
+}
+.pv-sakura .pv-fx::after { animation-delay: -2.2s; scale: -1 1; }
+.pv-comic .pv-fx::before { inset: 0; background: radial-gradient(circle, color-mix(in srgb, var(--p-accent) 45%, transparent) 1.1px, transparent 1.6px) 0 0 / 6px 6px; }
+.pv-comic .pv-fx::after {
+  content: "POW!"; right: 4px; top: 2px; z-index: 3; padding: 7px 7px 6px; font: 900 9px/1 system-ui, sans-serif; color: #111;
+  background: #ffd23f; clip-path: polygon(50% 0, 62% 22%, 90% 8%, 80% 38%, 100% 52%, 78% 64%, 88% 96%, 58% 80%, 44% 100%, 36% 78%, 6% 90%, 18% 60%, 0 44%, 22% 34%, 12% 6%, 38% 20%);
+  animation: pv-pop 2.4s var(--spring) infinite;
+}
+.pv-comic .pv-card { box-shadow: 0 0 0 1.5px #111, 3px 3px 0 #111; }
+.skin-prev.pv-comic.live .pv-live { display: none; }
+.pv-tiefsee .pv-fx::before {
+  inset: 0; opacity: 0.55;
+  background:
+    linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--p-accent) 40%, transparent) 24%, transparent 30%),
+    linear-gradient(80deg, transparent 52%, color-mix(in srgb, var(--p-accent) 30%, transparent) 56%, transparent 62%);
+  animation: pv-sway 4s ease-in-out infinite alternate;
+}
+.pv-tiefsee .pv-fx::after {
+  inset: 0 0 -60%;
+  background:
+    radial-gradient(circle at 14% 80%, transparent 2px, color-mix(in srgb, var(--p-accent) 80%, transparent) 2.5px, transparent 3.2px),
+    radial-gradient(circle at 88% 60%, transparent 1.5px, color-mix(in srgb, var(--p-accent) 80%, transparent) 2px, transparent 2.6px),
+    radial-gradient(circle at 70% 90%, transparent 2.5px, color-mix(in srgb, var(--p-accent) 70%, transparent) 3px, transparent 3.6px);
+  animation: pv-rise 4s linear infinite;
+}
+.pv-glut .pv-fx::before { left: 10%; right: 10%; bottom: -30%; height: 70%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 138, 61, 0.75), rgba(217, 72, 15, 0.25) 60%, transparent); animation: pv-flicker 1.4s ease-in-out infinite alternate; }
+.pv-glut .pv-fx::after {
+  inset: 0 0 -60%;
+  background:
+    radial-gradient(1.5px 1.5px at 20% 80%, #ffd27a, transparent), radial-gradient(2px 2px at 44% 70%, #ff8a3d, transparent),
+    radial-gradient(1.5px 1.5px at 66% 85%, #ffd27a, transparent), radial-gradient(2px 2px at 84% 75%, #ff8a3d, transparent);
+  animation: pv-rise 2.6s linear infinite;
+}
+.pv-glas .pv-fx::before {
+  inset: -20%;
+  background:
+    radial-gradient(30% 30% at 25% 35%, #5ac8fa, transparent 70%), radial-gradient(28% 30% at 75% 70%, #ff6fb5, transparent 70%),
+    radial-gradient(26% 26% at 70% 20%, #ffd166, transparent 70%);
+  animation: pv-drift 6s ease-in-out infinite alternate;
+}
+.pv-glas .pv-card {
+  backdrop-filter: blur(8px) saturate(1.6); -webkit-backdrop-filter: blur(8px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 6px 14px -8px rgba(0, 0, 0, 0.4);
+}
+.pv-lava .pv-fx::before, .pv-lava .pv-fx::after { border-radius: 50%; filter: blur(1px); }
+.pv-lava .pv-fx::before { width: 46%; aspect-ratio: 1; left: -8%; bottom: -16%; background: radial-gradient(circle at 40% 35%, #ffb347, #ff5e3a 60%, #c2185b); animation: pv-blob 5s ease-in-out infinite alternate; }
+.pv-lava .pv-fx::after { width: 30%; aspect-ratio: 1; right: 4%; top: 6%; background: radial-gradient(circle at 40% 35%, #ff9ec0, #e8590c 70%); animation: pv-blob 4s ease-in-out -2s infinite alternate-reverse; }
+
+@keyframes pv-spin { to { rotate: 360deg; } }
+@keyframes pv-blink { 50% { opacity: 0.35; } }
+@keyframes pv-twinkle { from { opacity: 0.35; } to { opacity: 1; } }
+@keyframes pv-shoot { 0%, 60% { translate: 0 0; opacity: 0; } 70% { opacity: 1; } 100% { translate: 140px 50px; opacity: 0; } }
+@keyframes pv-rain { to { translate: 0 50%; } }
+@keyframes pv-fall { to { translate: 0 28%; rotate: 0.001deg; } }
+@keyframes pv-rise { to { translate: 0 -38%; } }
+@keyframes pv-sway { to { translate: 8% 0; } }
+@keyframes pv-flicker { to { opacity: 0.6; scale: 1.08 0.94; } }
+@keyframes pv-drift { to { translate: 8% -6%; } }
+@keyframes pv-blob { to { translate: 20% -24%; scale: 1.15 0.9; } }
+@keyframes pv-hop { 50% { translate: 0 -2px; } }
+@keyframes pv-glitch { 0%, 86% { translate: 0 0; opacity: 1; } 88% { translate: 6px -2px; } 92% { translate: -4px 1px; opacity: 0.6; } 96% { translate: 2px 0; } }
+@keyframes pv-pop { 0%, 70% { scale: 1; } 80% { scale: 1.18; } 90% { scale: 0.96; } }
+
+/* Hinweis, wenn für einen Live-Stil auf „Dunkel“ gestellt wurde */
+.skin-hint {
+  display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 0; padding: 11px 14px; border-radius: var(--r-md);
+  background: var(--accent-soft); color: var(--text); font-size: 13.5px; font-weight: 550; line-height: 1.4;
+  animation: rise 0.35s var(--ease);
+}
+.skin-hint .icon { color: var(--accent-2); flex: none; margin-top: 1px; }
+
+/* ---------- „Wähl deinen Look“ ---------- */
+
+.look-head { align-items: flex-start; padding-top: 22px; }
+.look-head .eyebrow { display: flex; align-items: center; gap: 6px; color: var(--accent-2); }
+.look-head h2 { font-size: 27px; letter-spacing: -0.02em; margin: 4px 0 2px; }
+.look-sub { margin: 0 0 4px; font-size: 14.5px; }
+/* bleibt unten im Blick, auch wenn weiter oben gescrollt wurde */
+.look-sheet .skin-hint {
+  position: sticky; bottom: 0; z-index: 2; align-items: center; margin: 14px 0 0;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface)); box-shadow: var(--shadow);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.look-sheet .skin-hint { flex-wrap: nowrap; padding: 10px 10px 10px 14px; }
+.look-sheet .skin-hint > span:not(.icon) { flex: 1; min-width: 0; }
+.look-sheet .skin-hint .btn { flex: none; }
+.look-sheet .skin-hint .btn { background: var(--surface); box-shadow: var(--shadow-sm); }
+.looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; padding-top: 10px; }
+.skin.big { padding: 6px 6px 11px; }
+.skin.big .skin-prev { height: 128px; border-radius: calc(var(--r-lg) - 3px); }
+.skin.big .skin-name { font-size: 15px; padding-top: 9px; }
+.skin.big.on { box-shadow: 0 10px 28px -14px var(--accent); }
+.look-all { color: var(--text-2); }
+.look-all .icon { color: var(--accent-2); }
+.look-next { min-width: 130px; }
+
+/* ---------- Termin ansehen: farbiger Kopf ---------- */
+
+.sheet.event-sheet { position: relative; }
+.ev-hero {
+  position: relative; isolation: isolate; overflow: hidden; flex: none;
+  padding: 14px 14px 20px 22px;
+  background:
+    radial-gradient(110% 120% at 0% 0%, color-mix(in srgb, var(--c) 30%, transparent), transparent 62%),
+    linear-gradient(165deg, color-mix(in srgb, var(--c) 22%, var(--surface)), color-mix(in srgb, var(--c) 7%, var(--surface)));
+  border-bottom: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
+}
+:root[data-mode="dark"] .ev-hero {
+  background:
+    radial-gradient(110% 120% at 0% 0%, color-mix(in srgb, var(--c) 38%, transparent), transparent 62%),
+    linear-gradient(165deg, color-mix(in srgb, var(--c) 24%, var(--surface)), color-mix(in srgb, var(--c) 6%, var(--surface)));
+}
+.ev-hero-art {
+  position: absolute; z-index: -1; right: -14px; bottom: -40px; font-size: 150px; line-height: 1;
+  opacity: 0.15; rotate: -14deg; pointer-events: none; user-select: none;
+}
+.ev-hero-top { display: flex; align-items: center; gap: 8px; }
+.ev-hero .ev-cal { background: color-mix(in srgb, var(--surface) 72%, transparent); max-width: 60%; box-shadow: var(--shadow-sm); }
+.ev-share {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px 0 11px; border-radius: 17px; flex: none;
+  font-size: 13.5px; font-weight: 650; color: var(--text); background: color-mix(in srgb, var(--surface) 72%, transparent);
+  box-shadow: var(--shadow-sm); transition: background 0.15s, transform 0.12s var(--ease);
+}
+.ev-share:hover { background: var(--surface); }
+.ev-share:active { transform: scale(0.95); }
+.ev-share .icon { color: color-mix(in srgb, var(--c) 70%, var(--text)); }
+.ev-hero .icon-btn { border-radius: 50%; background: color-mix(in srgb, var(--surface) 55%, transparent); }
+.ev-hero-main { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+.ev-emoji {
+  flex: none; width: 66px; height: 66px; border-radius: calc(var(--r-lg) + 3px); display: grid; place-items: center;
+  font-size: 38px; line-height: 1; background: var(--surface);
+  box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--c) 80%, transparent), inset 0 0 0 1.5px color-mix(in srgb, var(--c) 38%, transparent);
+  animation: pop 0.45s var(--spring);
+}
+.ev-emoji.none { color: color-mix(in srgb, var(--c) 78%, var(--text)); }
+.ev-hero-text { min-width: 0; flex: 1; }
+.ev-hero .ev-title { margin: 0 0 6px; }
+.ev-when { display: flex; flex-direction: column; gap: 1px; font-size: 14.5px; line-height: 1.35; }
+.ev-when strong { font-weight: 700; }
+.ev-when span { color: var(--text-2); font-weight: 550; }
+.event-sheet .sheet-body { padding-top: 14px; }
+.ev-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ev-strip .ev-badge { margin: 0; height: 32px; padding: 0 12px; border-radius: 16px; }
+.ev-strip .reactions { margin: 0; }
+.per-date { display: flex; align-items: center; gap: 6px; margin-top: -4px; }
+.per-date .icon { color: var(--text-3); flex: none; }
+:root[data-skin="cyberpunk"] .ev-hero .ev-title { text-transform: uppercase; letter-spacing: 0.01em; }
+
+/* ---------- Editor: Emoji am Titel ---------- */
+
+.title-row { display: flex; align-items: center; gap: 12px; }
+.title-row .title-input { flex: 1; min-width: 0; }
+.ev-emoji-btn {
+  flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; font-size: 27px; line-height: 1;
+  color: var(--text-3); background: var(--surface-2); border: 1.5px dashed var(--line-2);
+  transition: transform 0.2s var(--spring), background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ev-emoji-btn:hover { background: var(--surface-3); color: var(--text-2); }
+.ev-emoji-btn:active { transform: scale(0.9); }
+.ev-emoji-btn.set { border: 0; background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 40%, transparent); }
+.ev-emoji-btn.set span { animation: pop 0.4s var(--spring); }
+.ev-emoji-btn.open { border-style: solid; border-color: var(--accent); }
+.emoji-suggest {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; margin: 8px 0 0 62px; padding: 0 12px 0 8px; border-radius: 16px;
+  font-size: 13px; font-weight: 650; color: var(--text-2); background: var(--surface-2);
+  border: 1px solid var(--line); animation: pop 0.35s var(--spring); transition: background 0.15s, color 0.15s;
+}
+.emoji-suggest[hidden] { display: none; }
+.emoji-suggest .e { font-size: 17px; }
+.emoji-suggest:hover { background: var(--accent-soft); color: var(--text); }
+.ev-emoji-pop {
+  margin-top: 10px; padding: 10px; border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--line);
+  animation: rise 0.25s var(--ease);
+}
+.ev-emoji-pop[hidden] { display: none; }
+.ev-emoji-pop .emoji-grid { grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); }
+.ev-emoji-pop .no-emoji { margin-top: 6px; color: var(--text-2); }
+
+/* ---------- Kalender: In Apple Kalender anzeigen ---------- */
+
+.apple-cal {
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 12px; margin-bottom: 14px; border-radius: var(--r-lg);
+  color: var(--text); text-decoration: none; background: var(--surface-2); border: 1px solid var(--line);
+  transition: background 0.15s, transform 0.12s var(--ease);
+}
+.apple-cal:hover { background: var(--surface-3); }
+.apple-cal:active { transform: scale(0.985); }
+.apple-cal > .icon { color: var(--text-3); flex: none; }
+.apple-cal-ic {
+  flex: none; width: 46px; height: 46px; border-radius: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #fff; color: #111; box-shadow: 0 3px 10px -4px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(0, 0, 0, 0.06); line-height: 1;
+}
+.apple-cal-ic b { font-size: 9.5px; font-weight: 700; color: #f03a2e; text-transform: uppercase; letter-spacing: 0.04em; }
+.apple-cal-ic i { font-style: normal; font-size: 23px; font-weight: 400; margin-top: 2px; letter-spacing: -0.03em; }
+.apple-cal-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.apple-cal-txt strong { font-size: 15px; }
+.apple-cal-txt span { font-size: 13px; color: var(--text-2); line-height: 1.35; }
+.feed-section .link-box { margin-top: 0; }
+.tiny-note { display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin: 0; }
+.tiny-note .icon { color: var(--text-3); flex: none; }
+
+/* ---------- Profil ---------- */
+
+.profile-av { flex: none; }
+.av-emojis { grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); }
+.av-emojis button { border-radius: 50%; aspect-ratio: 1; height: auto; max-width: 46px; justify-self: center; width: 100%; }
+.av-emojis .av-none span {
+  display: inline-grid; place-items: center; width: 78%; aspect-ratio: 1; border-radius: 50%; font-size: 12px; font-weight: 750;
+  background: var(--c); color: #fff; vertical-align: middle;
+}
+.pair { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.pair-steps { margin: 0; padding: 0; list-style: none; counter-reset: st; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--text-2); }
+.pair-steps li { counter-increment: st; display: flex; align-items: center; gap: 9px; }
+.pair-steps li::before {
+  content: counter(st); flex: none; width: 21px; height: 21px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 11.5px; font-weight: 800; background: var(--accent-soft); color: var(--accent-2);
+}
+.pair-card {
+  align-self: stretch; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 16px 14px; border-radius: var(--r-lg);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), color-mix(in srgb, var(--accent) 5%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); text-align: center; animation: pop 0.4s var(--spring);
+}
+.pair-code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 34px; font-weight: 800; letter-spacing: 0.08em;
+  line-height: 1.1; color: var(--text); user-select: all; -webkit-user-select: all; font-variant-numeric: tabular-nums;
+}
+.pair-bar { display: block; width: min(220px, 80%); height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--accent) 18%, transparent); overflow: hidden; }
+.pair-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: transform 1s linear; }
+.pair-count { font-size: 13px; color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pair-card .btn { margin-top: 4px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.pair-card.expired { background: var(--surface-2); border-color: var(--line); }
+.pair-card.expired .pair-code { color: var(--text-3); text-decoration: line-through; text-decoration-thickness: 2px; }
+.pair-card.expired .btn { background: var(--accent); color: var(--on-accent); }
+.pair-done { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--online) 14%, transparent); font-size: 14px; animation: pop 0.4s var(--spring); }
+.pair-ok { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--online); color: #fff; flex: none; }
+.pair-alt { margin-top: 16px; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  .design-sheet .seg button { height: 38px; padding: 0 6px; gap: 5px; font-size: 13px; }
+  .sheet.event-sheet::before {
+    position: absolute; z-index: 3; top: 0; left: 50%; margin: 8px 0 0 -20px;
+    background: color-mix(in srgb, var(--text) 28%, transparent);
+  }
+  .ev-hero { padding: 22px 12px 18px 18px; }
+  .ev-hero-main { gap: 14px; margin-top: 14px; }
+  .ev-emoji { width: 58px; height: 58px; font-size: 33px; }
+  .ev-hero .ev-cal { max-width: 52%; }
+  .looks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .skin.big .skin-prev { height: 112px; }
+  .look-head { padding-top: 12px; }
+  .look-head h2 { font-size: 24px; }
+  .look-sheet .sheet-foot { flex-direction: column-reverse; align-items: stretch; gap: 6px; }
+  .look-sheet .sheet-foot .grow { display: none; }
+  .look-sheet .sheet-foot .btn { width: 100%; height: 48px; }
+  .look-sheet .look-all { height: 40px !important; }
+  .emoji-suggest { margin-left: 0; }
+  .ev-emoji-btn { width: 46px; height: 46px; font-size: 25px; }
+  .pair-code { font-size: 30px; }
+}

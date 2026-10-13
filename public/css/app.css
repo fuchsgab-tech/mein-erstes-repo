@@ -1153,8 +1153,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 
 /* ---------- Live-Verbindung ---------- */
 
+/* Unten rechts (am Handy links neben dem Plus-Knopf) – verdeckt nichts Wichtiges, liegt unter offenen Fenstern */
 .conn-pill {
-  position: fixed; z-index: 260; left: 50%; top: calc(72px + env(safe-area-inset-top)); transform: translateX(-50%);
+  position: fixed; z-index: 60; right: 22px; bottom: calc(22px + env(safe-area-inset-bottom));
   display: inline-flex; align-items: center; gap: 9px; height: 36px; padding: 0 16px 0 12px; border-radius: 18px;
   background: color-mix(in srgb, var(--toast-bg) 90%, transparent); color: var(--toast-text);
   font-size: 13px; font-weight: 650; white-space: nowrap; box-shadow: var(--shadow-lg);
@@ -1169,8 +1170,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
   border: 2px solid color-mix(in srgb, var(--toast-text) 28%, transparent); border-top-color: var(--toast-text);
   animation: spin 0.9s linear infinite;
 }
-@keyframes connIn { from { opacity: 0; transform: translate(-50%, -10px) scale(0.94); } }
-@keyframes connOut { to { opacity: 0; transform: translate(-50%, -6px) scale(0.96); } }
+@keyframes connIn { from { opacity: 0; transform: translateY(10px) scale(0.94); } }
+@keyframes connOut { to { opacity: 0; transform: translateY(6px) scale(0.96); } }
 
 /* ---------- iPhone: Tipp für den Home-Bildschirm ---------- */
 
@@ -1240,7 +1241,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 .toast .icon { color: var(--accent); }
 .toast.error .icon { color: var(--danger); }
 .toast.out { animation: toastOut 0.3s ease forwards; }
-.toast .t-action { margin-left: 6px; padding: 4px 10px; border-radius: 9px; background: color-mix(in srgb, var(--toast-text) 14%, transparent); font-weight: 750; font-size: 13.5px; }
+.toast .t-action { white-space: nowrap; flex: none; margin-left: 6px; padding: 4px 10px; border-radius: 9px; background: color-mix(in srgb, var(--toast-text) 14%, transparent); font-weight: 750; font-size: 13.5px; }
 .toast.live { cursor: pointer; padding-left: 8px; }
 .toast.demo-hint { max-width: 440px; line-height: 1.4; font-size: 14px; cursor: pointer; }
 .toast.live .avatar { box-shadow: 0 0 0 2px var(--toast-bg); }
@@ -1496,7 +1497,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
   .welcome-card { padding: 26px 20px 20px; }
   .wc-title { font-size: 26px; }
   .ios-hint { margin: 2px 12px 10px; }
-  .conn-pill { top: calc(62px + env(safe-area-inset-top)); }
+  .conn-pill {
+    right: auto; left: 12px; bottom: calc(90px + env(safe-area-inset-bottom)); max-width: calc(100vw - 100px);
+    height: 32px; gap: 7px; padding: 0 12px 0 10px; font-size: 12.5px; letter-spacing: -0.01em;
+  }
+  .conn-pill > span:last-child { overflow: hidden; text-overflow: ellipsis; }
   .overlay.alert-overlay { place-items: center; padding: 24px; }
   .overlay.alert-overlay .sheet.alert {
     width: min(340px, 100%); max-height: 90dvh; border-radius: var(--r-xl); border-width: 1px; animation: popIn 0.28s var(--spring);
@@ -1510,7 +1515,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
 }
 
 @media (max-width: 380px) {
-  .today-btn { display: none; }
+  /* Schmale Handys: alles etwas kompakter, damit „Heute“ und der Design-Knopf Platz haben */
+  .topbar .title { font-size: 19px; }
+  .topbar .icon-btn { width: 36px; }
+  .today-btn { padding: 0 9px; font-size: 13px; }
+  .conn-pill { font-size: 12px; gap: 6px; }
+  /* Home-Bildschirm-Tipp: nur der Pfeil, damit der Text Platz hat */
+  .ih-cta { width: 32px; padding: 0; justify-content: center; }
+  .ih-cta-lbl { display: none; }
 }
 
 /* iPhone zoomt sonst beim Tippen in Eingabefelder hinein */

@@ -14,7 +14,8 @@ import { discoverCalendars, fetchCalendarEvents, secretBox } from './caldav.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.resolve(ROOT, '..', 'public');
-const PORT = Number(process.env.PORT) || 3000;
+// PORT=0 sucht sich einen freien Port aus (für Tests)
+const PORT = /^\d{1,5}$/.test(process.env.PORT || '') ? Number(process.env.PORT) : 3000;
 const DATA_DIR = process.env.DATA_DIR || path.resolve(ROOT, '..', 'data');
 const DATA_FILE = path.join(DATA_DIR, 'zeitgarten.json');
 // Nur zum Entwickeln/Testen: erlaubt Kalender-Links auf localhost
@@ -230,6 +231,8 @@ const INDEX_FILE = path.join(PUBLIC, 'index.html');
 const OG_DESCRIPTION = 'Zeitgarten – euer gemeinsamer Kalender. Link öffnen, Namen eingeben, mitplanen.';
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const oneLine = (s) => String(s).replace(/[\u0000-\u001f\u007f\s]+/g, ' ').trim();
+// Kürzen, ohne ein Emoji zu zerschneiden
+const cut = (s, n) => [...s].slice(0, n).join('');
 
 let indexCache = { mtimeMs: -1, html: '' };
 function indexHtml() {
@@ -264,13 +267,13 @@ function renderIndex(req, pathname) {
   let html = indexHtml();
   const base = publicBase(req);
   for (const key of ['og:image', 'twitter:image']) html = setMeta(html, key, `${base}/og-image.png`);
-  if (base) html = setMeta(html, 'og:url', `${base}${/^\/join\/[\w-]+\/?$/.test(pathname) ? pathname : '/'}`);
   // Einladungslink: „Lena lädt dich in „🏠 WG“ ein“ – unbekannte Codes bekommen die allgemeine Vorschau
   const join = /^\/join\/([\w-]+)\/?$/.exec(pathname);
   const invite = join ? core.invitePreview(join[1]) : null;
+  if (base) html = setMeta(html, 'og:url', `${base}${invite ? `/join/${join[1]}` : '/'}`);
   if (invite) {
-    const cal = oneLine(invite.calendar).slice(0, 80);
-    const title = invite.owner ? `${oneLine(invite.owner).slice(0, 40)} lädt dich in „${cal}“ ein` : `Einladung in „${cal}“`;
+    const cal = cut(oneLine(invite.calendar), 80);
+    const title = invite.owner ? `${cut(oneLine(invite.owner), 40)} lädt dich in „${cal}“ ein` : `Einladung in „${cal}“`;
     for (const key of ['og:title', 'twitter:title']) html = setMeta(html, key, title);
     for (const key of ['og:description', 'twitter:description', 'description']) html = setMeta(html, key, OG_DESCRIPTION);
     html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(`${title} · Zeitgarten`)}</title>`);

@@ -313,7 +313,9 @@ function palette(host) {
   const accent = rgb(getComputedStyle(root).getPropertyValue('--accent').trim(), [15, 157, 118]);
   const cols = ['--p1', '--p2', '--p3'].map((n) => rgb(cs.getPropertyValue(n).trim(), [255, 255, 255]));
   const dark = root.dataset.mode === 'dark';
-  return { dark, cols: cols.map((c) => mix(c, accent, 0.12)) };
+  // --mb-fx-accent (0 … 1): Stile können die Teilchen stärker in ihre Akzentfarbe tauchen
+  const k = parseFloat(cs.getPropertyValue('--mb-fx-accent'));
+  return { dark, cols: cols.map((c) => mix(c, accent, Number.isFinite(k) ? Math.min(1, Math.max(0, k)) : 0.12)) };
 }
 
 function spawn(kind, w, h, rnd, anywhere) {

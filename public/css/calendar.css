@@ -131,14 +131,40 @@
 
 /* ---------- Monatsbanner ---------- */
 
+/* Stellschrauben für die Stile – gelten für das Monatsbild (.mb) und die Monatswechsel in der Liste (.lv-month).
+   In der eigenen CSS setzen, z. B. :root[data-skin="x"] :is(.mb, .lv-month) { --mb-tint: …; }
+   --mb-tint        Farbschleier über dem Bild, unter dem Text (Farbe oder Verlauf)
+   --mb-tint-blend  Mischmodus des Schleiers (color, soft-light, overlay, …)
+   --mb-art-filter  Filter für die Landschaft (hue-rotate, saturate, grayscale, …)
+   --mb-art-blend   Mischmodus der Landschaft (luminosity: nur Helligkeit, Farbe kommt vom Schleier)
+   --mb-art-opacity Deckkraft der Landschaft
+   --mb-edge        Leuchtkante unten (Farbe), --mb-sky-k Stärke des Himmelsverlaufs (Standard 72% / dunkel 30%)
+   --mb-sky-accent  wie viel Akzentfarbe im Himmel steckt (Standard 12%)
+   --mb-fx-accent   wie stark die fallenden Teilchen die Akzentfarbe annehmen (0 … 1, Standard 0.12) */
+:is(.mb, .lv-month) { --mb-tint: none; --mb-tint-blend: normal; --mb-art-filter: none; --mb-art-blend: normal; --mb-art-opacity: 1; --mb-edge: transparent; }
 .mb {
   position: relative; flex: none; height: 118px; overflow: hidden; isolation: isolate;
   border-bottom: 1px solid var(--line);
+}
+:is(.mb, .lv-month).season {
+  --k-sky: var(--mb-sky-k, 72%);
+  --sky-a2: color-mix(in oklab, var(--sky-a), var(--accent) var(--mb-sky-accent, 12%));
+  --sky-b2: color-mix(in oklab, var(--sky-b), var(--accent) calc(var(--mb-sky-accent, 12%) + 4%));
+}
+:root[data-mode="dark"] :is(.mb, .lv-month).season { --k-sky: var(--mb-sky-k, 30%); }
+:is(.mb, .lv-month)::before {
+  content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+  background: var(--mb-tint); mix-blend-mode: var(--mb-tint-blend);
+}
+:is(.mb, .lv-month)::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; pointer-events: none;
+  background: var(--mb-edge); box-shadow: 0 0 12px 1px var(--mb-edge);
 }
 .mb-art {
   position: absolute; z-index: -2; top: 0; right: 0; bottom: 0; width: min(600px, 64%); pointer-events: none;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 34%); mask-image: linear-gradient(90deg, transparent, #000 34%);
 }
+:is(.mb-art, .lv-month-art) { filter: var(--mb-art-filter); mix-blend-mode: var(--mb-art-blend); opacity: var(--mb-art-opacity); }
 .mb-sky { position: absolute; z-index: -1; inset: 0; pointer-events: none; }
 .mb-fx {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -192,6 +218,55 @@
     color-mix(in srgb, var(--c) 7%, color-mix(in srgb, var(--surface) 84%, transparent));
 }
 .mb-chip.add { color: var(--accent-2); gap: 5px; }
+
+/* Monatsbild je Stil: Die Jahreszeit bleibt erkennbar, Farben und Licht passen zum Look */
+:root[data-skin="aurora"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 34%;
+  --mb-tint: linear-gradient(100deg, transparent 38%, color-mix(in srgb, #2dd4bf 26%, transparent) 70%, color-mix(in srgb, var(--accent) 34%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.4;
+}
+:root[data-skin="neon"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 28%; --mb-art-filter: grayscale(1) contrast(1.1);
+  --mb-tint: linear-gradient(100deg, transparent 34%, color-mix(in srgb, var(--accent) 50%, transparent) 64%);
+  --mb-tint-blend: color; --mb-edge: color-mix(in srgb, var(--accent) 70%, transparent); --mb-fx-accent: 0.7;
+}
+:root[data-skin="sunset"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 26%;
+  --mb-tint: linear-gradient(100deg, transparent 40%, color-mix(in srgb, #ff7a59 22%, transparent) 70%, color-mix(in srgb, #d6457a 30%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.35;
+}
+:root[data-skin="ozean"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 34%; --mb-art-filter: saturate(0.8);
+  --mb-tint: linear-gradient(100deg, transparent 36%, color-mix(in srgb, var(--accent) 42%, transparent) 66%, color-mix(in srgb, #14b8a6 40%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.45;
+}
+:root[data-skin="pastell"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 24%; --mb-art-filter: saturate(0.7) brightness(1.06);
+  --mb-tint: linear-gradient(100deg, transparent 40%, color-mix(in srgb, #f9a8d4 26%, transparent) 70%, color-mix(in srgb, var(--accent) 26%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.3;
+}
+:root[data-skin="mono"] :is(.mb, .lv-month) { --mb-sky-accent: 0%; --mb-art-filter: grayscale(1) contrast(1.08); --mb-fx-accent: 0; --mb-sky-k: 40%; }
+:root[data-skin="mono"] .mb .mb-fx { filter: grayscale(1); }
+:root[data-skin="jarvis"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 30%; --mb-art-filter: grayscale(1) contrast(1.15) brightness(1.05); --mb-art-opacity: 0.9;
+  --mb-tint: linear-gradient(100deg, transparent 32%, color-mix(in srgb, var(--accent) 52%, transparent) 64%);
+  --mb-tint-blend: color; --mb-edge: var(--accent); --mb-fx-accent: 0.8;
+}
+:root[data-skin="synthwave"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 40%; --mb-art-filter: grayscale(0.6) contrast(1.1);
+  --mb-tint: linear-gradient(100deg, transparent 34%, color-mix(in srgb, var(--accent) 60%, transparent) 62%, color-mix(in srgb, #ff9a3c 55%, transparent) 88%);
+  --mb-tint-blend: color; --mb-edge: var(--accent); --mb-fx-accent: 0.55;
+}
+:root[data-skin="cyberpunk"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 30%; --mb-art-filter: contrast(1.2) saturate(1.2);
+  --mb-tint: linear-gradient(100deg, transparent 36%, color-mix(in srgb, var(--cp-2, #00f0ff) 45%, transparent) 64%, color-mix(in srgb, var(--accent) 55%, transparent));
+  --mb-tint-blend: color; --mb-edge: var(--accent); --mb-fx-accent: 0.5;
+}
+:root[data-skin="galaxie"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 42%; --mb-art-filter: grayscale(0.7) brightness(0.92);
+  --mb-tint: linear-gradient(100deg, transparent 34%, color-mix(in srgb, var(--accent) 58%, transparent) 62%, color-mix(in srgb, #ec4899 40%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.5;
+}
 
 /* ---------- Puls für laufende Termine ---------- */
 
@@ -290,6 +365,11 @@
 }
 
 /* ---------- Woche ---------- */
+
+/* .wv-x hält Kopf und Raster; am Handy scrollt es seitwärts (siehe unten), am Computer nur das Raster */
+.wv-x { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.wv-top { flex: none; }
+.wv-now-tag { display: none; }
 
 .wv-dots { display: flex; align-items: center; justify-content: center; gap: 3px; height: 6px; margin-top: 2px; }
 .wv-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--c); box-shadow: var(--ev-glow); }
@@ -392,7 +472,7 @@
   background-color: var(--card); box-shadow: var(--shadow-sm); font: inherit;
 }
 .lv-month-art {
-  position: absolute; z-index: -1; top: 0; right: 0; bottom: 0; width: min(440px, 72%); pointer-events: none;
+  position: absolute; z-index: -2; top: 0; right: 0; bottom: 0; width: min(440px, 72%); pointer-events: none;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%); mask-image: linear-gradient(90deg, transparent, #000 40%);
 }
 .lv-month-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; text-shadow: 0 1px 12px color-mix(in srgb, var(--surface) 90%, transparent); }
@@ -446,7 +526,25 @@
   :root[data-motion="on"] .day.today .num::before { animation-name: today-ring-sm; }
   .mb-stats .st-more { display: none; }
 
+  /* Monat: weniger Rand, dafür Titel in bis zu zwei Zeilen (die Höhe misst views.js) */
+  .month { --lane: 17px; --dayhead: 24px; }
+  .dow { padding: 5px 0 4px; }
+  .day { padding-top: 2px; }
+  .day .num { min-width: 20px; height: 20px; padding: 0 3px; border-radius: 10px; }
   .bar .label { text-overflow: clip; }
+  .bar.wrap {
+    align-items: flex-start; gap: 0; padding: 1.5px 2px 1.5px 3px; white-space: normal;
+    font-size: 10px; line-height: 12px; letter-spacing: -0.015em;
+  }
+  .bar.wrap .label {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; max-height: 24px;
+    overflow: hidden; overflow-wrap: anywhere; -webkit-hyphens: auto; hyphens: auto; font-size: inherit;
+  }
+  .bar.wrap .ej { display: inline; margin: 0 1px 0 0; font-size: 9.5px; line-height: 1; }
+  .bar.wrap .ev-live { position: absolute; top: 2px; right: 2px; }
+  .bar.wrap.now .label { padding-right: 5px; }
+  :root[data-events="line"] .bar.block.wrap { padding-left: 6px; }
+  .more { font-size: 10px; line-height: 15px; }
   .bar.festive { padding-right: 4px; }
   .bar.festive::after { display: none; }
   .bar .ej { font-size: 10px; }
@@ -456,12 +554,34 @@
   .dprog { height: 2.5px; }
   .day.today .num { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent), 0 3px 10px -3px color-mix(in srgb, var(--accent) 75%, transparent); }
 
+  /* Woche: etwa drei Tage sichtbar, seitwärts mit Einrasten; Kopf oben und Stunden links bleiben stehen */
+  .wv-x {
+    --wv-col: calc((100cqw - var(--gutter)) / 3.2);
+    --wv-sticky: linear-gradient(var(--card), var(--card)), var(--bg); /* deckend, damit nichts durchscheint */
+    display: block; container-type: inline-size; overflow: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scroll-padding-left: var(--gutter);
+  }
+  .wv-top, .wv-grid { width: calc(var(--gutter) + 7 * var(--wv-col)); }
+  .wv-top {
+    position: sticky; top: 0; z-index: 6; background: var(--wv-sticky);
+    box-shadow: 0 6px 12px -10px color-mix(in srgb, var(--text) 40%, transparent);
+  }
+  .wv-scroll { overflow: visible; }
+  .wv-col { scroll-snap-align: start; }
+  .wv-head .wv-gutter, .wv-allday-label, .wv-hours { position: sticky; left: 0; z-index: 5; background: var(--wv-sticky); }
+  .wv-hours { box-shadow: 1px 0 0 var(--line); }
+  .now-line .now-tag { display: none; }
+  .wv-now-tag {
+    display: block; position: absolute; z-index: 1; left: 2px; right: 2px; height: 15px; transform: translateY(-50%);
+    border-radius: 8px; background: var(--danger); color: var(--bg); font-size: 9px; font-weight: 800; line-height: 15px;
+    text-align: center; font-variant-numeric: tabular-nums; box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.3);
+  }
+  .wv-now-tag[hidden] { display: none; }
   .wv-dots { gap: 2px; height: 5px; }
   .wv-dots i { width: 4px; height: 4px; }
   .wv-dots b { font-size: 8.5px; }
   .wv-allday-label span:not(.icon) { display: none; }
   .wv-ev .wm { font-size: 18px; }
-  .now-tag { height: 15px; line-height: 15px; font-size: 9px; left: calc(var(--i, 0) * -100% - var(--gutter) + 2px); width: calc(var(--gutter) - 4px); }
 
   .lv-av { width: 34px; height: 34px; font-size: 17px; }
   .lv-month { height: 64px; padding: 0 16px; margin-top: 14px; }

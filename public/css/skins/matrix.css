@@ -1,1 +1,295 @@
-/* Stil „Matrix“ – wird vom Design-Team ausgebaut. Regeln immer mit :root[data-skin="matrix"] beginnen. */
+/* Stil „Matrix“ – Phosphor-Terminal mit grünem Zeichenregen (Regen: js/skins/matrix.js).
+   Regeln immer mit :root[data-skin="matrix"] beginnen. Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = Papier-Terminal, dunkel = Phosphor-Röhre ---------- */
+
+:root[data-skin="matrix"] {
+  --bg: #eef6e6;
+  --wallpaper:
+    radial-gradient(60% 50% at 58% 42%, rgba(10, 122, 53, 0.08), transparent 70%),
+    linear-gradient(180deg, #f4f9ec, #e2efd9);
+  --surface: #fbfdf6;
+  --card: rgba(251, 253, 244, 0.8);
+  --sidebar-bg: rgba(244, 250, 236, 0.86);
+  --surface-2: rgba(10, 110, 50, 0.07);
+  --surface-3: rgba(10, 110, 50, 0.14);
+  --line: rgba(10, 90, 40, 0.15);
+  --line-2: rgba(10, 90, 40, 0.3);
+  --text: #06210f;
+  --text-2: #2c5638;
+  --text-3: #4a6f55;
+  --accent: #0a7a35;
+  --on-accent: #ffffff;
+  --danger: #c4262e;
+  --online: #0a9a45;
+  --mix: 16%;
+  --mix-text: 58%;
+  --blur: 10px;
+  --ev-glow-geo: 0 0 0 0;
+  --ev-glow-mix: 0%;
+  --shadow-sm: 0 0 0 1px rgba(10, 122, 53, 0.06);
+  --shadow: 0 0 0 1px rgba(10, 122, 53, 0.06), 0 14px 34px -22px rgba(6, 60, 25, 0.45);
+  --shadow-lg: 0 0 0 1px rgba(10, 122, 53, 0.16), 0 30px 70px -26px rgba(6, 50, 20, 0.5);
+  --toast-bg: #04170a;
+  --toast-text: #d4ffe0;
+  --toast-icon: #3dff7a;
+  --scrim: rgba(4, 30, 12, 0.32);
+  --mx-glow: color-mix(in srgb, var(--accent) 22%, transparent);
+  --mx-scan: rgba(10, 90, 40, 0.05);
+  --mx-vig: rgba(120, 170, 130, 0.3);
+  --mx-ink: var(--accent);
+  --mx-head: #022b10;
+  --mx-panel: linear-gradient(160deg, #fbfdf6, #e8f4e2);
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --fx-a: var(--accent);
+  --fx-b: #5fa874;
+  --fx-c: #0a7a35;
+  --fx-d: #022b10;
+  --fx-s1: #f4f9ec;
+  --fx-s2: #e1eed8;
+  --fx-s3: #8fbf9a;
+  --fx-s4: #f4f9ec;
+  --fx-k: 0.8;
+}
+:root[data-skin="matrix"][data-mode="dark"] {
+  --bg: #010502;
+  --wallpaper:
+    radial-gradient(60% 50% at 58% 42%, rgba(0, 255, 90, 0.07), transparent 70%),
+    linear-gradient(180deg, #020a04, #010402);
+  --surface: #03110a;
+  --card: rgba(2, 13, 6, 0.78);
+  --sidebar-bg: rgba(1, 9, 4, 0.84);
+  --surface-2: rgba(61, 255, 122, 0.07);
+  --surface-3: rgba(61, 255, 122, 0.14);
+  --line: rgba(61, 255, 122, 0.13);
+  --line-2: rgba(61, 255, 122, 0.3);
+  --text: #d4ffe0;
+  --text-2: #92dba8;
+  --text-3: #66a87b;
+  --accent: #3dff7a;
+  --on-accent: #001a08;
+  --danger: #ff5c5c;
+  --online: #3dff7a;
+  --mix: 16%;
+  --mix-text: 44%;
+  --ev-glow-geo: 0 0 12px -4px;
+  --ev-glow-mix: 70%;
+  --shadow-sm: 0 0 0 1px rgba(61, 255, 122, 0.06);
+  --shadow: 0 0 0 1px rgba(61, 255, 122, 0.06), 0 0 34px -16px rgba(61, 255, 122, 0.35), 0 18px 40px -20px rgba(0, 0, 0, 0.85);
+  --shadow-lg: 0 0 0 1px rgba(61, 255, 122, 0.18), 0 0 70px -22px rgba(61, 255, 122, 0.32), 0 30px 80px -24px rgba(0, 0, 0, 0.92);
+  --toast-bg: #03170a;
+  --toast-text: #d4ffe0;
+  --toast-icon: var(--accent);
+  --scrim: rgba(0, 6, 2, 0.66);
+  --mx-glow: color-mix(in srgb, var(--accent) 55%, transparent);
+  --mx-scan: rgba(0, 0, 0, 0.3);
+  --mx-vig: rgba(0, 0, 0, 0.72);
+  --mx-ink: var(--accent);
+  --mx-head: #eafff0;
+  --mx-panel: linear-gradient(160deg, #031a0b, #021108 60%, #010a04);
+  --fx-a: var(--accent);
+  --fx-b: #0f7a35;
+  --fx-c: #3dff7a;
+  --fx-d: #eafff0;
+  --fx-s1: #010603;
+  --fx-s2: #021209;
+  --fx-s3: #000000;
+  --fx-s4: #010603;
+  --fx-k: 1;
+}
+:root[data-skin="matrix"]:not([data-corners="pill"]) { --r-xs: 2px; --r-sm: 3px; --r-md: 4px; --r-lg: 5px; --r-xl: 6px; }
+:root[data-skin="matrix"][data-font="modern"] { --font-display: var(--font-mono); }
+
+/* ---------- Gemeinsames für Live-Stile (wie in skins-live.css) ---------- */
+
+:root[data-skin="matrix"] { --live-bf: none; }
+:root[data-skin="matrix"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="matrix"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf); }
+:root[data-skin="matrix"] .sky-art svg { display: none; }
+:root[data-skin="matrix"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="matrix"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="matrix"] .heat .cell { --text-2: var(--text); }
+:root[data-skin="matrix"] .day.today .num::before { display: none; }
+:root[data-skin="matrix"] .sky::before,
+:root[data-skin="matrix"] .sky::after,
+:root[data-skin="matrix"] .sky-art::before,
+:root[data-skin="matrix"] .sky-art::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Röhre: Zeilen, dunkler Rand und ein langsam rollender Lichtbalken (über dem Regen, unter dem Inhalt) ---------- */
+
+:root[data-skin="matrix"] body::after {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 70% at 50% 48%, transparent 55%, var(--mx-vig) 100%),
+    repeating-linear-gradient(180deg, var(--mx-scan) 0 1px, transparent 1px 3px);
+}
+:root[data-skin="matrix"][data-motion="on"]::after {
+  content: ""; position: fixed; left: 0; right: 0; top: -30vh; height: 30vh; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 5%, transparent) 85%, transparent);
+  animation: mx-roll 14s linear infinite; will-change: transform;
+}
+
+/* ---------- Schrift: Terminal mit Phosphor-Leuchten ---------- */
+
+:root[data-skin="matrix"] :is(.topbar .title, .brand, .sheet-head h2, .sky .greet, .mb-mood, .cd-num) {
+  text-shadow: 0 0 18px var(--mx-glow);
+}
+:root[data-skin="matrix"] .topbar .title { font-weight: 700; letter-spacing: -0.02em; }
+:root[data-skin="matrix"] .topbar .title .year { color: var(--accent); font-weight: 600; }
+/* Blinkender Block-Cursor hinter dem Monat */
+:root[data-skin="matrix"] .topbar .title::after {
+  content: ""; display: inline-block; width: 0.5em; height: 0.82em; margin-left: 0.18em; vertical-align: -0.06em;
+  background: var(--accent); box-shadow: 0 0 12px var(--mx-glow);
+}
+:root[data-skin="matrix"][data-motion="on"] .topbar .title::after { animation: mx-blink 1.06s steps(1, end) infinite; }
+:root[data-skin="matrix"] .brand { font-weight: 700; letter-spacing: -0.01em; }
+:root[data-skin="matrix"] :is(.dow, .wv-dayhead .wd) { color: color-mix(in srgb, var(--accent) 62%, var(--text-2)); letter-spacing: 0.16em; font-family: var(--font-mono); }
+:root[data-skin="matrix"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl, .mb-eyebrow) {
+  color: color-mix(in srgb, var(--accent) 55%, var(--text-2)); letter-spacing: 0.14em; font-family: var(--font-mono);
+}
+:root[data-skin="matrix"] .card-head h3::before { content: "> "; content: "> " / ""; color: var(--accent); }
+:root[data-skin="matrix"] :is(.day .num, .wv-dayhead .dn, .lv-date .dn, .wv-hours span, .bar .t, .item .when) { font-family: var(--font-mono); }
+:root[data-skin="matrix"] .wv-hours span { letter-spacing: -0.02em; }
+
+/* ---------- Flächen: dunkles Glas mit dünner grüner Kante ---------- */
+
+:root[data-skin="matrix"] :is(.month, .wv, .card) {
+  border-color: var(--line-2);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow);
+}
+/* feine Röhrenzeilen auf den Karten */
+:root[data-skin="matrix"] :is(.month, .wv, .card)::after {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+  background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, transparent) 0 1px, transparent 1px 4px);
+}
+:root[data-skin="matrix"] .sidebar { border-right-color: var(--line-2); box-shadow: inset -1px 0 0 color-mix(in srgb, var(--accent) 10%, transparent); }
+:root[data-skin="matrix"] .seg button.on { color: var(--accent); box-shadow: inset 0 0 0 1px var(--line-2), 0 0 12px -4px var(--mx-glow); background: var(--surface-2); }
+:root[data-skin="matrix"] .mini-grid button.today { text-shadow: 0 0 10px var(--mx-glow); }
+:root[data-skin="matrix"] :is(.item, .search-box) { border-color: var(--line-2); }
+:root[data-skin="matrix"] .item { background: color-mix(in srgb, var(--surface) 88%, transparent); }
+/* Bedienelemente oben bekommen einen ruhigen Grund, damit der Regen nicht durch die Schrift läuft */
+:root[data-skin="matrix"] :is(.topbar .seg, .topbar .today-btn) { background: color-mix(in srgb, var(--surface) 88%, transparent); box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-skin="matrix"] .item:hover { box-shadow: 0 0 0 1px var(--accent), 0 0 22px -8px var(--mx-glow); }
+:root[data-skin="matrix"] .sheet { position: relative; box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow-lg); }
+:root[data-skin="matrix"] .toast { box-shadow: inset 2px 0 0 var(--toast-icon), var(--shadow-lg); font-family: var(--font-mono); }
+
+/* ---------- Heute ---------- */
+
+:root[data-skin="matrix"] .day.today {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, transparent), color-mix(in srgb, var(--accent) 3%, transparent) 80%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+:root[data-skin="matrix"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  border-radius: var(--r-xs); font-weight: 800;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 16px -2px var(--mx-glow);
+}
+:root[data-skin="matrix"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 2%, transparent)); }
+:root[data-skin="matrix"] .now-line { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+:root[data-skin="matrix"] .now-line::before { background: var(--accent); border-radius: 1px; box-shadow: 0 0 10px var(--accent); }
+:root[data-skin="matrix"] .dprog i { border-radius: 0; }
+:root[data-skin="matrix"] .lv-day.today .lv-date .dn { text-shadow: 0 0 14px var(--mx-glow); }
+
+/* ---------- Termine: grün getönt, die eigene Farbe bleibt als Kante ---------- */
+
+:root[data-skin="matrix"] :is(.bar.block, .wv-ev) { --mx-c: color-mix(in srgb, var(--c) 55%, var(--accent)); }
+:root[data-skin="matrix"][data-events="tint"] .bar.block {
+  background: color-mix(in srgb, var(--mx-c) var(--mix), var(--surface));
+  color: color-mix(in srgb, var(--mx-c) var(--mix-text), var(--text));
+  box-shadow: inset 2px 0 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--mx-c) 30%, transparent), var(--ev-glow);
+}
+:root[data-skin="matrix"][data-events="tint"] .wv-ev {
+  background: color-mix(in srgb, var(--mx-c) var(--mix), var(--surface));
+  color: color-mix(in srgb, var(--mx-c) var(--mix-text), var(--text));
+  box-shadow: inset 2px 0 0 var(--c), inset 0 0 0 1px color-mix(in srgb, var(--mx-c) 30%, transparent), var(--ev-glow);
+}
+:root[data-skin="matrix"] .item .stripe { border-radius: 0; width: 3px; }
+
+/* ---------- Knöpfe ---------- */
+
+:root[data-skin="matrix"] .btn.primary {
+  font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.02em;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), 0 0 22px -6px var(--mx-glow);
+}
+:root[data-skin="matrix"] .fab { border-radius: var(--r-md); box-shadow: 0 0 0 1px var(--accent), 0 0 28px -4px var(--mx-glow), 0 10px 24px -10px rgba(0, 0, 0, 0.5); }
+:root[data-skin="matrix"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+:root[data-skin="matrix"] .meter > i { box-shadow: 0 0 10px var(--c); }
+
+/* ---------- Monatsbanner: Jahreszeitenbild in Phosphorgrün ---------- */
+
+:root[data-skin="matrix"] .mb {
+  border-bottom-color: var(--line-2);
+  background-image: linear-gradient(100deg, transparent 16%, color-mix(in srgb, var(--accent) 9%, transparent) 52%, color-mix(in srgb, var(--accent) 20%, transparent));
+}
+:root[data-skin="matrix"] :is(.mb-art, .mb-sky) { filter: grayscale(1) sepia(1) hue-rotate(68deg) saturate(2.6) brightness(0.92); }
+:root[data-skin="matrix"][data-mode="dark"] :is(.mb-art, .mb-sky) { filter: grayscale(1) sepia(1) hue-rotate(68deg) saturate(3.2) brightness(0.62) contrast(1.15); }
+:root[data-skin="matrix"] .mb::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--card) 20%, transparent 70%),
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px);
+}
+:root[data-skin="matrix"] .mb-mood { font-weight: 700; letter-spacing: -0.03em; }
+:root[data-skin="matrix"] .mb-eyebrow::before { content: ">"; content: ">" / ""; color: var(--accent); }
+:root[data-skin="matrix"] .mb-chip { border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 12px; backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--card); }
+
+/* ---------- Übersicht: Kopfbereich als Terminalfenster ---------- */
+
+:root[data-skin="matrix"] .sky {
+  --sky:
+    radial-gradient(70% 120% at 100% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
+    repeating-linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, transparent) 0 1px, transparent 1px 4px),
+    var(--mx-panel);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line-2), var(--shadow);
+}
+:root[data-skin="matrix"] .sky .greet { font-weight: 700; letter-spacing: -0.03em; }
+:root[data-skin="matrix"] .sky .greet::after {
+  content: ""; display: inline-block; width: 0.5em; height: 0.8em; margin-left: 0.14em; vertical-align: -0.04em;
+  background: var(--accent); box-shadow: 0 0 12px var(--mx-glow);
+}
+:root[data-skin="matrix"][data-motion="on"] .sky .greet::after { animation: mx-blink 1.06s steps(1, end) infinite; }
+:root[data-skin="matrix"] .sky .date { color: var(--text-2); opacity: 1; font-family: var(--font-mono); }
+:root[data-skin="matrix"] .sky-pill {
+  border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 12.5px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent); border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+}
+/* Regenspuren rechts im Kopfbereich (doppelt so hoch, damit das Wandern nahtlos ist) */
+:root[data-skin="matrix"] .sky-art { overflow: hidden; }
+:root[data-skin="matrix"] .sky-art::before {
+  top: -100%; height: 200%; right: 0; width: min(440px, 58%);
+  --mx-s: linear-gradient(180deg, transparent 20%, color-mix(in srgb, var(--mx-ink) 70%, transparent) 88%, var(--mx-head) 96%, transparent);
+  background:
+    var(--mx-s) 4% 10px / 7px 25%, var(--mx-s) 17% 70px / 7px 25%, var(--mx-s) 30% 30px / 7px 25%,
+    var(--mx-s) 43% 95px / 7px 25%, var(--mx-s) 56% 50px / 7px 25%, var(--mx-s) 69% 5px / 7px 25%,
+    var(--mx-s) 82% 80px / 7px 25%, var(--mx-s) 95% 40px / 7px 25%;
+  background-repeat: repeat-y;
+  /* Stückelung wie einzelne Zeichen, nach links ausgeblendet */
+  -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 9px, transparent 9px 13px), linear-gradient(90deg, transparent, #000 45%);
+  -webkit-mask-composite: source-in;
+  mask-image: repeating-linear-gradient(180deg, #000 0 9px, transparent 9px 13px), linear-gradient(90deg, transparent, #000 45%);
+  mask-composite: intersect;
+  opacity: 0.6;
+}
+:root[data-skin="matrix"][data-motion="on"] .sky-art::before { animation: mx-fall 9s linear infinite; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="matrix"] { --live-bf: none; --blur: 0px; }
+  :root[data-skin="matrix"] :is(.sheet, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root[data-skin="matrix"] :is(.month, .wv) { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 30%, transparent); }
+  :root[data-skin="matrix"] .tabbar {
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 45%, transparent), 0 -14px 30px -22px var(--mx-glow);
+  }
+  :root[data-skin="matrix"] .tab { font-family: var(--font-mono); letter-spacing: -0.02em; }
+  :root[data-skin="matrix"] .tab.on .tab-ic { border-radius: var(--r-sm); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 16px -6px var(--mx-glow); }
+  :root[data-skin="matrix"] .tab.on { text-shadow: 0 0 10px var(--mx-glow); }
+  :root[data-skin="matrix"] .mb-chip { font-size: 11px; }
+}
+
+@keyframes mx-roll { to { transform: translateY(160vh); } }
+@keyframes mx-blink { 50% { opacity: 0; } }
+@keyframes mx-fall { to { transform: translateY(50%); } }

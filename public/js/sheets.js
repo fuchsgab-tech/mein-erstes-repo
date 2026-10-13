@@ -1,12 +1,13 @@
 // Alle Fenster der App: Tag, Termin, Editor, Kalender, Import, Profil, Einladung
 import { api, auth, isDemo } from './api.js';
 import { h, icon, linkify } from './h.js';
-import { ago, dayLong, dayMonth, relDay, shortDate, untilText, weekdayName, whenLong, whenShort } from './fmt.js';
+import { suggestEmoji } from './emoji-hints.js';
+import { ago, dayLong, dayMonth, dayShort, relDay, shortDate, time, untilText, weekdayName, whenLong, whenShort } from './fmt.js';
 import { burst, burstFrom } from './fx.js';
-import { describeRrule, joinRrule, occurrences, REPEAT_PRESETS, splitRrule } from './recur.js';
+import { describeRrule, joinRrule, occFirstDay, occLastDay, occurrences, REPEAT_PRESETS, splitRrule } from './recur.js';
 import {
-  COLORS, EMOJIS, calById, defaultCalendarId, eventColor, hooks, loadAll, loadEvents, loadMe, markSeen, person,
-  rememberCalendar, setHidden, state, visibleOccurrences,
+  COLORS, EMOJIS, attendeesFor, calById, defaultCalendarId, eventColor, hooks, loadAll, loadEvents, loadMe, markSeen, person,
+  initials, rememberCalendar, setHidden, state, visibleOccurrences,
 } from './state.js';
 import { DEFAULT_PREFS, SKINS, prefs, resolvedMode, setPrefs } from './themes.js';
 import { addDays, daysBetween, localTz, pad, parseYmd, startOfDay, ymd } from './time.js';
@@ -18,12 +19,50 @@ import {
 const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const closeBtn = (s) => h('button.icon-btn', { onclick: () => s.close(), 'aria-label': 'Schließen', title: 'Schließen' }, icon('x'));
 
-function toggle(label, value, onChange, hint) {
-  const input = h('input', { type: 'checkbox', checked: value, onchange: () => onChange(input.checked) });
-  return h('label.toggle', null, h('span', null, label, hint ? h('small', null, hint) : null), input, h('span.track', null, h('span.thumb')));
+function toggle(label, value, onChange, hint, { disabled = false } = {}) {
+  const input = h('input', { type: 'checkbox', checked: value, disabled, onchange: () => onChange(input.checked) });
+  return h('label.toggle', { class: disabled ? 'off' : '' }, h('span', null, label, hint ? h('small', null, hint) : null), input, h('span.track', null, h('span.thumb')));
 }
 
 const isOnline = (id) => state.online.has(id);
+
+// ---------- Emojis in Termintiteln ----------
+// Wie in views.js: Das erste Emoji im Titel ist das Symbol des Termins
+
+const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}/u;
+const EMOJI_LOOK = /\p{Emoji_Presentation}|\uFE0F|\p{Regional_Indicator}/u;
+const graphemes = typeof Intl.Segmenter === 'function'
+  ? ((seg) => (s) => Array.from(seg.segment(s), (x) => x.segment))(new Intl.Segmenter('de', { granularity: 'grapheme' }))
+  : (s) => Array.from(s);
+const isEmoji = (g) => EMOJI.test(g) && EMOJI_LOOK.test(g);
+const tidy = (s) => s.replace(/\s+/g, ' ').replace(/\s([,.!?:;])/g, '$1').trim();
+
+function splitTitle(title) {
+  const parts = graphemes(title || '');
+  const i = parts.findIndex(isEmoji);
+  if (i < 0) return { emoji: '', text: (title || '').trim() };
+  return { emoji: parts[i], text: tidy(`${parts.slice(0, i).join('')} ${parts.slice(i + 1).join('')}`) };
+}
+
+// Emoji am Anfang des Titels (so speichert der Editor es)
+function leadingEmoji(title) {
+  const parts = graphemes(title || '');
+  let i = 0;
+  while (i < parts.length && !parts[i].trim()) i++;
+  return parts[i] && isEmoji(parts[i]) ? { emoji: parts[i], text: parts.slice(i + 1).join('').trimStart() } : { emoji: '', text: title || '' };
+}
+
+// Für Datumsangaben aus Neuigkeiten: 'YYYY-MM-DD' (ganztägig) oder ISO-Zeitpunkt
+const occDate = (x) => (/^\d{4}-\d{2}-\d{2}$/.test(String(x)) ? parseYmd(x) : new Date(x));
+
+// „Sa., 17. Okt., 19:00–22:00“ – kurz, zum Teilen
+function whenShare(o) {
+  const first = occFirstDay(o);
+  const last = occLastDay(o);
+  if (o.allDay) return first.getTime() === last.getTime() ? dayShort(first) : `${dayShort(first)} – ${dayShort(last)}`;
+  if (first.getTime() === last.getTime()) return `${dayShort(o.start)}, ${time(o.start)}${o.end > o.start ? `–${time(o.end)}` : ''}`;
+  return `${dayShort(o.start)}, ${time(o.start)} – ${dayShort(o.end)}, ${time(o.end)}`;
+}
 
 function meta(iconName, ...content) {
   return h('div.meta', null, icon(iconName, 19), h('div.v', null, ...content));
@@ -34,7 +73,7 @@ function meta(iconName, ...content) {
 export function occItem(o, day) {
   const ev = o.ev;
   const cal = calById(ev.calendarId);
-  const people = (ev.attendees || []).map(person);
+  const people = attendeesFor(ev, o.orig).map(person);
   const now = Date.now();
   const rx = Object.entries(ev.reactions || {}).filter(([, ids]) => ids.length).map(([e]) => e).slice(0, 3);
   const cls = o.end <= now && !o.allDay ? 'past' : o.start <= now && o.end > now && !o.allDay ? 'now' : '';
@@ -206,6 +245,22 @@ export function openEvent(occ) {
     );
   }
 
+  async function share(ev, o) {
+    const { emoji, text } = splitTitle(ev.title);
+    const msg = [`${emoji || '📅'} ${text || ev.title}`, whenShare(o), ev.location?.trim()].filter(Boolean).join(' · ');
+    // In der Demo gibt es keinen Server, der den Link öffnen könnte
+    const url = isDemo ? '' : `${location.origin}/e/${ev.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: ev.title, text: msg, ...(url ? { url } : {}) });
+        return;
+      } catch (e) {
+        if (e?.name === 'AbortError') return; // selbst abgebrochen
+      }
+    }
+    copyText(url ? `${msg}\n${url}` : msg, url ? 'Termin mit Link kopiert – jetzt einfach einfügen' : 'Termin kopiert');
+  }
+
   const sheet = openSheet({
     live: true,
     className: 'event-sheet',
@@ -218,10 +273,15 @@ export function openEvent(occ) {
       const o = currentOcc(ev, occ);
       const color = eventColor(ev);
       const [line1, line2] = whenLong(o);
-      const going = (ev.attendees || []).includes(state.me.id);
-      const people = (ev.attendees || []).map(person);
+      // Bei Serien gilt die Zusage nur für diesen einen Tag
+      const perDate = !!(ev.rrule && o.orig);
+      const ids = attendeesFor(ev, o.orig);
+      const going = ids.includes(state.me.id);
+      const people = ids.map(person);
       const sub = ev.subscriptionId ? cal.subscriptions.find((x) => x.id === ev.subscriptionId) : null;
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location || '')}`;
+      const { emoji, text } = splitTitle(ev.title);
+      const sym = emoji || suggestEmoji(ev.title);
 
       const attendBtn = h(`button.btn.${going ? 'going' : 'primary'}`, {
         style: { '--c': color },
@@ -229,7 +289,7 @@ export function openEvent(occ) {
           const btn = e.currentTarget;
           if (!going) burstFrom(btn, ['🎉', '✨', '🥳', '💚', '🙌'], 20);
           busy(btn, async () => {
-            const r = await api('POST', `/api/events/${id}/attend`, { going: !going });
+            const r = await api('POST', `/api/events/${id}/attend`, { going: !going, ...(perDate ? { occurrence: o.orig } : {}) });
             state.events.set(id, { ...r.event, commentCount: ev.commentCount });
             s.refresh();
             hooks.render();
@@ -238,16 +298,24 @@ export function openEvent(occ) {
       }, icon(going ? 'check' : 'sparkle', 18), going ? 'Du bist dabei' : 'Ich bin dabei');
 
       return {
-        head: h('div.sheet-head', null,
-          h('span.ev-cal', { style: { '--c': color } }, h('span.dot'), `${cal.emoji} ${cal.name}`),
-          h('span.grow'),
-          closeBtn(s),
+        head: h('div.ev-hero', { style: { '--c': color } },
+          sym ? h('span.ev-hero-art', { 'aria-hidden': 'true' }, sym) : null,
+          h('div.ev-hero-top', null,
+            h('span.ev-cal', null, h('span.dot'), `${cal.emoji} ${cal.name}`),
+            h('span.grow'),
+            h('button.ev-share', { type: 'button', onclick: () => share(ev, o), title: 'Termin teilen' }, icon('share', 16), h('span', null, 'Teilen')),
+            closeBtn(s),
+          ),
+          h('div.ev-hero-main', null,
+            h('span.ev-emoji', { class: sym ? '' : 'none', 'aria-hidden': 'true' }, sym || icon('calendar', 30)),
+            h('div.ev-hero-text', null,
+              h('h2.ev-title', null, text || ev.title),
+              h('div.ev-when', null, h('strong', null, line1), h('span', null, line2)),
+            ),
+          ),
         ),
         body: [
-          h('h2.ev-title', null, ev.title),
-          statusBadge(o),
-          reactionsRow(ev, s),
-          meta('clock', h('div', null, line1), h('div.muted', null, line2)),
+          h('div.ev-strip', null, statusBadge(o), reactionsRow(ev, s)),
           ev.rrule ? meta('repeat', describeRrule(ev.rrule, o.start)) : null,
           ev.location ? meta('pin', h('a', { href: mapsUrl, target: '_blank', rel: 'noopener noreferrer' }, ev.location)) : null,
           ev.notes ? meta('notes', h('div.notes', null, linkify(ev.notes))) : null,
@@ -260,6 +328,7 @@ export function openEvent(occ) {
 
           h('div.section', null,
             h('h3', null, 'Wer ist dabei?', people.length ? h('span.count', null, people.length) : null),
+            perDate ? h('p.muted.small-text.per-date', null, icon('repeat', 14), `Zusagen gelten nur für ${dayLong(o.start)}.`) : null,
             h('div.attend', null,
               people.length
                 ? h('div.people', null, people.map((p) => h('span.person', null, avatar(p, 26, { online: isOnline(p.id) }), p.id === state.me.id ? 'Du' : p.name)))
@@ -340,11 +409,13 @@ export async function moveOccurrence(o, delta) {
       });
       if (!choice) return;
       if (choice === 'one') {
-        await api('PATCH', `/api/events/${ev.id}`, { exdates: [...(ev.exdates || []), o.orig] });
-        await api('POST', '/api/events', {
-          calendarId: ev.calendarId, title: ev.title, allDay: ev.allDay, tz: ev.tz, location: ev.location, notes: ev.notes, color: ev.color,
-          start: ev.allDay ? ymd(addDays(o.start, delta)) : addDays(o.start, delta).toISOString(),
-          end: ev.allDay ? ymd(addDays(o.end, delta - 1)) : addDays(o.end, delta).toISOString(),
+        // Der Tag fällt aus der Serie heraus und wird ein eigener Termin (mit seinen Zusagen)
+        await api('POST', `/api/events/${ev.id}/detach`, {
+          occurrence: o.orig,
+          patch: {
+            start: ev.allDay ? ymd(addDays(o.start, delta)) : addDays(o.start, delta).toISOString(),
+            end: ev.allDay ? ymd(addDays(o.end, delta - 1)) : addDays(o.end, delta).toISOString(),
+          },
         });
       } else {
         await api('PATCH', `/api/events/${ev.id}`, {
@@ -453,6 +524,13 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
     };
   }
 
+  // Emoji des Termins: steht vorne im Titel, im Editor als runder Knopf neben dem Titel
+  const lead = leadingEmoji(f.title);
+  let emoji = lead.emoji;
+  f.title = lead.text;
+  const snapshot = () => JSON.stringify({ ...f, emoji });
+  const initial = snapshot();
+
   const toDate = (d, t) => new Date(`${d}T${t || '00:00'}`);
   const durMs = () => (f.allDay ? daysBetween(parseYmd(f.startDate), parseYmd(f.endDate)) * 864e5 : toDate(f.endDate, f.endTime) - toDate(f.startDate, f.startTime));
   let keepDur = Math.max(0, durMs());
@@ -465,11 +543,87 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
     autofocus: !editing,
     'aria-label': 'Titel',
     oninput: () => {
+      // Emoji vorne eingetippt? Dann wandert es in den runden Knopf
+      const typed = leadingEmoji(titleInput.value);
+      if (typed.emoji) {
+        const cut = titleInput.value.length - typed.text.length;
+        const pos = Math.max(0, (titleInput.selectionStart ?? titleInput.value.length) - cut);
+        titleInput.value = typed.text;
+        titleInput.setSelectionRange(pos, pos);
+        setEmoji(typed.emoji);
+      }
       f.title = titleInput.value;
       titleInput.classList.remove('shake');
+      drawEmojiBtn();
+      updateSuggest();
     },
-    onkeydown: (e) => e.key === 'Enter' && save(saveBtn),
+    onkeydown: (e) => e.key === 'Enter' && !e.isComposing && save(saveBtn),
   });
+
+  const emojiBtn = h('button.ev-emoji-btn', {
+    type: 'button',
+    title: 'Emoji wählen',
+    'aria-label': 'Emoji für den Termin wählen',
+    'aria-expanded': 'false',
+    onclick: () => showPicker(emojiPop.hidden),
+  });
+  const emojiPop = h('div.ev-emoji-pop', { hidden: true });
+  const suggestBtn = h('button.emoji-suggest', { type: 'button', hidden: true, onclick: () => pickEmoji(suggestBtn.dataset.emoji) });
+
+  // Symbol des Termins: das Emoji vorne – oder eines, das schon irgendwo im Titel steht
+  const shownEmoji = () => emoji || splitTitle(f.title).emoji;
+  function drawEmojiBtn() {
+    const e = shownEmoji();
+    if (emojiBtn.dataset.emoji === e) return;
+    emojiBtn.dataset.emoji = e;
+    emojiBtn.replaceChildren(e ? h('span', null, e) : icon('smilePlus', 22));
+    emojiBtn.classList.toggle('set', !!e);
+    emojiBtn.setAttribute('aria-label', e ? `Emoji ${e} ändern` : 'Emoji für den Termin wählen');
+  }
+  function setEmoji(e) {
+    emoji = e || '';
+    drawEmojiBtn();
+    updateSuggest();
+    if (!emojiPop.hidden) drawPicker();
+  }
+  // Auswahl im Knopf: ein Emoji mitten im Titel wird dabei ersetzt, damit es nur ein Symbol gibt
+  function pickEmoji(e) {
+    const inside = splitTitle(f.title);
+    if (inside.emoji) titleInput.value = f.title = inside.text;
+    setEmoji(e);
+  }
+  function updateSuggest() {
+    const tip = !emoji && f.title.trim() && !splitTitle(f.title).emoji ? suggestEmoji(f.title) : '';
+    suggestBtn.hidden = !tip;
+    if (tip && suggestBtn.dataset.emoji !== tip) {
+      suggestBtn.dataset.emoji = tip;
+      suggestBtn.replaceChildren(h('span.e', null, tip), 'hinzufügen');
+      suggestBtn.setAttribute('aria-label', `Emoji ${tip} hinzufügen`);
+    }
+  }
+  function drawPicker() {
+    const tip = suggestEmoji(f.title);
+    emojiPop.replaceChildren(...[
+      emojiPicker(shownEmoji(), (e) => {
+        pickEmoji(e);
+        showPicker(false);
+      }, [...new Set([tip, ...EVENT_EMOJIS].filter(Boolean))]),
+      shownEmoji() ? h('button.btn.ghost.sm.no-emoji', {
+        type: 'button',
+        onclick: () => {
+          pickEmoji('');
+          showPicker(false);
+        },
+      }, icon('x', 15), 'Kein Emoji') : null,
+    ].filter(Boolean));
+  }
+  function showPicker(open) {
+    if (open) drawPicker();
+    emojiPop.hidden = !open;
+    emojiBtn.setAttribute('aria-expanded', String(open));
+    emojiBtn.classList.toggle('open', open);
+  }
+  setEmoji(emoji);
 
   const calChips = h('div.chips');
   const drawChips = () => calChips.replaceChildren(...state.calendars.map((c) => h('button.chip', {
@@ -552,7 +706,9 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
   const notesInput = h('textarea.input', { placeholder: 'Was sollte man wissen?', maxlength: 5000, oninput: () => (f.notes = notesInput.value) }, f.notes);
 
   const form = h('div.editor', { class: f.allDay ? 'all-day' : '' },
-    titleInput,
+    h('div.title-row', null, emojiBtn, titleInput),
+    suggestBtn,
+    emojiPop,
     field('Kalender', calChips),
     h('div.field', null, toggle('Ganztägig', f.allDay, (v) => {
       f.allDay = v;
@@ -573,6 +729,7 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
 
   async function save(btn) {
     error.hidden = true;
+    showPicker(false);
     if (!f.title.trim()) {
       titleInput.classList.remove('shake');
       void titleInput.offsetWidth;
@@ -602,7 +759,7 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
       end = e.toISOString();
     }
     const payload = {
-      calendarId: f.calendarId, title: f.title.trim(), allDay: f.allDay, start, end, tz: localTz(),
+      calendarId: f.calendarId, title: emoji ? `${emoji} ${f.title.trim()}` : f.title.trim(), allDay: f.allDay, start, end, tz: localTz(),
       rrule: joinRrule(f.repeat, f.repeat ? f.until : ''), color: f.color, location: f.location.trim(), notes: f.notes,
     };
 
@@ -620,8 +777,9 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
         });
         if (!choice) return;
         if (choice === 'one') {
-          await api('PATCH', `/api/events/${ev.id}`, { exdates: [...(ev.exdates || []), occ.orig] });
-          await api('POST', '/api/events', { ...payload, rrule: null });
+          const patch = { ...payload };
+          delete patch.rrule;
+          await api('POST', `/api/events/${ev.id}/detach`, { occurrence: occ.orig, patch });
         } else {
           // Verschiebung auf den Serienbeginn übertragen
           const baseDay = ev.allDay ? parseYmd(ev.start) : startOfDay(new Date(ev.start));
@@ -662,20 +820,30 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
   const saveBtn = h('button.btn.primary', { onclick: () => save(saveBtn) }, icon('check', 18), editing ? 'Speichern' : 'Eintragen');
   const sheet = openSheet({
     className: 'editor-sheet',
+    isDirty: () => snapshot() !== initial,
     render: () => ({
       title: editing ? 'Termin bearbeiten' : 'Neuer Termin',
       body: form,
-      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen'), h('span.grow'), saveBtn],
+      foot: [h('button.btn.ghost', { onclick: () => sheet.requestClose() }, 'Abbrechen'), h('span.grow'), saveBtn],
     }),
   });
 }
 
 // ---------- Kalender ----------
 
-function emojiPicker(current, onPick) {
+// Auswahl für Termine (das passende Emoji zum Titel kommt noch nach vorne)
+const EVENT_EMOJIS = [
+  '🎉', '🎂', '🍕', '🍽️', '☕️', '🍻', '🍷', '🎬', '🎵', '🎸', '🎮', '⚽️', '🏃', '🧘', '🏋️', '🚲',
+  '🏊', '⛰️', '✈️', '🏖️', '🚗', '🏠', '🛒', '💼', '📚', '🎓', '🩺', '🦷', '💇', '🐶', '👶', '❤️',
+  '🎁', '🌿', '⭐️', '📞',
+];
+
+function emojiPicker(current, onPick, list = EMOJIS) {
   const wrap = h('div.emoji-grid');
-  const draw = (cur) => wrap.replaceChildren(...EMOJIS.map((e) => h('button', {
+  const draw = (cur) => wrap.replaceChildren(...list.map((e) => h('button', {
     type: 'button',
+    'aria-label': e,
+    'aria-pressed': String(e === cur),
     class: e === cur ? 'on' : '',
     onclick: () => {
       onPick(e);
@@ -773,7 +941,7 @@ export function openCalendar(calId, { invite = false } = {}) {
       const isOwner = cal.ownerId === state.me.id;
       const link = `${location.origin}/join/${cal.inviteCode}`;
       const shareText = `Komm in meinen Kalender „${cal.emoji} ${cal.name}“ bei Zeitgarten, dann können wir zusammen planen:`;
-      const feed = `${location.origin}/feed/${cal.feedToken}.ics`;
+      const feed = cal.feedToken ? `${location.origin}/feed/${cal.feedToken}.ics` : null;
 
       return {
         head: h('div.sheet-head', null,
@@ -834,10 +1002,13 @@ export function openCalendar(calId, { invite = false } = {}) {
               isOwner && m.id !== state.me.id ? h('button.icon-btn', {
                 title: `${m.name} entfernen`,
                 onclick: async () => {
-                  const ok = await confirmDialog({ title: `${m.name} entfernen?`, text: `${m.name} sieht den Kalender danach nicht mehr.`, ok: 'Entfernen', danger: true });
+                  const ok = await confirmDialog({ title: `${m.name} entfernen?`, text: `${m.name} sieht den Kalender danach nicht mehr. Dein Einladungslink wird dabei erneuert.`, ok: 'Entfernen', danger: true });
                   if (!ok) return;
                   try {
-                    await api('DELETE', `/api/calendars/${cal.id}/members/${m.id}`);
+                    const r = await api('DELETE', `/api/calendars/${cal.id}/members/${m.id}`);
+                    if (r?.inviteCode) cal.inviteCode = r.inviteCode; // gleich den neuen Link zeigen
+                    s.refresh();
+                    toast(`${m.name} wurde entfernt. Der Einladungslink ist jetzt neu – der alte funktioniert nicht mehr.`);
                     await loadMe();
                     s.refresh();
                   } catch (err) {
@@ -903,14 +1074,23 @@ export function openCalendar(calId, { invite = false } = {}) {
             h('button.btn.sm', { onclick: () => openImport({ calendarId: cal.id }) }, icon('upload', 16), 'Kalender importieren'),
           ),
 
-          h('div.section', null,
+          feed ? h('div.section.feed-section', null,
             h('h3', null, 'In anderer Kalender-App anzeigen'),
-            h('p.muted.small-text', null, 'Abonniere diesen Link in Apple Kalender, Google Kalender oder Outlook, um die Termine auch dort zu sehen.'),
+            h('a.apple-cal', { href: feed.replace(/^https?:/, 'webcal:') },
+              h('span.apple-cal-ic', { 'aria-hidden': 'true' }, h('b', null, weekdayName(new Date()).slice(0, 2)), h('i', null, new Date().getDate())),
+              h('span.apple-cal-txt', null,
+                h('strong', null, 'In Apple Kalender anzeigen'),
+                h('span', null, 'Im iPhone-Kalender, in Widgets und auf der Apple Watch – bleibt von selbst aktuell.'),
+              ),
+              icon('chevR', 18),
+            ),
+            h('p.muted.small-text', null, 'Für Google Kalender oder Outlook: Diesen Link dort als Kalender-Abo („per URL“) hinzufügen.'),
             h('div.link-box', null,
               h('span.link-text', null, feed.replace(/^https?:\/\//, '')),
               h('button.btn.sm', { onclick: () => copyText(feed, 'Abo-Link kopiert') }, icon('copy', 16), 'Kopieren'),
             ),
-          ),
+            h('p.muted.tiny-note', null, icon('key', 13), 'Der Link gehört nur dir – gib ihn nicht weiter.'),
+          ) : null,
 
           h('div.section.danger-zone', null,
             cal.members.length > 1 || !isOwner ? h('button.btn.danger.sm', {
@@ -1361,16 +1541,146 @@ export function openImport({ calendarId = null } = {}) {
 
 // ---------- Profil ----------
 
+// Emojis als eigenes Profilbild (statt Initialen)
+const AVATAR_EMOJIS = [
+  '😀', '😎', '🤓', '🥳', '😇', '🤠', '🦊', '🐶', '🐱', '🐼', '🐸', '🦄', '🐝', '🐙', '🌻', '🌈',
+  '⭐️', '🔥', '🍀', '🌊', '🎸', '⚽️', '🚀', '🍕', '🧁', '🎨', '📚',
+];
+
+// „Auf anderem Gerät anmelden“: Einmal-Code mit Countdown
+function pairPanel() {
+  const TTL = 10 * 60e3;
+  let pair = null; // { code, expiresAt }
+  let until = 0; // nach der eigenen Uhr – falls die Uhr des Geräts etwas falsch geht
+  let done = false;
+  let timer = null;
+  const box = h('div.pair');
+  const codeBtn = h('button.btn.primary.sm', { onclick: () => fetchCode() }, icon('key', 16), 'Code anzeigen');
+  const left = () => (pair ? Math.max(0, until - Date.now()) : 0);
+
+  async function fetchCode() {
+    await busy(codeBtn, async () => {
+      try {
+        pair = await api('POST', '/api/me/pair-code');
+      } catch (e) {
+        if (e.status === 404) throw new Error('Das geht auf diesem Server noch nicht – nimm unten den Anmelde-Link.');
+        throw e;
+      }
+      const ms = Date.parse(pair.expiresAt) - Date.now();
+      until = Date.now() + (ms > 0 && ms <= TTL ? ms : TTL);
+      done = false;
+      draw();
+    });
+  }
+
+  function tick() {
+    const ms = left();
+    const count = box.querySelector('.pair-count');
+    const bar = box.querySelector('.pair-bar i');
+    if (!count || !ms) {
+      clearInterval(timer);
+      timer = null;
+      if (pair && !ms) draw();
+      return;
+    }
+    const sec = Math.ceil(ms / 1000);
+    count.textContent = `Noch ${Math.floor(sec / 60)}:${pad(sec % 60)} gültig · nur einmal`;
+    bar.style.transform = `scaleX(${ms / TTL})`;
+  }
+
+  function draw() {
+    clearInterval(timer);
+    timer = null;
+    const steps = h('ol.pair-steps', null,
+      h('li', null, 'Auf dem iPhone: Zeitgarten vom Home-Bildschirm öffnen'),
+      h('li', null, 'auf „Ich hab schon ein Profil“ tippen'),
+      h('li', null, 'Code eingeben – fertig'),
+    );
+    if (done) {
+      box.replaceChildren(h('div.pair-done', { role: 'status' }, h('span.pair-ok', null, icon('check', 20)),
+        h('span', null, h('strong', null, 'Geschafft!'), ' Dein anderes Gerät ist jetzt angemeldet.')));
+      return;
+    }
+    if (!pair) {
+      codeBtn.replaceChildren(icon('key', 16), 'Code anzeigen');
+      box.replaceChildren(steps, codeBtn);
+      return;
+    }
+    if (!left()) {
+      codeBtn.replaceChildren(icon('refresh', 16), 'Neuen Code');
+      box.replaceChildren(h('div.pair-card.expired', null,
+        h('span.eyebrow', null, 'Code abgelaufen'),
+        h('strong.pair-code', null, pair.code),
+        h('span.pair-count', null, 'Hol dir einfach einen neuen.'),
+        codeBtn,
+      ));
+      return;
+    }
+    box.replaceChildren(
+      h('div.pair-card', null,
+        h('span.eyebrow', null, 'Dein Code'),
+        h('strong.pair-code', { 'aria-label': pair.code.split('').join(' ') }, pair.code),
+        h('span.pair-bar', { 'aria-hidden': 'true' }, h('i')),
+        h('span.pair-count', { 'aria-live': 'off' }),
+        h('button.btn.sm', { onclick: () => copyText(pair.code, 'Code kopiert') }, icon('copy', 15), 'Kopieren'),
+      ),
+      steps,
+    );
+    tick();
+    timer = setInterval(tick, 1000);
+  }
+
+  draw();
+  return {
+    el: box,
+    stop: () => clearInterval(timer),
+    // Das andere Gerät hat den Code benutzt (Live-Nachricht „paired“)
+    paired: () => {
+      if (!pair) return;
+      pair = null;
+      done = true;
+      draw();
+    },
+  };
+}
+
 export function openProfile() {
   let color = state.me.color;
-  const preview = h('span');
+  let emoji = state.me.emoji || '';
+  const preview = h('span.profile-av');
   const nameInput = h('input.input', { value: state.me.name, maxlength: 40, oninput: () => drawPreview() });
-  const drawPreview = () => preview.replaceChildren(avatar({ name: nameInput.value || '?', color }, 64));
+  const drawPreview = () => preview.replaceChildren(avatar({ name: nameInput.value || '?', color, emoji }, 64));
+  const current = () => JSON.stringify([nameInput.value, color, emoji]);
+  const initial = current();
   drawPreview();
+
+  const emojiGrid = h('div.emoji-grid.av-emojis');
+  const drawEmojis = () => emojiGrid.replaceChildren(
+    h('button.av-none', {
+      type: 'button',
+      class: emoji ? '' : 'on',
+      'aria-pressed': String(!emoji),
+      title: 'Kein Emoji – deine Initialen',
+      'aria-label': 'Kein Emoji, Initialen zeigen',
+      style: { '--c': color },
+      onclick: () => pickEmoji(''),
+    }, h('span', null, initials(nameInput.value || '?'))),
+    ...AVATAR_EMOJIS.map((e) => h('button', { type: 'button', class: e === emoji ? 'on' : '', 'aria-pressed': String(e === emoji), 'aria-label': e, onclick: () => pickEmoji(e) }, e)),
+  );
+  const pickEmoji = (e) => {
+    emoji = e;
+    drawPreview();
+    drawEmojis();
+  };
+  drawEmojis();
+
+  const pairing = pairPanel();
+  const canNotify = 'Notification' in window;
+  const blocked = canNotify && Notification.permission === 'denied';
 
   const saveBtn = h('button.btn.primary', {
     onclick: () => busy(saveBtn, async () => {
-      await api('PATCH', '/api/me', { name: nameInput.value, color });
+      await api('PATCH', '/api/me', { name: nameInput.value, color, emoji: emoji || null });
       await loadMe();
       hooks.render();
       sheet.close();
@@ -1380,17 +1690,21 @@ export function openProfile() {
 
   const sheet = openSheet({
     className: 'profile-sheet',
+    isDirty: () => current() !== initial,
+    onClose: () => pairing.stop(),
     render: () => ({
       title: 'Profil & Einstellungen',
       body: [
         h('div.profile-top', null, preview, h('div.grow', null, field('Dein Name', nameInput))),
+        field('Dein Bild', emojiGrid),
         field('Deine Farbe', swatches(color, (c) => {
           color = c;
           drawPreview();
+          drawEmojis();
         })),
         h('button.btn.block.design-btn', { style: { marginTop: '20px' }, onclick: () => openDesign() }, icon('palette', 18), 'Design & Stil anpassen'),
-        h('div.toggle-list', null, toggle('Browser-Benachrichtigungen', prefs.notify, async (v) => {
-          if (v && 'Notification' in window && Notification.permission !== 'granted') {
+        h('div.toggle-list', null, toggle('Browser-Benachrichtigungen', canNotify && prefs.notify, async (v) => {
+          if (v && canNotify && Notification.permission !== 'granted') {
             const r = await Notification.requestPermission().catch(() => 'denied');
             if (r !== 'granted') {
               toast('Benachrichtigungen wurden im Browser nicht erlaubt.', { error: true });
@@ -1399,11 +1713,19 @@ export function openProfile() {
           }
           setPrefs({ notify: v });
           sheet.refresh();
-        }, 'Wenn jemand etwas einträgt, während Zeitgarten im Hintergrund offen ist')),
+        }, !canNotify
+          ? 'Auf dem iPhone geht das, sobald Zeitgarten auf dem Home-Bildschirm liegt.'
+          : blocked
+            ? 'Im Browser blockiert – erlaube sie in den Einstellungen der Website.'
+            : 'Wenn jemand etwas einträgt, während Zeitgarten im Hintergrund offen ist', { disabled: !canNotify })),
         h('div.section', null,
-          h('h3', null, 'Auf anderem Gerät nutzen'),
-          h('p.muted.small-text', null, 'Öffne diesen persönlichen Link auf deinem Handy oder Laptop, um dort mit deinem Profil angemeldet zu sein. Gib ihn niemandem sonst!'),
-          h('button.btn.sm', { onclick: () => copyText(`${location.origin}/login/${auth.token}`, 'Anmelde-Link kopiert') }, icon('phone', 16), 'Anmelde-Link kopieren'),
+          h('h3', null, 'Auf anderem Gerät anmelden'),
+          h('p.muted.small-text', null, 'Hol dir einen Code und gib ihn auf dem anderen Gerät ein – zum Beispiel in der Zeitgarten-App auf deinem iPhone.'),
+          pairing.el,
+          h('div.pair-alt', null,
+            h('p.muted.small-text', null, 'Oder öffne deinen persönlichen Anmelde-Link auf dem anderen Gerät. Gib ihn niemandem sonst!'),
+            h('button.btn.sm', { onclick: () => copyText(`${location.origin}/login/${auth.token}`, 'Anmelde-Link kopiert') }, icon('link', 16), 'Anmelde-Link kopieren'),
+          ),
         ),
         h('div.section.danger-zone', null,
           h('button.btn.danger.sm', {
@@ -1421,9 +1743,10 @@ export function openProfile() {
           }, icon('logout', 16), 'Abmelden'),
         ),
       ],
-      foot: [h('button.btn.ghost', { onclick: () => sheet.close() }, 'Abbrechen'), h('span.grow'), saveBtn],
+      foot: [h('button.btn.ghost', { onclick: () => sheet.requestClose() }, 'Abbrechen'), h('span.grow'), saveBtn],
     }),
   });
+  sheet.onPaired = pairing.paired;
 }
 
 // ---------- Einladung annehmen ----------
@@ -1487,13 +1810,28 @@ export function activityText(a) {
   const hat = self ? 'hast' : 'hat';
   const ist = self ? 'bist' : 'ist';
   const t = a.title ? `„${a.title}“` : 'einen Termin';
+  // Tag einer Serie („am Sa., 17. Okt.“) – ältere Meldungen haben ihn noch nicht
+  const day = (x) => {
+    const d = x ? occDate(x) : null;
+    return d && !Number.isNaN(d.getTime()) ? dayShort(d) : '';
+  };
+  const on = day(a.occurrence);
+  const moved = () => {
+    const to = day(a.start);
+    if (!on || !to) return ` ${hat} einen Termin von ${t} verschoben`;
+    if (to !== on) return ` ${hat} ${t} vom ${on} auf ${to} verschoben`;
+    const at = !a.allDay && a.start ? time(new Date(a.start)) : '';
+    const was = !a.allDay && a.occurrence ? time(new Date(a.occurrence)) : '';
+    return at && at !== was ? ` ${hat} ${t} am ${on} auf ${at} Uhr verschoben` : ` ${hat} ${t} am ${on} geändert`;
+  };
   const rest = {
     'event.create': ` ${hat} ${t} eingetragen`,
     'event.update': ` ${hat} ${t} geändert`,
-    'event.skip': ` ${hat} einen Termin von ${t} abgesagt`,
+    'event.skip': on ? ` ${hat} ${t} am ${on} abgesagt` : ` ${hat} einen Termin von ${t} abgesagt`,
+    'event.moveone': moved(),
     'event.delete': ` ${hat} ${t} gelöscht`,
     comment: ` ${hat} ${t} kommentiert${a.text ? `: „${a.text}“` : ''}`,
-    attend: ` ${ist} bei ${t} dabei 🎉`,
+    attend: on ? ` ${ist} bei ${t} am ${on} dabei 🎉` : ` ${ist} bei ${t} dabei 🎉`,
     react: ` ${hat} auf ${t} mit ${a.emoji || '❤️'} reagiert`,
     'member.join': ` ${ist} ${t} beigetreten 👋`,
     'member.leave': ` ${hat} ${t} verlassen`,
@@ -1547,28 +1885,108 @@ const FONTS = [
   { id: 'mono', name: 'Technisch', css: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace' },
 ];
 
-function skinCard(sk, mode, set) {
-  const p = sk[mode];
-  const on = prefs.skin === sk.id;
-  return h('button.skin', { class: on ? 'on' : '', 'aria-pressed': String(on), onclick: () => set({ skin: sk.id, accent: null }) },
-    h('div.skin-prev', {
-      class: [p.glow && 'glow', p.outline && 'outline'].filter(Boolean).join(' '),
-      style: { '--p-bg': p.bg, '--p-surface': p.surface, '--p-accent': p.accent, '--p-text': p.text },
-    },
-    h('div.sp-side', null, h('i'), h('i'), h('i'), h('i')),
-    h('div.sp-main', null, h('b.e1'), h('b'), h('b'), h('b'), h('b.e2'), h('b.e3'), h('b'), h('b'), h('b'), h('b.e1'), h('b'), h('b.e2'))),
-    h('div.skin-name', null, sk.name, on ? icon('check', 16) : null),
-    h('div.skin-desc', null, sk.desc),
+// Echte Mini-Vorschau eines Stils: Hintergrund, Überschrift, Kalender-Karte mit Terminen
+function skinPreview(sk, mode) {
+  const p = sk[mode] || sk.dark;
+  return h('span.skin-prev', {
+    class: [`pv-${sk.id}`, p.glow && 'glow', p.outline && 'outline', sk.live && 'live'].filter(Boolean).join(' '),
+    'data-pv': mode,
+    'aria-hidden': 'true',
+    style: { '--p-bg': p.bg, '--p-surface': p.surface, '--p-accent': p.accent, '--p-text': p.text },
+  },
+  h('span.pv-fx'),
+  h('span.pv-head', null, h('b'), h('i')),
+  h('span.pv-card', null, h('i.pv-today'), h('em.b1'), h('em.b2'), h('em.b3'), h('em.b4')),
+  sk.live ? h('span.pv-live', null, h('i'), 'Live') : null,
   );
 }
 
-// „Wähl deinen Look“ nach dem Beitreten – Platzhalter, wird vom App-Team ausgebaut
+// Live-Stile zeigen die dunkle Variante, solange man hell eingestellt hat – so sehen sie nach der Wahl aus
+const previewMode = (sk, mode) => (sk.live && mode === 'light' && prefs.skin !== sk.id ? 'dark' : mode);
+
+function skinCard(sk, mode, onPick, { big = false } = {}) {
+  const on = prefs.skin === sk.id;
+  return h(`button.skin${big ? '.big' : ''}`, { type: 'button', class: on ? 'on' : '', 'aria-pressed': String(on), onclick: () => onPick(sk) },
+    skinPreview(sk, previewMode(sk, mode)),
+    h('span.skin-name', null, sk.name, on ? icon('check', 16) : null),
+    h('span.skin-desc', null, sk.desc.replace(/^Live · /, '')),
+  );
+}
+
+// Stil übernehmen. Live-Stile leuchten im Dunkeln am schönsten: Bei „Hell“ wird auf „Dunkel“ gestellt.
+function applySkin(sk, { after = null, quiet = false } = {}) {
+  const toDark = !!sk.live && resolvedMode() === 'light';
+  setPrefs({ skin: sk.id, accent: null, ...(toDark ? { mode: 'dark' } : {}) });
+  hooks.render();
+  if (toDark && !quiet) {
+    toast('Jetzt dunkel – da leuchten Live-Stile am schönsten.', {
+      action: {
+        label: 'Hell lassen',
+        run: () => {
+          setPrefs({ mode: 'light' });
+          hooks.render();
+          after?.();
+        },
+      },
+    });
+  }
+  return toDark;
+}
+
+const LOOKS = ['garten', 'aurora', 'neon', 'jarvis', 'synthwave', 'galaxie', 'sakura', 'tiefsee', 'glas', 'matrix'];
+
+// „Wähl deinen Look“ – für neue Profile und nach dem Beitreten
 export function openLookPicker({ onDone = null } = {}) {
-  openDesign();
-  onDone?.();
+  let darkHint = false;
+  const looks = LOOKS.map((id) => SKINS.find((x) => x.id === id)).filter(Boolean);
+  const sheet = openSheet({
+    className: 'wide look-sheet',
+    onClose: () => onDone?.(),
+    render: (s) => {
+      const mode = resolvedMode();
+      const pick = (sk) => {
+        darkHint = applySkin(sk, { quiet: true }) || (darkHint && !!sk.live);
+        s.refresh();
+      };
+      return {
+        head: h('div.sheet-head.look-head', null,
+          h('div.grow', null,
+            h('div.eyebrow', null, icon('sparkle', 14), 'Willkommen bei Zeitgarten'),
+            h('h2', null, 'Wähl deinen Look'),
+          ),
+          closeBtn(s),
+        ),
+        body: [
+          h('p.muted.look-sub', null, 'Tipp einfach drauf – Zeitgarten ändert sich sofort. Du kannst jederzeit wechseln.'),
+          h('div.looks', null, looks.map((sk) => skinCard(sk, mode, pick, { big: true }))),
+          darkHint && mode === 'dark' ? h('div.skin-hint', { role: 'status' }, icon('moon', 16),
+            h('span', null, 'Live-Stile leuchten im Dunkeln – darum ist jetzt „Dunkel“ an.'),
+            h('button.btn.sm', {
+              onclick: () => {
+                darkHint = false;
+                setPrefs({ mode: 'light' });
+                hooks.render();
+                s.refresh();
+              },
+            }, icon('sun', 15), 'Hell lassen')) : null,
+        ],
+        foot: [
+          h('button.btn.ghost.look-all', {
+            onclick: () => {
+              sheet.close();
+              openDesign();
+            },
+          }, icon('sliders', 17), 'Alle Stile & Einstellungen'),
+          h('span.grow'),
+          h('button.btn.primary.look-next', { onclick: () => sheet.close() }, 'Weiter', icon('arrowR', 18)),
+        ],
+      };
+    },
+  });
 }
 
 export function openDesign() {
+  let darkHint = false;
   const sheet = openSheet({
     className: 'wide design-sheet',
     render: (s) => {
@@ -1578,18 +1996,34 @@ export function openDesign() {
         s.refresh();
         hooks.render();
       };
+      const pick = (sk) => {
+        darkHint = applySkin(sk, { after: () => !s.closed && s.refresh() }) || (darkHint && !!sk.live);
+        s.refresh();
+      };
       const skin = SKINS.find((x) => x.id === prefs.skin) || SKINS[0];
-      const opt = (on, onclick, ...children) => h('button.opt', { class: on ? 'on' : '', 'aria-pressed': String(on), onclick }, ...children);
+      const opt = (on, onclick, ...children) => h('button.opt', { type: 'button', class: on ? 'on' : '', 'aria-pressed': String(on), onclick }, ...children);
+      const group = (title, sub, list, live) => h('div.skin-group', null,
+        h('h4.skin-group-h', null, live ? h('span.live-dot.red') : null, title, h('small', null, sub)),
+        h('div.skins', null, list.map((sk) => skinCard(sk, mode, pick))),
+      );
       return {
         title: 'Design & Stil',
         body: [
           h('p.muted', null, 'Mach Zeitgarten zu deinem Kalender. Du siehst jede Änderung sofort, und sie gilt auch auf deinen anderen Geräten.'),
-          field('Stil', h('div.skins', null, SKINS.map((sk) => skinCard(sk, mode, set)))),
+          field('Stil',
+            group('Klassisch', 'ruhig & schlicht', SKINS.filter((x) => !x.live), false),
+            group('Live-Stile', 'mit bewegtem Hintergrund', SKINS.filter((x) => x.live), true),
+          ),
+          darkHint && mode === 'dark' ? h('p.skin-hint', { role: 'status' }, icon('moon', 16),
+            h('span', null, 'Live-Stile leuchten im Dunkeln am schönsten – darum ist jetzt „Dunkel“ an. Hell kannst du gleich hier drunter wieder einschalten.')) : null,
           field('Hell oder dunkel', segmented([
-            { value: 'auto', label: 'Automatisch', icon: 'sparkle' },
+            { value: 'auto', label: 'Automatisch', title: 'Wie dein Gerät', icon: 'contrast' },
             { value: 'light', label: 'Hell', icon: 'sun' },
-            { value: 'dark', label: 'Dunkel', icon: 'zap' },
-          ], prefs.mode, (v) => set({ mode: v }))),
+            { value: 'dark', label: 'Dunkel', icon: 'moon' },
+          ], prefs.mode, (v) => {
+            darkHint = false;
+            set({ mode: v });
+          })),
           field('Akzentfarbe', swatches(prefs.accent, (c) => set({ accent: c }), { allowNone: true, noneColor: skin[mode].accent })),
           field('So sehen Termine aus', h('div.opts', null,
             [['tint', 'Getönt'], ['solid', 'Kräftig'], ['line', 'Linie']].map(([v, label]) => opt(prefs.events === v, () => set({ events: v }),
