@@ -10,13 +10,15 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
 ## Was die App kann
 
 ### Zusammen planen – live
-- **Freunde per Link einladen**: Link kopieren, über WhatsApp oder das Teilen-Menü schicken. Wer ihn öffnet, gibt nur seinen Namen ein und ist dabei, ohne Passwort und ohne E-Mail
+- **Freunde per Link einladen**: Link kopieren, über WhatsApp oder das Teilen-Menü schicken. Im Chat erscheint eine hübsche Vorschau („Lena lädt dich in „🏠 WG“ ein“). Wer den Link öffnet, gibt nur seinen Namen ein, wählt seinen Look und ist dabei, ohne Passwort und ohne E-Mail
 - **Gemeinsame Kalender** für Familie, WG, Verein, Team – jeder mit eigener Farbe und Emoji
 - **Alles live**: Neue Termine, Zusagen und Kommentare der anderen erscheinen sofort
 - **Wer ist online?** Grüner Punkt an allen, die Zeitgarten gerade offen haben
 - **„Max schreibt …“** – du siehst, wenn jemand gerade einen Kommentar tippt
 - **Reaktionen** ❤️ 👍 🎉 😂 auf Termine, mit kleinem Emoji-Feuerwerk
-- **„Ich bin dabei“** mit Konfetti, und **Kommentare** („Wer bringt was mit?“)
+- **„Ich bin dabei“** mit Konfetti, und **Kommentare** („Wer bringt was mit?“). Bei Serien gilt die Zusage für den einzelnen Termin, nicht für alle Wochen
+- **Termine teilen**: Ein Tipp auf „Teilen“ schickt den Termin mit Datum und Link in den Chat
+- **Emoji-Profilbild**: Statt Anfangsbuchstaben ein eigenes Emoji
 - **Neuigkeiten** 🔔: Glocke mit Zähler, Live-Meldungen und auf Wunsch Browser-Benachrichtigungen
 
 ### Schön & persönlich
@@ -41,6 +43,9 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
 - **Monat, Woche, Liste** mit Suche – plus Mini-Kalender
 - **Lebendige Monatsansicht**: Ein Banner zur Jahreszeit (fallende Blätter im Herbst, Schnee im Winter …) mit dem nächsten Termin und den Zahlen des Monats, Emojis an den Terminen, Geburtstage hervorgehoben, ein roter Live-Punkt an allem, was gerade läuft, und ein Tagesfortschritt am heutigen Tag
 - **Woche und Liste** mit „Jetzt“-Linie, leicht schraffierten vergangenen Stunden und Terminfarben zum Durchblättern
+- **Emojis überall**: Passende Emojis zu Termintiteln (Pizza → 🍕, Zahnarzt → 🦷), auch ohne Emoji im Titel. Beim Anlegen gibt es eine Emoji-Auswahl und Vorschläge
+- **Am Handy**: Im Monat stehen Titel in bis zu zwei Zeilen statt abgeschnitten; die Woche zeigt drei Tage auf einmal und lässt sich seitwärts wischen
+- **Einzelne Termine einer Serie** verschieben, ändern oder absagen – die anderen sehen genau, welches Datum betroffen ist
 - **Ziehen & Ablegen**: Termine in der Monatsansicht einfach auf einen anderen Tag ziehen (am Handy: lange drücken), mit „Rückgängig“
 - **Wiederholungen**: täglich, werktags, wöchentlich, alle 2 Wochen, monatlich, jährlich – auf Wunsch mit Enddatum
 - **Kalender importieren**
@@ -48,9 +53,10 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
   - als **.ics-Datei** (Export aus Google Kalender, Apple Kalender oder Outlook)
   - als **Internet-Link** (z. B. die „Privatadresse im iCal-Format“ von Google oder ein öffentlicher iCloud-Kalender). Ein Link-Import ist ein **Abo** und aktualisiert sich alle 6 Stunden von selbst.
   - Feiertage für Deutschland und Österreich mit einem Klick
-- **Export**: Jeder Kalender hat einen Abo-Link, mit dem du ihn auch in Apple, Google oder Outlook siehst
-- **Fürs Handy gemacht**: Tab-Leiste unten, Wischen zum Blättern, lässt sich wie eine App auf den Home-Bildschirm legen
-- **Mehrere Geräte**: Mit deinem persönlichen Anmelde-Link nutzt du dein Profil auch auf Laptop und Tablet
+- **Export**: Jeder Kalender hat einen persönlichen Abo-Link, mit dem du ihn auch in Apple, Google oder Outlook siehst. „In Apple Kalender anzeigen“ öffnet das Abo auf dem iPhone direkt – dann erscheinen die Termine auch im Widget und auf der Apple Watch
+- **Fürs Handy gemacht**: Tab-Leiste unten, Wischen zum Blättern, Fenster nach unten wegwischen. Auf dem iPhone erklärt ein Hinweis, wie du Zeitgarten als App auf den Home-Bildschirm legst
+- **Mehrere Geräte**: Im Profil unter „Auf anderem Gerät anmelden“ bekommst du einen Code (10 Minuten gültig). Auf dem anderen Gerät – z. B. der App auf dem Home-Bildschirm – tippst du „Ich hab schon ein Profil“ und gibst ihn ein. Alternativ geht dein persönlicher Anmelde-Link
+- **Nichts geht verloren**: Das Termin-Fenster fragt nach, bevor Eingetipptes verworfen wird, und die Live-Verbindung baut sich nach Abbrüchen selbst wieder auf
 
 ![Termin per Ziehen & Ablegen auf einen anderen Tag verschieben](docs/monat.png)
 
@@ -108,10 +114,16 @@ Einstellungen über Umgebungsvariablen:
 | `PORT` | Port des Servers | `3000` |
 | `DATA_DIR` | Ordner, in dem die Daten gespeichert werden | `./data` |
 | `ZEITGARTEN_SECRET` | Schlüssel, mit dem die iCloud-Passwörter verschlüsselt gespeichert werden | zufällig, in `DATA_DIR/secret.key` |
+| `PUBLIC_URL` | Öffentliche Adresse für die Link-Vorschau in WhatsApp & Co., z. B. `https://kalender.example.de` | aus der Anfrage |
+| `TRUST_PROXY` | `1`, wenn ein Proxy (z. B. Caddy) davorsteht – dann zählt für den Schutz vor erratenen Codes die echte Adresse aus `X-Forwarded-For` | aus |
+
+Das Docker-Image richtet die Rechte eines leeren `/data`-Volumes selbst ein und meldet über `HEALTHCHECK` (`/api/health`), ob der Server läuft.
 
 ## Deine Daten
 
-Alles wird in **einer Datei** gespeichert: `data/zeitgarten.json`. Zum Sichern kopierst du einfach diese Datei.
+Alles wird in **einer Datei** gespeichert: `data/zeitgarten.json`. Zusätzlich legt der Server **jeden Tag eine Sicherungskopie** in `data/backups/` an (die letzten 14 bleiben). Ist `zeitgarten.json` einmal kaputt, wird sie als `zeitgarten.kaputt-<Zeit>.json` beiseitegelegt und die neueste Sicherung geladen. Für eine eigene Sicherung kopierst du den ganzen `data`-Ordner.
+
+Abo-Links sind persönlich: Wird jemand aus einem Kalender entfernt, funktioniert sein Abo-Link nicht mehr, und der Einladungslink wird erneuert. Ältere, gemeinsame Abo-Links zeigen nur noch einen Hinweis, dass es einen neuen Link gibt.
 Verbundene iPhone-Kalender brauchen dein app-spezifisches Passwort, damit sie sich später selbst aktualisieren können. Es wird **verschlüsselt** gespeichert und nie an den Browser zurückgeschickt. Der Schlüssel liegt in `data/secret.key` (oder kommt aus `ZEITGARTEN_SECRET`). Sichere ihn zusammen mit `zeitgarten.json`, sonst müssen die iPhone-Kalender nach einem Umzug neu verbunden werden. Du kannst das Passwort jederzeit unter account.apple.com widerrufen.
 Die App benutzt keine Tracker, keine Werbung und lädt keine fremden Schriften oder Skripte.
 
@@ -121,7 +133,7 @@ Die App benutzt keine Tracker, keine Werbung und lädt keine fremden Schriften o
 npm test
 ```
 
-Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung), die Wiederholungsregeln und die API mit Einladungen, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
+Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung, z. B. die Wochenansicht am 25. Oktober), die Wiederholungsregeln, die Emoji-Vorschläge, das sichere Speichern mit Sicherungskopien, die Link-Vorschau und die API mit Einladungen, Anmelde-Codes, Zusagen pro Termin, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
 
 ## So ist das Projekt aufgebaut
 
@@ -133,7 +145,7 @@ server/
   safe-fetch.js   Kalender-Links sicher aus dem Internet laden
   caldav.js       iPhone-/iCloud-Kalender finden und Termine abholen (CalDAV)
   xml.js          Kleiner XML-Leser für die Antworten von iCloud
-  store.js        Speichern in einer JSON-Datei
+  store.js        Speichern in einer JSON-Datei, mit täglicher Sicherungskopie
 public/
   index.html      Einstieg der App
   css/app.css     Das ganze Design: 7 Stile, hell und dunkel, alle Einstellungen
@@ -143,7 +155,8 @@ public/
   js/app.js       Start, Seitenleiste, Navigation, Live-Updates
   js/dashboard.js Übersicht „Heute“ mit Himmel, Countdown und Grafiken
   js/views.js     Monats-, Wochen- und Listenansicht, Ziehen & Ablegen
-  js/sheets.js    Fenster: Termin, Editor, Kalender, Import, Profil, Neuigkeiten, Design
+  js/emoji-hints.js  Passende Emojis zu Termintiteln
+  js/sheets.js    Fenster: Termin, Editor, Kalender, Import, Profil, Neuigkeiten, Design, „Wähl deinen Look“
   js/themes.js    Designs und persönliche Einstellungen
   js/bgfx.js      Bewegte Hintergründe der Live-Stile
   js/season.js    Jahreszeiten-Banner im Monat
