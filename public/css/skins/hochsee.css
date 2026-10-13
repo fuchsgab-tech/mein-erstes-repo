@@ -1,1 +1,336 @@
-/* Stil „Haie & Wale“ – wird ausgebaut. Regeln immer mit :root[data-skin="hochsee"] beginnen. */
+/* Stil „Haie & Wale“ – dunkel: das nächtliche offene Meer von unten mit Mondlicht, Buckelwal, Haien und Manta,
+   hell: sonnige Hochsee in Türkisblau (Szene: js/skins/hochsee.js).
+   Regeln immer mit :root[data-skin="hochsee"] beginnen. Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = sonnige Hochsee, dunkel = Meer bei Nacht ---------- */
+
+:root[data-skin="hochsee"] {
+  --bg: #cdeffa;
+  --wallpaper:
+    radial-gradient(55% 36% at 70% -8%, rgba(255, 255, 240, 0.9), transparent 70%),
+    linear-gradient(180deg, #b4f0fb 0%, #74d8f3 20%, #36b6e6 48%, #1690cc 76%, #0d6fae 100%);
+  --surface: #f4fcff;
+  --card: rgba(244, 252, 255, 0.85);
+  --sidebar-bg: rgba(238, 250, 255, 0.86);
+  --surface-2: rgba(3, 105, 161, 0.07);
+  --surface-3: rgba(3, 105, 161, 0.14);
+  --line: rgba(6, 64, 104, 0.14);
+  --line-2: rgba(6, 64, 104, 0.26);
+  --text: #06283d;
+  --text-2: #23506b;
+  --text-3: #3d6882;
+  --accent: #0369a1;
+  --on-accent: #ffffff;
+  --danger: #c0262d;
+  --online: #15803d;
+  --mix: 18%;
+  --mix-text: 58%;
+  --blur: 12px;
+  --ev-glow-geo: 0 0 10px -4px;
+  --ev-glow-mix: 55%;
+  --shadow-sm: 0 1px 2px rgba(6, 60, 100, 0.08);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 0 0 1px rgba(6, 80, 130, 0.05), 0 16px 36px -22px rgba(4, 60, 110, 0.5);
+  --shadow-lg: 0 0 0 1px rgba(6, 80, 130, 0.12), 0 30px 70px -26px rgba(4, 50, 100, 0.55);
+  --toast-bg: #062b45;
+  --toast-text: #e3f4ff;
+  --toast-icon: #5cc8ff;
+  --scrim: rgba(2, 30, 50, 0.32);
+  --hs-glow: rgba(14, 165, 233, 0.3);
+  --hs-edge: rgba(14, 140, 210, 0.5);
+  --hs-hot: #e0faff;
+  --hs-title: linear-gradient(90deg, #052f4a, #075985 60%, #0369a1);
+  --hs-pearl: radial-gradient(circle at 50% 26%, #0b8fd0 0, #0369a1 50%, #075985);
+  --hs-hero:
+    radial-gradient(60% 70% at 78% -20%, rgba(255, 255, 240, 0.95), transparent 64%),
+    linear-gradient(178deg, #c4f4fc 0%, #7ddcf4 48%, #3cb8e6 100%);
+  --hs-ray: rgba(255, 255, 245, 0.55);
+  --hs-whale: rgba(8, 72, 122, 0.3);
+  --hs-bubble: rgba(255, 255, 255, 0.9);
+  --fx-a: #ffffff;
+  --fx-b: #c8f6ff;
+  --fx-c: #fffbe6;
+  --fx-d: #ffffff;
+  --fx-s1: #1a6ea6;
+  --fx-s2: #0a3f6c;
+  --fx-s3: #0d5689;
+  --fx-s4: #8fdcf7;
+  --fx-k: 0.9;
+}
+:root[data-skin="hochsee"][data-mode="dark"] {
+  --bg: #051c31;
+  --wallpaper:
+    radial-gradient(60% 34% at 70% -8%, rgba(150, 210, 255, 0.3), transparent 70%),
+    linear-gradient(180deg, #0c3758 0%, #082b48 16%, #051e35 42%, #031326 70%, #010a15 100%);
+  --surface: #072339;
+  --card: rgba(5, 26, 44, 0.72);
+  --sidebar-bg: rgba(4, 20, 36, 0.84);
+  --surface-2: rgba(120, 200, 255, 0.07);
+  --surface-3: rgba(120, 200, 255, 0.14);
+  --line: rgba(140, 210, 255, 0.13);
+  --line-2: rgba(140, 210, 255, 0.24);
+  --text: #e3f4ff;
+  --text-2: #a9cbe0;
+  --text-3: #86aac2;
+  --accent: #38bdf8;
+  --on-accent: #032033;
+  --danger: #ff6b6b;
+  --online: #5eead4;
+  --mix: 18%;
+  --mix-text: 42%;
+  --ev-glow-geo: 0 0 14px -3px;
+  --ev-glow-mix: 72%;
+  --shadow-sm: 0 0 0 1px rgba(56, 189, 248, 0.05);
+  --shadow: inset 0 1px 0 rgba(180, 225, 255, 0.07), 0 0 0 1px rgba(56, 189, 248, 0.06), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  --shadow-lg: inset 0 1px 0 rgba(180, 225, 255, 0.08), 0 0 0 1px rgba(56, 189, 248, 0.16), 0 0 70px -24px rgba(56, 189, 248, 0.3), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #0a2c48;
+  --toast-text: #e3f4ff;
+  --toast-icon: var(--accent);
+  --scrim: rgba(0, 6, 14, 0.62);
+  --hs-glow: rgba(56, 189, 248, 0.45);
+  --hs-edge: rgba(125, 211, 252, 0.6);
+  --hs-hot: #cffafe;
+  --hs-title: linear-gradient(90deg, #eaf8ff, #a5dcff 55%, #38bdf8);
+  --hs-pearl: radial-gradient(circle at 50% 28%, #bae6fd 0 8%, #38bdf8 45%, #0284c7);
+  --hs-hero:
+    radial-gradient(60% 80% at 78% -24%, rgba(150, 210, 255, 0.42), transparent 66%),
+    linear-gradient(180deg, #0d3a5d 0%, #062440 55%, #031426 100%);
+  --hs-ray: rgba(150, 210, 255, 0.2);
+  --hs-whale: rgba(2, 12, 24, 0.82);
+  --hs-bubble: rgba(170, 225, 255, 0.75);
+  --fx-a: #cfeeff;
+  --fx-b: #3fe0d0;
+  --fx-c: #7cc6ff;
+  --fx-d: #bfe8ff;
+  --fx-s1: #0b2a46;
+  --fx-s2: #020a15;
+  --fx-s3: #a8dcff;
+  --fx-s4: #5fa8d6;
+  --fx-k: 1;
+}
+:root[data-skin="hochsee"]:not([data-corners="sharp"]) { --r-lg: 16px; --r-xl: 22px; }
+:root[data-skin="hochsee"][data-font="modern"] {
+  --font-display: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+/* Schattenrisse als Bild: Buckelwal, Manta, Fluke */
+:root[data-skin="hochsee"] {
+  --hs-whale-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 70 1000 330'%3E%3Cpath d='M1000 168C990 140 950 124 890 116C820 106 760 96 680 94C600 92 520 98 452 106C438 100 424 86 408 80C404 92 396 106 378 116C320 126 250 142 180 156C150 162 125 165 105 166C85 158 50 128 12 98C10 122 30 152 62 172C30 192 12 222 8 246C48 222 82 196 106 182C160 186 240 200 330 222C430 246 540 260 640 258C740 256 840 240 910 214C950 200 985 186 1000 168ZM800 226C760 262 690 310 600 350C560 368 520 380 488 384C500 376 540 356 590 330C660 296 710 266 735 244Z'/%3E%3C/svg%3E");
+  --hs-fluke-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 26'%3E%3Cpath d='M20 26C20 20 19.4 16 18 13C14 10 7 9.5 1 3C2.6 10.5 9 14.5 16.4 14.2L20 17L23.6 14.2C31 14.5 37.4 10.5 39 3C33 9.5 26 10 22 13C20.6 16 20 20 20 26Z'/%3E%3C/svg%3E");
+}
+
+/* ---------- Gemeinsames für Live-Stile (wie in skins-live.css) ---------- */
+
+:root[data-skin="hochsee"] { --live-bf: none; }
+:root[data-skin="hochsee"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="hochsee"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf); }
+:root[data-skin="hochsee"] .sky-art svg { display: none; }
+:root[data-skin="hochsee"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="hochsee"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="hochsee"] .heat .cell { --text-2: var(--text); }
+:root[data-skin="hochsee"] .sky::before,
+:root[data-skin="hochsee"] .sky::after,
+:root[data-skin="hochsee"] .sky-art::before,
+:root[data-skin="hochsee"] .sky-art::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Schrift: klar, Titel wie Mondlicht auf dem Wasser ---------- */
+
+:root[data-skin="hochsee"] .topbar .title {
+  background: var(--hs-title); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+:root[data-skin="hochsee"][data-mode="dark"] .topbar .title { filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.32)); }
+:root[data-skin="hochsee"] .topbar .title .year { -webkit-text-fill-color: var(--text-3); color: var(--text-3); font-weight: 600; }
+:root[data-skin="hochsee"] :is(.dow, .wv-dayhead .wd) { color: color-mix(in srgb, var(--accent) 40%, var(--text-2)); letter-spacing: 0.1em; }
+:root[data-skin="hochsee"]:not([data-mode="dark"]) :is(.dow, .wv-dayhead .wd) { color: #0b4a72; }
+:root[data-skin="hochsee"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl, .mb-eyebrow) { letter-spacing: 0.12em; }
+:root[data-skin="hochsee"][data-mode="dark"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: color-mix(in srgb, var(--accent) 52%, var(--text-2)); }
+:root[data-skin="hochsee"]:not([data-mode="dark"]) :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: #0a5583; }
+:root[data-skin="hochsee"] .cd-num { text-shadow: 0 0 22px var(--hs-glow); }
+:root[data-skin="hochsee"] .brand img { box-shadow: 0 0 18px -4px var(--hs-glow); }
+
+/* ---------- Flächen: blaues Glas, von oben angeleuchtet ---------- */
+
+:root[data-skin="hochsee"] :is(.month, .wv, .card) { border-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
+:root[data-skin="hochsee"][data-mode="dark"] :is(.month, .wv, .card) {
+  box-shadow: inset 0 44px 50px -48px rgba(150, 210, 255, 0.4), var(--shadow);
+}
+/* Lichtkante oben wie die Wasseroberfläche */
+:root[data-skin="hochsee"] :is(.month, .wv, .card)::after {
+  content: ""; position: absolute; z-index: 5; left: 8%; right: 8%; top: -1px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--hs-edge) 28%, var(--hs-hot) 50%, var(--hs-edge) 72%, transparent);
+  opacity: 0.85;
+}
+:root[data-skin="hochsee"][data-mode="dark"] :is(.month, .wv, .card)::after { box-shadow: 0 0 10px 0 var(--hs-glow); }
+:root[data-skin="hochsee"][data-motion="on"] :is(.month, .wv, .card)::after { animation: hs-shimmer 6.5s ease-in-out infinite; }
+:root[data-skin="hochsee"][data-motion="on"] .card:nth-child(2n)::after { animation-delay: -2.1s; }
+:root[data-skin="hochsee"][data-motion="on"] .card:nth-child(3n)::after { animation-delay: -4.3s; }
+:root[data-skin="hochsee"] .sidebar { border-right-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
+:root[data-skin="hochsee"][data-mode="dark"] .sidebar { box-shadow: inset -1px 0 0 rgba(56, 189, 248, 0.07), 12px 0 40px -30px rgba(56, 189, 248, 0.45); }
+:root[data-skin="hochsee"] .seg button.on { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 14px -4px var(--hs-glow); }
+:root[data-skin="hochsee"] .topbar .seg { background: color-mix(in srgb, var(--surface) 74%, transparent); box-shadow: 0 0 0 1px var(--line); }
+:root[data-skin="hochsee"][data-mode="dark"] .item { background: color-mix(in srgb, var(--surface) 84%, transparent); }
+:root[data-skin="hochsee"] .item:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+:root[data-skin="hochsee"] :is(.lv-label, .lv-date) { text-shadow: 0 0 4px var(--bg), 0 0 12px var(--bg); }
+:root[data-skin="hochsee"] .toast { box-shadow: 0 0 0 1px color-mix(in srgb, var(--toast-icon) 30%, transparent), 0 0 30px -10px var(--hs-glow), var(--shadow-lg); }
+
+/* ---------- Heute: eine Perle, darüber taucht eine Walfluke ab ---------- */
+
+:root[data-skin="hochsee"] .day.today {
+  position: relative;
+  background:
+    radial-gradient(120% 70% at 50% -10%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 70%),
+    color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 36%, transparent), inset 0 14px 26px -14px var(--hs-glow);
+}
+:root[data-skin="hochsee"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: var(--hs-pearl); color: var(--on-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 16px -2px var(--hs-glow);
+}
+:root[data-skin="hochsee"]:not([data-mode="dark"]) :is(.day.today .num, .wv-dayhead.today .dn) { color: #ffffff; }
+:root[data-skin="hochsee"] .day.today .num::before { display: none; }
+:root[data-skin="hochsee"] .day.today::after {
+  content: ""; position: absolute; top: 5px; right: 7px; width: 17px; height: 11px; pointer-events: none;
+  background: var(--accent); opacity: 0.8; transform-origin: 50% 100%;
+  -webkit-mask: var(--hs-fluke-svg) center / contain no-repeat; mask: var(--hs-fluke-svg) center / contain no-repeat;
+  filter: drop-shadow(0 0 4px var(--hs-glow));
+}
+:root[data-skin="hochsee"][data-motion="on"] .day.today::after { animation: hs-fluke 5.2s ease-in-out infinite; }
+:root[data-skin="hochsee"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, transparent), color-mix(in srgb, var(--accent) 4%, transparent)); }
+:root[data-skin="hochsee"] .now-line { background: var(--accent); box-shadow: 0 0 10px var(--hs-glow); }
+:root[data-skin="hochsee"] .now-line::before { background: var(--hs-pearl); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 12px var(--hs-glow); }
+:root[data-skin="hochsee"] .mini-grid button.today { text-shadow: 0 0 10px var(--hs-glow); }
+:root[data-skin="hochsee"] .dprog i { box-shadow: 0 0 8px var(--hs-glow); }
+
+/* ---------- Termine: laufende schimmern wie Biolumineszenz ---------- */
+
+:root[data-skin="hochsee"][data-mode="dark"] .bar.timed.now,
+:root[data-skin="hochsee"][data-mode="dark"] .wv-ev.now { text-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
+:root[data-skin="hochsee"] :is(.bar.now, .wv-ev.now) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 16px -4px var(--hs-glow); }
+:root[data-skin="hochsee"][data-events="tint"] .bar.block { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 85%, white), var(--ev-glow); padding-left: 9px; }
+
+/* ---------- Knöpfe: tiefes Blau mit hellem Wasserrand ---------- */
+
+:root[data-skin="hochsee"] .btn.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #e0faff), var(--accent) 62%);
+  box-shadow: inset 0 1px 0 rgba(220, 245, 255, 0.45), 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), 0 8px 22px -10px var(--hs-glow);
+}
+:root[data-skin="hochsee"]:not([data-mode="dark"]) .btn.primary { background: linear-gradient(180deg, #0b7bbb, var(--accent) 60%); }
+:root[data-skin="hochsee"] .btn.primary:hover { filter: brightness(1.06); }
+:root[data-skin="hochsee"] .fab {
+  border-radius: 50%; background: var(--hs-pearl); color: var(--on-accent);
+  box-shadow: inset 0 -5px 12px rgba(2, 30, 60, 0.35), 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 26px -2px var(--hs-glow), 0 14px 26px -12px rgba(0, 0, 0, 0.5);
+}
+:root[data-skin="hochsee"]:not([data-mode="dark"]) .fab { color: #ffffff; }
+:root[data-skin="hochsee"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+
+/* ---------- Monatsbanner: Landschaft unter blauem Wasserschleier ---------- */
+
+:root[data-skin="hochsee"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(0.8) hue-rotate(-8deg) brightness(1.04);
+  --mb-tint: linear-gradient(100deg, transparent 20%, rgba(56, 182, 236, 0.45) 56%, color-mix(in srgb, var(--accent) 55%, transparent));
+  --mb-tint-blend: color;
+  --mb-edge: color-mix(in srgb, var(--accent) 60%, transparent);
+  --mb-sky-accent: 30%;
+  --mb-fx-accent: 0.6;
+}
+:root[data-skin="hochsee"][data-mode="dark"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(0.7) brightness(0.7);
+  --mb-tint: linear-gradient(100deg, rgba(4, 24, 44, 0.4) 10%, rgba(20, 110, 180, 0.42) 55%, color-mix(in srgb, var(--accent) 48%, transparent));
+  --mb-art-blend: luminosity;
+  --mb-art-opacity: 0.9;
+  --mb-edge: var(--accent);
+  --mb-sky-k: 18%;
+  --mb-sky-accent: 26%;
+  --mb-fx-accent: 0.75;
+}
+:root[data-skin="hochsee"] .mb-chip { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--surface) 86%, transparent); }
+
+/* ---------- Übersicht: Blick nach oben, ein Wal zieht vorbei ---------- */
+
+:root[data-skin="hochsee"] .sky {
+  --sky: var(--hs-hero);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow);
+}
+:root[data-skin="hochsee"][data-mode="dark"] .sky .greet { text-shadow: 0 0 24px rgba(56, 189, 248, 0.4); }
+:root[data-skin="hochsee"]:not([data-mode="dark"]) .sky .greet { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+:root[data-skin="hochsee"] .sky .date { color: var(--text-2); opacity: 1; }
+:root[data-skin="hochsee"] .sky-pill { background: color-mix(in srgb, var(--surface) 66%, transparent); border-color: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--text); }
+:root[data-skin="hochsee"] .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
+/* Lichtstrahlen von der Oberfläche */
+:root[data-skin="hochsee"] .sky::before {
+  inset: 0; z-index: -2;
+  background:
+    linear-gradient(104deg, transparent 46%, var(--hs-ray) 52%, transparent 58%),
+    linear-gradient(98deg, transparent 62%, var(--hs-ray) 67%, transparent 72%),
+    linear-gradient(110deg, transparent 76%, var(--hs-ray) 80%, transparent 85%);
+  -webkit-mask: linear-gradient(180deg, #000, transparent 85%); mask: linear-gradient(180deg, #000, transparent 85%);
+}
+/* Buckelwal als Schattenriss, unten rechts */
+:root[data-skin="hochsee"] .sky::after {
+  right: 4%; bottom: 6%; width: min(360px, 46%); aspect-ratio: 1000 / 330;
+  background: var(--hs-whale);
+  -webkit-mask: var(--hs-whale-svg) center / contain no-repeat; mask: var(--hs-whale-svg) center / contain no-repeat;
+}
+:root[data-skin="hochsee"][data-mode="dark"] .sky::after { filter: drop-shadow(0 -1px 0 rgba(95, 168, 214, 0.6)) drop-shadow(0 0 1px rgba(63, 224, 208, 0.7)) drop-shadow(0 0 8px rgba(63, 224, 208, 0.22)); }
+:root[data-skin="hochsee"][data-motion="on"] .sky::after { animation: hs-glide 14s ease-in-out infinite alternate; }
+/* aufsteigende Blasen */
+:root[data-skin="hochsee"] .sky-art::before {
+  right: 50%; bottom: 8px; width: 24px; height: 90px; opacity: 0.9;
+  background:
+    radial-gradient(circle at 40% 92%, transparent 0 2.2px, var(--hs-bubble) 2.8px 3.6px, transparent 4.4px),
+    radial-gradient(circle at 70% 60%, transparent 0 1.6px, var(--hs-bubble) 2.2px 2.9px, transparent 3.6px),
+    radial-gradient(circle at 30% 30%, transparent 0 1.2px, var(--hs-bubble) 1.7px 2.3px, transparent 3px),
+    radial-gradient(circle at 60% 6%, transparent 0 0.8px, var(--hs-bubble) 1.2px 1.8px, transparent 2.4px);
+}
+:root[data-skin="hochsee"][data-motion="on"] .sky-art::before { animation: hs-bubbles 4.8s linear infinite; }
+/* kleine Fluke über dem Wasser, oben rechts */
+:root[data-skin="hochsee"] .sky-art::after {
+  right: 7%; top: 14%; width: 30px; height: 20px; opacity: 0.55;
+  background: var(--accent);
+  -webkit-mask: var(--hs-fluke-svg) center / contain no-repeat; mask: var(--hs-fluke-svg) center / contain no-repeat;
+}
+:root[data-skin="hochsee"][data-motion="on"] .sky-art::after { animation: hs-fluke 6s ease-in-out infinite; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="hochsee"] { --live-bf: none; --blur: 0px; }
+  :root[data-skin="hochsee"] :is(.sheet, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root[data-skin="hochsee"] .tabbar {
+    background: color-mix(in srgb, var(--surface) 93%, transparent); border-top: 0;
+    box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 30%, transparent), 0 -14px 30px -22px var(--hs-glow);
+  }
+  :root[data-skin="hochsee"] .tabbar::before {
+    content: ""; position: absolute; left: 12%; right: 12%; top: -1px; height: 1px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--hs-edge) 30%, var(--hs-hot) 50%, var(--hs-edge) 70%, transparent);
+    box-shadow: 0 0 10px var(--hs-glow);
+  }
+  :root[data-skin="hochsee"] .tab.on { color: var(--accent); }
+  :root[data-skin="hochsee"]:not([data-mode="dark"]) .tab.on { color: #035a8a; }
+  :root[data-skin="hochsee"] .tab.on .tab-ic {
+    background: radial-gradient(70% 90% at 50% 0%, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 16px -4px var(--hs-glow);
+  }
+  :root[data-skin="hochsee"] :is(.month, .wv)::after { left: 0; right: 0; }
+  :root[data-skin="hochsee"] .day.today::after { right: 3px; top: 3px; width: 12px; height: 8px; }
+  :root[data-skin="hochsee"] .sky::after { width: 56%; right: 2%; bottom: 4%; }
+  :root[data-skin="hochsee"] .sky-art::before { right: 62%; height: 70px; }
+  :root[data-skin="hochsee"] .sky-art::after { width: 24px; height: 16px; right: 6%; top: 12%; }
+}
+
+@keyframes hs-shimmer { 0%, 100% { opacity: 0.55; } 35% { opacity: 0.95; } 60% { opacity: 0.7; } 80% { opacity: 1; } }
+@keyframes hs-fluke {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(1.5px) rotate(4deg); }
+}
+@keyframes hs-glide {
+  from { transform: translate(-10px, 3px) rotate(-1deg); }
+  to { transform: translate(12px, -4px) rotate(1.2deg); }
+}
+@keyframes hs-bubbles {
+  0% { opacity: 0; transform: translateY(24px); }
+  20% { opacity: 0.95; }
+  80% { opacity: 0.6; }
+  100% { opacity: 0; transform: translate(4px, -30px); }
+}
