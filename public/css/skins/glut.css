@@ -1,1 +1,347 @@
-/* Stil „Lagerfeuer“ – wird vom Design-Team ausgebaut. Regeln immer mit :root[data-skin="glut"] beginnen. */
+/* Stil „Lagerfeuer“ – dunkel: Nacht am Lagerfeuer mit Funken, Glut und Tannen-Silhouetten, hell: goldener Herbstabend (Szene: js/skins/glut.js).
+   Regeln immer mit :root[data-skin="glut"] beginnen. Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = Herbstabend, dunkel = Lagerfeuernacht ---------- */
+
+:root[data-skin="glut"] {
+  --bg: #fbe3c4;
+  --wallpaper:
+    radial-gradient(60% 38% at 70% 104%, rgba(255, 150, 60, 0.32), transparent 72%),
+    radial-gradient(55% 40% at 88% -6%, rgba(255, 252, 236, 0.95), transparent 70%),
+    linear-gradient(180deg, #fff6e6 0%, #ffecd0 38%, #fcd6a8 72%, #f5b97f 100%);
+  --surface: #fffaf3;
+  --card: rgba(255, 250, 243, 0.86);
+  --sidebar-bg: rgba(255, 247, 236, 0.86);
+  --surface-2: rgba(160, 80, 20, 0.07);
+  --surface-3: rgba(160, 80, 20, 0.14);
+  --line: rgba(120, 60, 20, 0.14);
+  --line-2: rgba(120, 60, 20, 0.26);
+  --text: #2b1308;
+  --text-2: #5c3a24;
+  --text-3: #7a5038;
+  --accent: #c2410c;
+  --on-accent: #ffffff;
+  --danger: #c0262d;
+  --online: #2f8a3a;
+  --mix: 18%;
+  --mix-text: 58%;
+  --blur: 12px;
+  --ev-glow-geo: 0 0 10px -4px;
+  --ev-glow-mix: 55%;
+  --shadow-sm: 0 1px 2px rgba(110, 50, 10, 0.07);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 0 1px rgba(150, 70, 20, 0.05), 0 16px 36px -22px rgba(140, 60, 10, 0.5);
+  --shadow-lg: 0 0 0 1px rgba(150, 70, 20, 0.12), 0 30px 70px -26px rgba(110, 45, 10, 0.5);
+  --toast-bg: #2b1308;
+  --toast-text: #fff0e2;
+  --toast-icon: #ffa45c;
+  --scrim: rgba(50, 20, 5, 0.3);
+  --gl-glow: rgba(234, 88, 12, 0.32);
+  --gl-hot: #fbbf24;
+  --gl-edge: rgba(234, 88, 12, 0.55);
+  --gl-title: linear-gradient(90deg, #3a1608, #9a3412 60%, #c2410c);
+  --gl-coal: radial-gradient(circle at 50% 30%, #ffd08a 0 10%, #f97316 42%, #c2410c 72%, #8a2c08);
+  --gl-hero:
+    radial-gradient(60% 70% at 80% 110%, rgba(255, 150, 60, 0.6), transparent 66%),
+    radial-gradient(50% 70% at 90% -20%, rgba(255, 252, 236, 0.95), transparent 64%),
+    linear-gradient(176deg, #fff4e2 0%, #ffe2b8 50%, #f8bf86 100%);
+  --gl-tree: rgba(150, 70, 30, 0.38);
+  --gl-spark: rgba(234, 88, 12, 0.85);
+  --fx-a: #f59e0b;
+  --fx-b: #ea580c;
+  --fx-c: #b4380c;
+  --fx-d: #ffa95e;
+  --fx-s1: #fff4e0;
+  --fx-s2: #e9b083;
+  --fx-s3: #b8693a;
+  --fx-s4: #7a3a1c;
+  --fx-k: 0.85;
+}
+:root[data-skin="glut"][data-mode="dark"] {
+  --bg: #120a06;
+  --wallpaper:
+    radial-gradient(70% 40% at 66% 108%, rgba(255, 110, 30, 0.34), transparent 72%),
+    radial-gradient(90% 50% at 40% -12%, rgba(70, 46, 90, 0.32), transparent 70%),
+    linear-gradient(180deg, #0b0810 0%, #120b0c 42%, #1c0f09 74%, #2a1207 100%);
+  --surface: #1e130d;
+  --card: rgba(26, 16, 10, 0.7);
+  --sidebar-bg: rgba(19, 12, 8, 0.82);
+  --surface-2: rgba(255, 170, 100, 0.07);
+  --surface-3: rgba(255, 170, 100, 0.14);
+  --line: rgba(255, 180, 120, 0.12);
+  --line-2: rgba(255, 180, 120, 0.24);
+  --text: #fff0e2;
+  --text-2: #dcc0a8;
+  --text-3: #b89a82;
+  --accent: #ff8a3d;
+  --on-accent: #2a0f00;
+  --danger: #ff6159;
+  --online: #8be38f;
+  --mix: 18%;
+  --mix-text: 42%;
+  --ev-glow-geo: 0 0 14px -3px;
+  --ev-glow-mix: 72%;
+  --shadow-sm: 0 0 0 1px rgba(255, 138, 61, 0.05);
+  --shadow: inset 0 1px 0 rgba(255, 210, 160, 0.06), 0 0 0 1px rgba(255, 138, 61, 0.06), 0 0 40px -20px rgba(255, 110, 30, 0.4), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  --shadow-lg: inset 0 1px 0 rgba(255, 210, 160, 0.08), 0 0 0 1px rgba(255, 138, 61, 0.16), 0 0 70px -24px rgba(255, 110, 30, 0.36), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #2a170d;
+  --toast-text: #fff0e2;
+  --toast-icon: var(--accent);
+  --scrim: rgba(8, 3, 0, 0.62);
+  --gl-glow: rgba(255, 120, 40, 0.55);
+  --gl-hot: #ffd27a;
+  --gl-edge: rgba(255, 170, 90, 0.7);
+  --gl-title: linear-gradient(90deg, #fff4e4, #ffc98a 55%, #ff8a3d);
+  --gl-coal: radial-gradient(circle at 50% 30%, #fff1c4 0 10%, #ffb04d 36%, #ff6a1a 66%, #b8360a);
+  --gl-hero:
+    radial-gradient(55% 75% at 80% 115%, rgba(255, 120, 30, 0.6), rgba(255, 80, 20, 0.15) 50%, transparent 70%),
+    radial-gradient(70% 70% at 20% -20%, rgba(80, 52, 100, 0.4), transparent 70%),
+    linear-gradient(180deg, #0f0b14 0%, #1a0f0c 55%, #2c1308 100%);
+  --gl-tree: #0a0503;
+  --gl-spark: rgba(255, 190, 110, 0.95);
+  --fx-a: #ffd98c;
+  --fx-b: var(--accent);
+  --fx-c: #ff4d1a;
+  --fx-d: #ff6a1a;
+  --fx-s1: #ffeed6;
+  --fx-s2: #1f1214;
+  --fx-s3: #120a08;
+  --fx-s4: #080403;
+  --fx-k: 1;
+}
+:root[data-skin="glut"]:not([data-corners="sharp"]) { --r-lg: 16px; --r-xl: 22px; }
+:root[data-skin="glut"][data-font="modern"] {
+  --font-display: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+/* Tannenreihe und Funkenregen als Bild – für den Überblick */
+:root[data-skin="glut"] {
+  --gl-trees: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 100' preserveAspectRatio='none'%3E%3Cpath d='M0 100V74L4 74L3 71L7 65L5 66L8 60L7 61L9 56L11 61L10 60L13 66L11 65L15 71L14 74L16 74L15 68L23 57L19 58L25 47L23 48L26 38L30 48L28 47L33 58L29 57L37 68L36 74L38 74L38 69L44 61L41 61L45 53L44 53L47 45L50 53L48 53L53 61L49 61L56 69L55 74L65 74L64 68L72 57L68 58L74 48L72 49L76 39L80 49L78 48L84 58L79 57L88 68L87 74L87 74L87 70L93 62L90 62L94 54L93 55L95 48L98 55L97 54L101 62L98 62L104 70L103 74L108 74L108 70L114 62L111 63L115 55L113 56L116 49L119 56L117 55L121 63L119 62L124 70L124 74L124 74L124 70L129 62L127 63L130 55L129 56L132 49L134 56L133 55L137 63L134 62L139 70L139 74L143 74L142 69L149 59L145 60L151 50L149 51L152 42L155 51L153 50L158 60L155 59L162 69L161 74L163 74L162 65L175 48L168 50L177 33L174 35L180 20L186 35L183 33L192 50L185 48L198 65L197 74L196 74L195 67L205 52L200 54L207 39L205 41L210 28L214 41L212 39L219 54L214 52L224 67L223 74L231 74L230 65L242 49L236 50L244 34L241 35L247 20L253 35L249 34L258 50L252 49L264 65L263 74L266 74L265 65L279 46L271 48L282 30L278 32L285 15L291 32L288 30L298 48L291 46L304 65L303 74L310 74L309 68L318 55L314 56L320 44L318 45L322 34L327 45L324 44L331 56L326 55L335 68L335 74L335 74L335 68L342 57L338 58L344 47L342 49L345 39L349 49L347 47L352 58L349 57L356 68L355 74L361 74L361 69L369 58L365 59L370 49L368 50L372 41L376 50L374 49L379 59L375 58L383 69L383 74L384 74L383 69L391 59L387 60L392 50L390 51L394 42L397 51L395 50L401 60L397 59L404 69L404 74L407 74L406 68L415 55L411 57L417 44L415 45L419 34L424 45L421 44L428 57L423 55L432 68L432 74L441 74L440 67L448 55L444 56L450 43L448 45L452 33L455 45L453 43L459 56L455 55L463 67L462 74L463 74L462 65L475 47L468 49L478 32L475 33L481 17L487 33L484 32L493 49L486 47L500 65L499 74L496 74L496 70L502 62L499 63L503 55L501 56L504 49L507 56L506 55L510 63L507 62L513 70L513 74L516 74L515 68L524 55L520 56L527 44L524 45L529 34L533 45L531 44L538 56L533 55L542 68L541 74L544 74L543 68L552 57L547 58L554 47L551 48L556 38L560 48L557 47L564 58L559 57L568 68L567 74L568 74L568 69L575 59L571 60L577 50L575 51L578 42L582 51L580 50L585 60L581 59L588 69L588 74L600 74V100Z'/%3E%3C/svg%3E");
+}
+
+/* ---------- Gemeinsames für Live-Stile (wie in skins-live.css) ---------- */
+
+:root[data-skin="glut"] { --live-bf: none; }
+:root[data-skin="glut"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="glut"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf); }
+:root[data-skin="glut"] .sky-art svg { display: none; }
+:root[data-skin="glut"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="glut"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="glut"] .heat .cell { --text-2: var(--text); }
+:root[data-skin="glut"] .sky::before,
+:root[data-skin="glut"] .sky::after,
+:root[data-skin="glut"] .sky-art::before,
+:root[data-skin="glut"] .sky-art::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Schrift: warm, Titel glüht wie ein Holzscheit ---------- */
+
+:root[data-skin="glut"] .topbar .title {
+  background: var(--gl-title); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+:root[data-skin="glut"][data-mode="dark"] .topbar .title { filter: drop-shadow(0 0 12px rgba(255, 120, 40, 0.38)); }
+:root[data-skin="glut"] .topbar .title .year { -webkit-text-fill-color: var(--text-3); color: var(--text-3); font-weight: 600; }
+:root[data-skin="glut"] :is(.dow, .wv-dayhead .wd) { color: color-mix(in srgb, var(--accent) 38%, var(--text-2)); letter-spacing: 0.1em; }
+:root[data-skin="glut"]:not([data-mode="dark"]) :is(.dow, .wv-dayhead .wd) { color: #7c3414; }
+:root[data-skin="glut"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl, .mb-eyebrow) { letter-spacing: 0.12em; }
+:root[data-skin="glut"][data-mode="dark"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: color-mix(in srgb, var(--accent) 52%, var(--text-2)); }
+:root[data-skin="glut"]:not([data-mode="dark"]) :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: #8a3a12; }
+:root[data-skin="glut"] .cd-num { text-shadow: 0 0 22px var(--gl-glow); }
+:root[data-skin="glut"] .brand img { box-shadow: 0 0 18px -4px var(--gl-glow); }
+
+/* ---------- Flächen: Holzkohle, unten vom Feuer angeleuchtet ---------- */
+
+:root[data-skin="glut"] :is(.month, .wv, .card) { border-color: color-mix(in srgb, var(--accent) 16%, var(--line)); }
+:root[data-skin="glut"][data-mode="dark"] :is(.month, .wv, .card) {
+  box-shadow: inset 0 -40px 50px -46px rgba(255, 110, 30, 0.45), var(--shadow);
+}
+:root[data-skin="glut"] :is(.month, .wv, .card)::after {
+  content: ""; position: absolute; z-index: 5; left: 10%; right: 10%; top: -1px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--gl-edge) 30%, var(--gl-hot) 50%, var(--gl-edge) 70%, transparent);
+  opacity: 0.8;
+}
+:root[data-skin="glut"][data-mode="dark"] :is(.month, .wv, .card)::after { box-shadow: 0 0 10px 0 var(--gl-glow); }
+:root[data-skin="glut"][data-motion="on"][data-mode="dark"] :is(.month, .wv, .card)::after { animation: gl-smoulder 5.3s ease-in-out infinite; }
+:root[data-skin="glut"][data-motion="on"] .card:nth-child(2n)::after { animation-delay: -1.7s; }
+:root[data-skin="glut"][data-motion="on"] .card:nth-child(3n)::after { animation-delay: -3.4s; }
+:root[data-skin="glut"] .sidebar { border-right-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
+:root[data-skin="glut"][data-mode="dark"] .sidebar { box-shadow: inset -1px 0 0 rgba(255, 138, 61, 0.06), 12px 0 40px -30px rgba(255, 110, 30, 0.5); }
+:root[data-skin="glut"] .seg button.on { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 14px -4px var(--gl-glow); }
+:root[data-skin="glut"] .topbar .seg { background: color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: 0 0 0 1px var(--line); }
+:root[data-skin="glut"][data-mode="dark"] .item { background: color-mix(in srgb, var(--surface) 84%, transparent); }
+:root[data-skin="glut"] .item:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+:root[data-skin="glut"] :is(.lv-label, .lv-date) { text-shadow: 0 0 4px var(--bg), 0 0 12px var(--bg); }
+:root[data-skin="glut"] .toast { box-shadow: 0 0 0 1px color-mix(in srgb, var(--toast-icon) 30%, transparent), 0 0 30px -10px var(--gl-glow), var(--shadow-lg); }
+
+/* ---------- Heute: glühende Kohle, die leise flackert ---------- */
+
+:root[data-skin="glut"] .day.today {
+  position: relative;
+  background:
+    radial-gradient(120% 70% at 50% 110%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%),
+    color-mix(in srgb, var(--accent) 5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 34%, transparent), inset 0 -14px 26px -14px var(--gl-glow);
+}
+:root[data-skin="glut"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: var(--gl-coal); color: var(--on-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), 0 0 16px -2px var(--gl-glow);
+}
+:root[data-skin="glut"] .day.today .num::before { display: none; }
+:root[data-skin="glut"]:not([data-mode="dark"]) :is(.day.today .num, .wv-dayhead.today .dn) { background: radial-gradient(circle at 50% 30%, #cc4a0e, #c2410c 60%, #9a3412); }
+/* zwei kleine Funken steigen aus dem heutigen Tag */
+:root[data-skin="glut"] .day.today::after {
+  content: ""; position: absolute; top: 4px; right: 8px; width: 12px; height: 26px; pointer-events: none; opacity: 0;
+  background:
+    radial-gradient(circle at 30% 80%, var(--gl-hot) 0 1.6px, color-mix(in srgb, var(--gl-hot) 30%, transparent) 2.4px, transparent 3.6px),
+    radial-gradient(circle at 70% 30%, var(--accent) 0 1.2px, transparent 2.2px);
+}
+:root[data-skin="glut"][data-motion="on"] .day.today::after { animation: gl-rise 4.6s ease-out 0.8s infinite; }
+:root[data-skin="glut"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, transparent), color-mix(in srgb, var(--accent) 13%, transparent)); }
+:root[data-skin="glut"] .now-line { background: var(--accent); box-shadow: 0 0 10px var(--gl-glow); }
+:root[data-skin="glut"] .now-line::before { background: var(--gl-coal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 12px var(--gl-glow); }
+:root[data-skin="glut"] .mini-grid button.today { text-shadow: 0 0 10px var(--gl-glow); }
+:root[data-skin="glut"] .dprog i { box-shadow: 0 0 8px var(--gl-glow); }
+
+/* ---------- Termine: laufende glimmen wie Glut ---------- */
+
+:root[data-skin="glut"][data-mode="dark"] .bar.timed.now,
+:root[data-skin="glut"][data-mode="dark"] .wv-ev.now { text-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
+:root[data-skin="glut"] :is(.bar.now, .wv-ev.now) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 16px -4px var(--gl-glow); }
+:root[data-skin="glut"][data-events="tint"] .bar.block { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 85%, white), var(--ev-glow); padding-left: 9px; }
+
+/* ---------- Knöpfe: Glut mit warmem Schein ---------- */
+
+:root[data-skin="glut"] .btn.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 78%, #ffd27a), var(--accent) 62%);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 200, 0.4), 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), 0 8px 22px -10px var(--gl-glow);
+}
+:root[data-skin="glut"]:not([data-mode="dark"]) .btn.primary { background: linear-gradient(180deg, #cc4a0e, var(--accent) 60%); }
+:root[data-skin="glut"] .btn.primary:hover { filter: brightness(1.06); }
+:root[data-skin="glut"] .fab {
+  border-radius: 50%; background: var(--gl-coal);
+  box-shadow: inset 0 -5px 12px rgba(90, 20, 0, 0.35), 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 26px -2px var(--gl-glow), 0 14px 26px -12px rgba(0, 0, 0, 0.5);
+}
+:root[data-skin="glut"]:not([data-mode="dark"]) .fab { background: radial-gradient(circle at 50% 30%, #dc5a14, #c2410c 62%, #9a3412); }
+:root[data-skin="glut"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+
+/* ---------- Monatsbanner: Landschaft im Feuerschein ---------- */
+
+:root[data-skin="glut"] :is(.mb, .lv-month) {
+  --mb-art-filter: sepia(0.35) saturate(0.85) brightness(1.03);
+  --mb-tint: linear-gradient(100deg, transparent 22%, rgba(255, 150, 60, 0.45) 58%, color-mix(in srgb, var(--accent) 55%, transparent));
+  --mb-tint-blend: color;
+  --mb-edge: color-mix(in srgb, var(--accent) 60%, transparent);
+  --mb-sky-accent: 30%;
+  --mb-fx-accent: 0.6;
+}
+:root[data-skin="glut"][data-mode="dark"] :is(.mb, .lv-month) {
+  --mb-art-filter: sepia(0.5) saturate(0.9) hue-rotate(-12deg) brightness(0.72);
+  --mb-tint: linear-gradient(100deg, rgba(40, 18, 10, 0.4) 10%, rgba(200, 70, 20, 0.42) 55%, color-mix(in srgb, var(--accent) 50%, transparent));
+  --mb-art-blend: luminosity;
+  --mb-art-opacity: 0.9;
+  --mb-edge: var(--accent);
+  --mb-sky-k: 18%;
+  --mb-sky-accent: 22%;
+  --mb-fx-accent: 0.75;
+}
+:root[data-skin="glut"] .mb-chip { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--surface) 86%, transparent); }
+
+/* ---------- Übersicht: Lagerfeuer vor dem Wald ---------- */
+
+:root[data-skin="glut"] .sky {
+  --sky: var(--gl-hero);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow);
+}
+:root[data-skin="glut"][data-mode="dark"] .sky .greet { text-shadow: 0 0 24px rgba(255, 120, 40, 0.45); }
+:root[data-skin="glut"]:not([data-mode="dark"]) .sky .greet { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+:root[data-skin="glut"] .sky .date { color: var(--text-2); opacity: 1; }
+:root[data-skin="glut"] .sky-pill { background: color-mix(in srgb, var(--surface) 64%, transparent); border-color: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--text); }
+:root[data-skin="glut"] .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
+/* Sterne (dunkel) */
+:root[data-skin="glut"][data-mode="dark"] .sky::before {
+  inset: 0 0 40% 0; opacity: 0.8;
+  background:
+    radial-gradient(circle at 12% 22%, #fff3e0 0 1px, transparent 1.6px),
+    radial-gradient(circle at 34% 12%, #fff3e0 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 58% 30%, #fff3e0 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 72% 10%, #fff3e0 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 88% 24%, #fff3e0 0 1px, transparent 1.6px),
+    radial-gradient(circle at 46% 48%, #fff3e0 0 0.7px, transparent 1.3px);
+}
+/* Tannen am unteren Rand */
+:root[data-skin="glut"] .sky::after {
+  left: 0; right: 0; bottom: 0; height: 36%; z-index: -2;
+  background: var(--gl-tree);
+  -webkit-mask: var(--gl-trees) right bottom / 680px 100% repeat-x;
+  mask: var(--gl-trees) right bottom / 680px 100% repeat-x;
+}
+/* Feuer: Glutkern mit Flammen, unten rechts */
+:root[data-skin="glut"] .sky-art::before {
+  right: 13%; bottom: -6px; width: 70px; height: 84px; transform-origin: 50% 100%;
+  background:
+    radial-gradient(28% 40% at 50% 62%, #fff4c8, rgba(255, 210, 120, 0.8) 40%, transparent 72%),
+    radial-gradient(42% 58% at 48% 66%, rgba(255, 160, 60, 0.95), rgba(255, 100, 30, 0.6) 46%, transparent 72%),
+    radial-gradient(50% 30% at 50% 92%, rgba(255, 80, 20, 0.9), transparent 72%);
+  -webkit-mask: radial-gradient(50% 60% at 50% 100%, #000 64%, transparent 100%);
+  mask: radial-gradient(50% 60% at 50% 100%, #000 64%, transparent 100%);
+  filter: drop-shadow(0 0 14px var(--gl-glow));
+}
+:root[data-skin="glut"]:not([data-mode="dark"]) .sky-art::before { opacity: 0.85; }
+:root[data-skin="glut"][data-motion="on"] .sky-art::before { animation: gl-flame 1.9s ease-in-out infinite; }
+/* Funken über dem Feuer */
+:root[data-skin="glut"] .sky-art::after {
+  right: calc(13% + 22px); bottom: 70px; width: 26px; height: 90px; opacity: 0.9;
+  background:
+    radial-gradient(circle at 40% 92%, var(--gl-spark) 0 1.6px, transparent 2.6px),
+    radial-gradient(circle at 70% 64%, var(--gl-spark) 0 1.3px, transparent 2.3px),
+    radial-gradient(circle at 25% 38%, var(--gl-spark) 0 1.1px, transparent 2px),
+    radial-gradient(circle at 62% 12%, var(--gl-spark) 0 0.9px, transparent 1.8px);
+}
+:root[data-skin="glut"][data-motion="on"] .sky-art::after { animation: gl-sparks 3.6s linear infinite; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="glut"] { --live-bf: none; --blur: 0px; }
+  :root[data-skin="glut"] :is(.sheet, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root[data-skin="glut"] .tabbar {
+    background: color-mix(in srgb, var(--surface) 93%, transparent); border-top: 0;
+    box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 30%, transparent), 0 -14px 30px -22px var(--gl-glow);
+  }
+  :root[data-skin="glut"] .tabbar::before {
+    content: ""; position: absolute; left: 12%; right: 12%; top: -1px; height: 1px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--gl-edge) 30%, var(--gl-hot) 50%, var(--gl-edge) 70%, transparent);
+    box-shadow: 0 0 10px var(--gl-glow);
+  }
+  :root[data-skin="glut"] .tab.on { color: var(--accent); }
+  :root[data-skin="glut"]:not([data-mode="dark"]) .tab.on { color: #a8380c; }
+  :root[data-skin="glut"] .tab.on .tab-ic {
+    background: radial-gradient(70% 90% at 50% 100%, color-mix(in srgb, var(--accent) 32%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 16px -4px var(--gl-glow);
+  }
+  :root[data-skin="glut"] :is(.month, .wv)::after { left: 0; right: 0; }
+  :root[data-skin="glut"] .day.today::after { right: 3px; top: 1px; height: 20px; }
+  :root[data-skin="glut"] .sky-art::before { right: 8%; width: 52px; height: 62px; }
+  :root[data-skin="glut"] .sky-art::after { right: calc(8% + 14px); bottom: 52px; height: 70px; }
+  :root[data-skin="glut"] .sky::after { height: 28%; -webkit-mask-size: 520px 100%; mask-size: 520px 100%; }
+}
+
+@keyframes gl-smoulder { 0%, 100% { opacity: 0.55; } 40% { opacity: 0.95; } 55% { opacity: 0.7; } 70% { opacity: 1; } }
+@keyframes gl-rise {
+  0% { opacity: 0; transform: translateY(10px); }
+  15% { opacity: 1; }
+  70% { opacity: 0.6; }
+  100% { opacity: 0; transform: translate(3px, -10px); }
+}
+@keyframes gl-flame {
+  0%, 100% { transform: scale(1, 1); }
+  25% { transform: scale(0.96, 1.08) skewX(-2deg); }
+  50% { transform: scale(1.03, 0.95); }
+  75% { transform: scale(0.98, 1.05) skewX(2deg); }
+}
+@keyframes gl-sparks {
+  0% { opacity: 0; transform: translateY(20px); }
+  20% { opacity: 0.95; }
+  80% { opacity: 0.6; }
+  100% { opacity: 0; transform: translate(6px, -36px); }
+}
