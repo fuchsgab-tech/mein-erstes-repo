@@ -10,7 +10,7 @@
     radial-gradient(55% 36% at 70% -8%, rgba(255, 255, 240, 0.9), transparent 70%),
     linear-gradient(180deg, #b4f0fb 0%, #74d8f3 20%, #36b6e6 48%, #1690cc 76%, #0d6fae 100%);
   --surface: #f4fcff;
-  --card: rgba(244, 252, 255, 0.85);
+  --card: rgba(244, 252, 255, 0.62);
   --sidebar-bg: rgba(238, 250, 255, 0.86);
   --surface-2: rgba(3, 105, 161, 0.07);
   --surface-3: rgba(3, 105, 161, 0.14);
@@ -62,7 +62,7 @@
     radial-gradient(60% 34% at 70% -8%, rgba(150, 210, 255, 0.3), transparent 70%),
     linear-gradient(180deg, #0c3758 0%, #082b48 16%, #051e35 42%, #031326 70%, #010a15 100%);
   --surface: #072339;
-  --card: rgba(5, 26, 44, 0.72);
+  --card: rgba(5, 26, 44, 0.48); /* durchsichtiger, damit Wal und Haie durchscheinen */
   --sidebar-bg: rgba(4, 20, 36, 0.84);
   --surface-2: rgba(120, 200, 255, 0.07);
   --surface-3: rgba(120, 200, 255, 0.14);
