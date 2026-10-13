@@ -46,8 +46,7 @@
   --ar-scan: rgba(48, 98, 48, 0.045);
   --ar-vig: rgba(60, 90, 30, 0.18);
   --ar-flash: rgba(255, 255, 230, 0.05);
-  --ar-mb-a: rgba(139, 172, 15, 0.26);
-  --ar-mb-b: rgba(48, 98, 48, 0.3);
+  --ar-px: rgba(15, 56, 15, 0.07);
   --fx-a: #306230;
   --fx-b: #0f380f;
   --fx-c: #4b7a22;
@@ -100,8 +99,7 @@
   --ar-scan: rgba(0, 0, 0, 0.3);
   --ar-vig: rgba(0, 0, 0, 0.6);
   --ar-flash: rgba(255, 255, 255, 0.03);
-  --ar-mb-a: rgba(106, 63, 208, 0.3);
-  --ar-mb-b: rgba(255, 79, 216, 0.26);
+  --ar-px: rgba(0, 0, 0, 0.22);
   --fx-a: #ff4fd8;
   --fx-b: #29f0ff;
   --fx-c: #ffe14d;
@@ -152,6 +150,7 @@
   text-transform: uppercase; font-weight: 900; letter-spacing: 0.02em; text-shadow: 3px 3px 0 var(--ar-ts);
 }
 :root[data-skin="arcade"] .topbar .title { letter-spacing: 0.01em; }
+:root[data-skin="arcade"] .sheet-head h2 { text-shadow: 2px 2px 0 var(--ar-ts); }
 :root[data-skin="arcade"] .topbar .title .year { color: var(--ar-2); font-weight: 900; }
 :root[data-skin="arcade"] .brand { font-size: 17px; text-transform: uppercase; font-weight: 900; letter-spacing: 0.02em; text-shadow: 2px 2px 0 var(--ar-ts); }
 :root[data-skin="arcade"] :is(.dow, .wv-dayhead .wd) { color: var(--ar-2); font-weight: 900; letter-spacing: 0.14em; }
@@ -175,6 +174,11 @@
 :root[data-skin="arcade"] .seg button.on { background: var(--accent); color: var(--on-accent); box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.25), inset 2px 2px 0 rgba(255, 255, 255, 0.3); }
 :root[data-skin="arcade"] :is(.item, .search-box) { border: 2px solid var(--ar-b); box-shadow: 4px 4px 0 var(--ar-sh); }
 :root[data-skin="arcade"] .item { background: color-mix(in srgb, var(--surface) 90%, transparent); }
+/* Vergangenes: Inhalt blass, der Rahmen bleibt dicht (sonst laufen die Figuren durch die Schrift) */
+/* Die Suche bleibt beim Blättern oben stehen – ohne Unschärfe braucht sie einen dichten Grund */
+:root[data-skin="arcade"] .lv-search .search-box { background: var(--surface); }
+:root[data-skin="arcade"] .item.past { opacity: 1; }
+:root[data-skin="arcade"] .item.past > * { opacity: 0.55; }
 :root[data-skin="arcade"] .item:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ar-sh); }
 :root[data-skin="arcade"] .item .stripe { border-radius: 0; width: 6px; }
 :root[data-skin="arcade"] .sheet { position: relative; box-shadow: 0 -3px 0 var(--ar-b), 0 3px 0 var(--ar-b), -3px 0 0 var(--ar-b), 3px 0 0 var(--ar-b), 9px 9px 0 var(--ar-sh), var(--shadow-lg); }
@@ -224,21 +228,32 @@
 :root[data-skin="arcade"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
 :root[data-skin="arcade"] .meter > i { border-radius: 0; }
 
-/* ---------- Monatsbanner: Jahreszeitenbild als Pixelbildschirm ---------- */
+/* ---------- Monatsbanner: Jahreszeitenbild als Pixelbildschirm (Stellschrauben aus calendar.css) ---------- */
 
-:root[data-skin="arcade"] .mb {
-  border-bottom: 3px solid var(--ar-b);
-  background-image: linear-gradient(100deg, transparent 16%, var(--ar-mb-a) 52%, var(--ar-mb-b));
+/* hell: vier Grüntöne wie auf dem Handheld, dunkel: Neon-Abendhimmel */
+:root[data-skin="arcade"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 0%; --mb-sky-k: 64%;
+  --mb-art-filter: grayscale(1) contrast(1.3) brightness(0.98);
+  --mb-tint: linear-gradient(100deg, transparent 22%, rgba(110, 150, 20, 0.6) 56%, rgba(70, 120, 30, 0.75));
+  --mb-tint-blend: color; --mb-edge: transparent; --mb-fx-accent: 0.15;
 }
-:root[data-skin="arcade"][data-mode="dark"] :is(.mb-art, .mb-sky) { filter: saturate(1.7) hue-rotate(-28deg) contrast(1.15) brightness(0.72); }
-:root[data-skin="arcade"]:not([data-mode="dark"]) :is(.mb-art, .mb-sky) { filter: grayscale(1) sepia(0.7) hue-rotate(40deg) saturate(1.6) contrast(1.1) brightness(0.95); }
-:root[data-skin="arcade"] .mb::after {
-  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+:root[data-skin="arcade"][data-mode="dark"] :is(.mb, .lv-month) {
+  /* die Farbe steckt im Bild – ein starker Schleier würde über dem fast durchsichtigen Himmel blass leuchten */
+  --mb-sky-accent: 30%; --mb-sky-k: 30%; --mb-art-opacity: 1;
+  --mb-art-filter: saturate(1.7) hue-rotate(-28deg) contrast(1.15) brightness(0.72);
+  --mb-tint: linear-gradient(100deg, transparent 34%, color-mix(in srgb, var(--accent) 12%, transparent) 66%, color-mix(in srgb, var(--ar-2) 10%, transparent));
+  --mb-tint-blend: normal; --mb-fx-accent: 0.6;
+}
+:root[data-skin="arcade"] .mb { border-bottom: 3px solid var(--ar-b); }
+:root[data-skin="arcade"] .lv-month { border: 2px solid var(--ar-b); box-shadow: 4px 4px 0 var(--ar-sh); }
+/* Bildpunkte: hell ein feines LCD-Raster, dunkel Röhrenzeilen */
+:root[data-skin="arcade"] .mb-text {
   background:
-    linear-gradient(90deg, var(--card) 18%, transparent 66%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.18) 1px, transparent 1px) 0 0 / 3px 3px,
-    linear-gradient(rgba(0, 0, 0, 0.18) 1px, transparent 1px) 0 0 / 3px 3px;
+    linear-gradient(90deg, var(--ar-px) 1px, transparent 1px) 0 0 / 3px 3px,
+    linear-gradient(var(--ar-px) 1px, transparent 1px) 0 0 / 3px 3px;
 }
+:root[data-skin="arcade"][data-mode="dark"] .mb-text { background: repeating-linear-gradient(180deg, var(--ar-px) 0 1px, transparent 1px 3px); }
+:root[data-skin="arcade"] .lv-month strong { text-transform: uppercase; font-weight: 900; letter-spacing: 0.02em; }
 :root[data-skin="arcade"] .mb-mood { font-weight: 900; text-shadow: none; }
 :root[data-skin="arcade"][data-mode="dark"] .mb-mood { text-shadow: 2px 2px 0 var(--ar-ts); }
 :root[data-skin="arcade"] .mb-eyebrow::before { content: "★"; content: "★" / ""; color: var(--ar-3); }

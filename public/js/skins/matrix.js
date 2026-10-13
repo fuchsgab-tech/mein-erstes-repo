@@ -123,8 +123,8 @@ export function scene(p, kit) {
               // manche Zeichen wechseln ab und zu
               if (!(hs & 0x700)) gi = (gi + Math.floor(t * 1.4 + (hs >>> 22) / 1024)) % N;
               const y = r * ch + ch / 2;
-              // hinter der Titelzeile ist die nahe Ebene gedämpft
-              const a1 = li === 2 && y < 72 ? a0 * 0.55 : a0;
+              // hinter der Titelzeile ist der Regen gedämpft, die nahe Ebene am stärksten
+              const a1 = y < 72 ? a0 * (li === 2 ? 0.45 : 0.7) : a0;
               if (s) {
                 const f = 1 - s / len;
                 const a = a1 * f * f;

@@ -168,9 +168,14 @@
 :root[data-skin="matrix"] .seg button.on { color: var(--accent); box-shadow: inset 0 0 0 1px var(--line-2), 0 0 12px -4px var(--mx-glow); background: var(--surface-2); }
 :root[data-skin="matrix"] .mini-grid button.today { text-shadow: 0 0 10px var(--mx-glow); }
 :root[data-skin="matrix"] :is(.item, .search-box) { border-color: var(--line-2); }
-:root[data-skin="matrix"] .item { background: color-mix(in srgb, var(--surface) 88%, transparent); }
+:root[data-skin="matrix"] .item { background: color-mix(in srgb, var(--surface) 92%, transparent); }
 /* Bedienelemente oben bekommen einen ruhigen Grund, damit der Regen nicht durch die Schrift läuft */
 :root[data-skin="matrix"] :is(.topbar .seg, .topbar .today-btn) { background: color-mix(in srgb, var(--surface) 88%, transparent); box-shadow: inset 0 0 0 1px var(--line); }
+/* Vergangenes bleibt blass, die Karte selbst aber dicht – sonst regnet es durch die Schrift */
+/* Die Suche bleibt beim Blättern oben stehen – ohne Unschärfe braucht sie einen dichten Grund */
+:root[data-skin="matrix"] .lv-search .search-box { background: var(--surface); }
+:root[data-skin="matrix"] .item.past { opacity: 1; }
+:root[data-skin="matrix"] .item.past > * { opacity: 0.55; }
 :root[data-skin="matrix"] .item:hover { box-shadow: 0 0 0 1px var(--accent), 0 0 22px -8px var(--mx-glow); }
 :root[data-skin="matrix"] .sheet { position: relative; box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow-lg); }
 :root[data-skin="matrix"] .toast { box-shadow: inset 2px 0 0 var(--toast-icon), var(--shadow-lg); font-family: var(--font-mono); }
@@ -216,20 +221,22 @@
 :root[data-skin="matrix"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
 :root[data-skin="matrix"] .meter > i { box-shadow: 0 0 10px var(--c); }
 
-/* ---------- Monatsbanner: Jahreszeitenbild in Phosphorgrün ---------- */
+/* ---------- Monatsbanner: Jahreszeitenbild in Phosphorgrün (Stellschrauben aus calendar.css) ---------- */
 
-:root[data-skin="matrix"] .mb {
-  border-bottom-color: var(--line-2);
-  background-image: linear-gradient(100deg, transparent 16%, color-mix(in srgb, var(--accent) 9%, transparent) 52%, color-mix(in srgb, var(--accent) 20%, transparent));
+:root[data-skin="matrix"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 46%; --mb-sky-k: 58%;
+  --mb-art-filter: grayscale(1) contrast(1.12) brightness(1.04); --mb-art-opacity: 0.8;
+  --mb-tint: linear-gradient(100deg, transparent 26%, color-mix(in srgb, var(--accent) 52%, transparent) 60%, color-mix(in srgb, var(--accent) 66%, transparent));
+  --mb-tint-blend: color; --mb-edge: color-mix(in srgb, var(--accent) 60%, transparent); --mb-fx-accent: 0.85;
 }
-:root[data-skin="matrix"] :is(.mb-art, .mb-sky) { filter: grayscale(1) sepia(1) hue-rotate(68deg) saturate(2.6) brightness(0.92); }
-:root[data-skin="matrix"][data-mode="dark"] :is(.mb-art, .mb-sky) { filter: grayscale(1) sepia(1) hue-rotate(68deg) saturate(3.2) brightness(0.62) contrast(1.15); }
-:root[data-skin="matrix"] .mb::after {
-  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    linear-gradient(90deg, var(--card) 20%, transparent 70%),
-    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px);
+:root[data-skin="matrix"][data-mode="dark"] :is(.mb, .lv-month) {
+  /* dunkel: das Bild selbst wird grün eingefärbt – ein kräftiger Farbschleier leuchtete über dem fast durchsichtigen Himmel zu hell */
+  --mb-sky-accent: 40%; --mb-sky-k: 13%; --mb-art-opacity: 0.95;
+  --mb-art-filter: grayscale(1) sepia(1) hue-rotate(68deg) saturate(3.2) contrast(1.15) brightness(0.62);
+  --mb-tint: linear-gradient(100deg, transparent 36%, color-mix(in srgb, var(--accent) 12%, transparent) 72%, color-mix(in srgb, var(--accent) 18%, transparent));
+  --mb-tint-blend: normal; --mb-edge: var(--accent); --mb-fx-accent: 1;
 }
+:root[data-skin="matrix"] .mb { border-bottom-color: var(--line-2); }
 :root[data-skin="matrix"] .mb-mood { font-weight: 700; letter-spacing: -0.03em; }
 :root[data-skin="matrix"] .mb-eyebrow::before { content: ">"; content: ">" / ""; color: var(--accent); }
 :root[data-skin="matrix"] .mb-chip { border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 12px; backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--card); }
@@ -253,7 +260,7 @@
 :root[data-skin="matrix"] .sky .date { color: var(--text-2); opacity: 1; font-family: var(--font-mono); }
 :root[data-skin="matrix"] .sky-pill {
   border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 12.5px;
-  background: color-mix(in srgb, var(--accent) 9%, transparent); border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 38%, transparent);
 }
 /* Regenspuren rechts im Kopfbereich (doppelt so hoch, damit das Wandern nahtlos ist) */
 :root[data-skin="matrix"] .sky-art { overflow: hidden; }
@@ -288,6 +295,12 @@
   :root[data-skin="matrix"] .tab.on .tab-ic { border-radius: var(--r-sm); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 16px -6px var(--mx-glow); }
   :root[data-skin="matrix"] .tab.on { text-shadow: 0 0 10px var(--mx-glow); }
   :root[data-skin="matrix"] .mb-chip { font-size: 11px; }
+  /* schmal: der Regen im Kopfbereich bleibt rechts neben der Schrift */
+  :root[data-skin="matrix"] .sky-art::before { width: 30%; opacity: 0.45; }
+  /* im flachen Banner liegen die Hügel direkt hinter der Schrift – dunkler halten */
+  :root[data-skin="matrix"][data-mode="dark"] .mb { --mb-art-filter: grayscale(1) sepia(1) hue-rotate(68deg) saturate(3) contrast(1.1) brightness(0.42); }
+  /* der Titel schneidet überstehendes ab – Platz für das Leuchten, ohne dass sich etwas verschiebt */
+  :root[data-skin="matrix"] .topbar .title { padding: 8px 10px; margin: -8px 0 -8px -10px; text-shadow: 0 0 12px var(--mx-glow); }
 }
 
 @keyframes mx-roll { to { transform: translateY(160vh); } }

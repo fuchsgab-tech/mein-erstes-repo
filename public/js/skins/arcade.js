@@ -172,6 +172,8 @@ export function scene(p, kit) {
         dotStart: sw + 20,
         coinX: wide ? [sw + 6, W - 26] : [6, W - 22],
         dot: rgba(mix(p.d, p.c, 0.3), 1),
+        // Flotte und Gespenster liegen oft hinter Überschriften der Liste – im Hellen etwas leiser
+        fleetA: (p.dark ? 0.36 : 0.2) * k,
       };
     },
 
@@ -195,10 +197,10 @@ export function scene(p, kit) {
 
       const L = lay;
       // gedämpft, damit Schrift davor ruhig lesbar bleibt (in der Liste liegt sie direkt darüber)
-      const fa = (p.dark ? 0.36 : 0.3) * k;
+      const fa = (p.dark ? 0.36 : 0.24) * k;
 
       // Flotte marschiert hin und her und rückt nach jeder Runde ein Stück vor
-      const n = Math.floor(t / 0.55);
+      const n = Math.floor(t / 0.7);
       const sweep = Math.floor(n / L.steps);
       const pos = n % L.steps;
       const fx = L.x0 + (sweep % 2 ? L.steps - pos : pos) * 3 * s;
@@ -207,7 +209,7 @@ export function scene(p, kit) {
       for (let r = 0; r < 3; r++) {
         const sp = spr.fleet[r][fr];
         const off = r === 0 ? 2 * s : r === 1 ? 0.5 * s : 0;
-        for (let c = 0; c < L.cols; c++) put(sp, fx + c * L.gx + off, fy + r * L.gy, fa);
+        for (let c = 0; c < L.cols; c++) put(sp, fx + c * L.gx + off, fy + r * L.gy, L.fleetA);
       }
 
       // Ufo fliegt ab und zu oben vorbei
@@ -229,7 +231,7 @@ export function scene(p, kit) {
       const mf = [0, 1, 2, 1][Math.floor(t * 10) % 4];
       put(spr.chomp[mf], cx - 6.5 * s, L.lane - 6.5 * s, fa * 1.1);
       const gf = Math.floor(t * 6) % 2;
-      for (let i = 0; i < 3; i++) put(spr.ghost[i][gf], cx - (26 + i * 18) * s, L.lane - 7 * s + Math.sin(t * 5 + i) * s, fa);
+      for (let i = 0; i < 3; i++) put(spr.ghost[i][gf], cx - (26 + i * 18) * s, L.lane - 7 * s + Math.sin(t * 5 + i) * s, L.fleetA);
 
       // Münzen steigen an den Rändern auf und drehen sich
       for (let i = 0; i < 4; i++) {

@@ -182,7 +182,7 @@ export function scene(p, kit) {
 
   function mixInk() { return kit.mix(ink, p.c, 0.35); }
 
-  const MAX = 72;
+  const MAX = 84;
   const X = new Float32Array(MAX);
   const Y = new Float32Array(MAX);
   const Z = new Float32Array(MAX);
@@ -195,6 +195,30 @@ export function scene(p, kit) {
   const T = new Uint8Array(MAX);
   let n = 0;
   let base = null;
+  let full = true;
+  // Stellen (Rechtecke in CSS-Pixeln), die im nächsten Bild aus der ruhenden Ebene erneuert werden
+  const MAXD = MAX + 8;
+  const DX = new Float32Array(MAXD);
+  const DY = new Float32Array(MAXD);
+  const DR = new Float32Array(MAXD);
+  const DB = new Float32Array(MAXD);
+  let nd = 0;
+  function mark(x0, y0, x1, y1) {
+    if (nd >= MAXD) {
+      // zu viele: alles in das letzte Rechteck fassen
+      const i = MAXD - 1;
+      DX[i] = Math.min(DX[i], x0);
+      DY[i] = Math.min(DY[i], y0);
+      DR[i] = Math.max(DR[i], x1);
+      DB[i] = Math.max(DB[i], y1);
+      return;
+    }
+    DX[nd] = x0;
+    DY[nd] = y0;
+    DR[nd] = x1;
+    DB[nd] = y1;
+    nd++;
+  }
   let lamps = [];
   let sw = 0;
 
@@ -253,24 +277,24 @@ export function scene(p, kit) {
     }
 
     // Sonne (hell) bzw. Mond (dunkel)
-    const sx = sw + cw * (wide ? 0.66 : 0.6);
-    const sy = H * (wide ? 0.33 : 0.27);
-    const sr = Math.min(cw, H) * (wide ? 0.19 : 0.3) * (dark ? 0.62 : 1);
+    const sx = sw + cw * (wide ? 0.68 : 0.74);
+    const sy = H * (wide ? 0.31 : 0.2);
+    const sr = Math.min(cw, H) * (wide ? 0.18 : 0.21) * (dark ? 0.66 : 1);
     const halo = g.createRadialGradient(sx, sy, sr * 0.8, sx, sy, sr * (dark ? 3.4 : 2));
     halo.addColorStop(0, rgba(p.s1, (dark ? 0.26 : 0.2) * k));
     halo.addColorStop(1, rgba(p.s1, 0));
     g.fillStyle = halo;
     g.fillRect(sx - sr * 3.5, sy - sr * 3.5, sr * 7, sr * 7);
     const disc = g.createRadialGradient(sx - sr * 0.25, sy - sr * 0.3, sr * 0.1, sx, sy, sr);
-    disc.addColorStop(0, rgba(kit.mix(p.s1, [255, 255, 255], dark ? 0.6 : 0.18), (dark ? 1 : 0.8) * k));
-    disc.addColorStop(1, rgba(p.s1, (dark ? 0.95 : 0.72) * k));
+    disc.addColorStop(0, rgba(kit.mix(p.s1, [255, 255, 255], dark ? 0.6 : 0.18), (dark ? 0.66 : 0.62) * k));
+    disc.addColorStop(1, rgba(p.s1, (dark ? 0.52 : 0.5) * k));
     g.fillStyle = disc;
     g.beginPath();
     g.arc(sx, sy, sr, 0, TAU);
     g.fill();
     if (dark) {
       // Mondflecken
-      g.fillStyle = rgba(kit.mix(p.s1, [150, 140, 170], 0.5), 0.22);
+      g.fillStyle = rgba(kit.mix(p.s1, [150, 140, 170], 0.5), 0.16);
       for (const [dx, dy, r] of [[-0.3, -0.15, 0.28], [0.22, 0.2, 0.2], [0.05, -0.4, 0.14], [0.38, -0.12, 0.1]]) {
         g.beginPath();
         g.arc(sx + dx * sr, sy + dy * sr, r * sr, 0, TAU);
@@ -356,9 +380,9 @@ export function scene(p, kit) {
     // Zweig vom rechten Rand mit Blütenbüscheln
     const flowers = [];
     const hangs = [];
-    const by = wide ? 96 : 78;
-    const len = wide ? Math.min(cw * 0.52, 660) : W * 0.74;
-    const bw = wide ? 13 : 8.5;
+    const by = wide ? 66 : 46;
+    const len = wide ? Math.min(cw * 0.46, 600) : W * 0.56;
+    const bw = wide ? 12 : 7;
     g.lineCap = 'round';
     g.strokeStyle = rgba(dark ? ink : kit.mix(ink, [70, 40, 40], 0.3), dark ? 1 : 0.85 * k);
     const brnd = kit.seeded(808 + (wide ? 0 : 3));
@@ -390,21 +414,21 @@ export function scene(p, kit) {
       for (let j = 0; j < m; j++) flowers.push([x + brnd(-11, 11), y + brnd(-11, 9), brnd(0.85, 1.2), brnd(0, TAU)]);
     };
     limb(W + 14, by, Math.PI - 0.08, len, bw, 0);
-    limb(W + 14, by + (wide ? 70 : 46), Math.PI + 0.32, len * 0.45, bw * 0.6, 1);
+    limb(W + 14, by + (wide ? 70 : 40), Math.PI + 0.32, len * 0.45, bw * 0.6, 1);
 
-    const fs = wide ? 24 : 18;
+    const fs = wide ? 24 : 16;
     if (dark) {
       // Blüten fangen das Laternenlicht
       g.globalCompositeOperation = 'lighter';
       for (const [x, y] of flowers) {
-        g.globalAlpha = 0.16;
+        g.globalAlpha = 0.09;
         g.drawImage(glint, x - fs * 1.4, y - fs * 1.4, fs * 2.8, fs * 2.8);
       }
       g.globalCompositeOperation = 'source-over';
     }
     for (const [x, y, s, a] of flowers) {
       g.save();
-      g.globalAlpha = (dark ? 0.95 : 0.92) * Math.min(1, k + 0.1);
+      g.globalAlpha = (dark ? 0.72 : 0.78) * Math.min(1, k + 0.1);
       g.translate(x, y);
       g.rotate(a);
       g.drawImage(BLOOM, (-fs * s) / 2, (-fs * s) / 2, fs * s, fs * s);
@@ -423,6 +447,16 @@ export function scene(p, kit) {
         if (lamps.some((l) => Math.abs(l.x - hp[0]) < (wide ? 120 : 80))) continue;
         lamps.push({ x: hp[0], y: hp[1], len: rl(wide ? 40 : 30, wide ? 120 : 80), ph: rl(0, TAU), s: wide ? rl(0.95, 1.2) : rl(0.75, 0.9) });
       }
+      // großes Leuchten ruht im Hintergrund, nur ein kleiner Schein flackert mit
+      g.globalCompositeOperation = 'lighter';
+      g.globalAlpha = 0.42 * k;
+      for (const l of lamps) {
+        const gy = l.y + l.len + (lamp.top + 20) * l.s;
+        const gr = 150 * l.s;
+        g.drawImage(lampGlow, l.x - gr, gy - gr, gr * 2, gr * 2);
+      }
+      g.globalCompositeOperation = 'source-over';
+      g.globalAlpha = 1;
     }
 
     // über der Seitenleiste nur halb so kräftig
@@ -433,6 +467,8 @@ export function scene(p, kit) {
       g.globalCompositeOperation = 'source-over';
     }
   }
+
+  const rand01 = (a = 0, b = 1) => a + Math.random() * (b - a);
 
   // Wind: leichte Brise, alle 16 s eine Böe, die als Welle von links nach rechts durchzieht
   const CYCLE = 16;
@@ -456,49 +492,71 @@ export function scene(p, kit) {
       const { W, H } = kit;
       sw = kit.sideW();
       paint();
-      n = clamp(Math.round((W * H) / 15000), 18, MAX);
+      full = true;
+      nd = 0;
+      n = clamp(Math.round((W * H) / 13000), 22, MAX);
       const rnd = kit.seeded(2026);
       for (let i = 0; i < n; i++) spawn(i, rnd, rnd(-0.05, 1) * H);
     },
 
     frame(t, dt) {
       const { ctx, W, H, dpr } = kit;
-      ctx.clearRect(0, 0, W, H);
-      ctx.drawImage(base.c, 0, 0, W, H);
+      const bw = base.c.width;
+      const bh = base.c.height;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (!dt || full) {
+        // ganzes Bild (Standbild, nach Größenänderung)
+        ctx.clearRect(0, 0, bw, bh);
+        ctx.drawImage(base.c, 0, 0);
+        full = false;
+      } else {
+        // sonst nur die Stellen, an denen im letzten Bild etwas Bewegtes lag
+        for (let i = 0; i < nd; i++) {
+          const x0 = Math.max(0, Math.floor(DX[i] * dpr));
+          const y0 = Math.max(0, Math.floor(DY[i] * dpr));
+          const x1 = Math.min(bw, Math.ceil(DR[i] * dpr));
+          const y1 = Math.min(bh, Math.ceil(DB[i] * dpr));
+          if (x1 <= x0 || y1 <= y0) continue;
+          ctx.clearRect(x0, y0, x1 - x0, y1 - y0);
+          ctx.drawImage(base.c, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+        }
+      }
+      nd = 0;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       wind(t);
       const sig = Math.max(220, W * 0.26);
 
       // Laternen: leises Pendeln und Flackern
-      if (lamps.length) {
-        for (const l of lamps) {
-          const lw = lamp.w * l.s;
-          const lh = lamp.h * l.s;
-          const gust = env * Math.exp(-(((l.x - front) / sig) ** 2));
-          const a = 0.05 * Math.sin(t * 0.8 + l.ph) + 0.16 * gust * Math.sin(t * 3 + l.ph);
-          const c = Math.cos(a);
-          const s = Math.sin(a);
-          const fl = 0.82 + 0.1 * Math.sin(t * 2.3 + l.ph) + 0.06 * Math.sin(t * 7.3 + l.ph * 3);
-          const L = l.len;
-          const ly = L + (lamp.top + 20) * l.s;
-          const gx = l.x - s * ly;
-          const gy = l.y + c * ly;
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.globalAlpha = 0.5 * fl * k;
-          const gr = 150 * l.s;
-          ctx.drawImage(lampGlow, gx - gr, gy - gr, gr * 2, gr * 2);
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.setTransform(dpr * c, dpr * s, -dpr * s, dpr * c, dpr * l.x, dpr * l.y);
-          ctx.globalAlpha = 0.75 * k;
-          ctx.strokeStyle = 'rgba(30, 18, 30, 1)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(0, L + lamp.top * l.s);
-          ctx.stroke();
-          ctx.globalAlpha = (0.85 + fl * 0.15) * k;
-          ctx.drawImage(lamp.c, -lw / 2, L, lw, lh);
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        }
+      for (const l of lamps) {
+        const lw = lamp.w * l.s;
+        const lh = lamp.h * l.s;
+        const gust = env * Math.exp(-(((l.x - front) / sig) ** 2));
+        const a = 0.05 * Math.sin(t * 0.8 + l.ph) + 0.16 * gust * Math.sin(t * 3 + l.ph);
+        const c = Math.cos(a);
+        const s = Math.sin(a);
+        const fl = 0.82 + 0.1 * Math.sin(t * 2.3 + l.ph) + 0.06 * Math.sin(t * 7.3 + l.ph * 3);
+        const L = l.len;
+        const ly = L + (lamp.top + 20) * l.s;
+        const gx = l.x - s * ly;
+        const gy = l.y + c * ly;
+        const gr = 46 * l.s;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.55 * fl * k;
+        ctx.drawImage(lampGlow, gx - gr, gy - gr, gr * 2, gr * 2);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.setTransform(dpr * c, dpr * s, -dpr * s, dpr * c, dpr * l.x, dpr * l.y);
+        ctx.globalAlpha = 0.75 * k;
+        ctx.strokeStyle = 'rgba(30, 18, 30, 1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, L + lamp.top * l.s);
+        ctx.stroke();
+        ctx.globalAlpha = (0.85 + fl * 0.15) * k;
+        ctx.drawImage(lamp.c, -lw / 2, L, lw, lh);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const ex = Math.max(gr, lw * 0.6, lh * 0.6) + 3;
+        mark(Math.min(l.x, gx) - ex, l.y - 2, Math.max(l.x, gx) + ex, gy + ex);
       }
 
       // Windspuren während der Böe
@@ -506,15 +564,17 @@ export function scene(p, kit) {
         ctx.globalCompositeOperation = p.blend;
         for (let i = 0; i < 3; i++) {
           ctx.globalAlpha = env * (dark ? 0.22 : 0.16) * k * (1 - i * 0.2);
+          const x = front - 160 - i * 90;
           const y = H * (0.18 + i * 0.27) + Math.sin(t * 0.7 + i * 2) * 30;
-          ctx.drawImage(streak, front - 160 - i * 90, y, 320 + i * 60, 40);
+          const w = 320 + i * 60;
+          ctx.drawImage(streak, x, y, w, 40);
+          mark(x - 1, y - 1, x + w + 1, y + 41);
         }
         ctx.globalCompositeOperation = 'source-over';
       }
 
       // Blütenblätter
       const still = !dt;
-      const rnd = Math.random;
       for (let i = 0; i < n; i++) {
         const z = Z[i];
         if (!still) {
@@ -524,7 +584,7 @@ export function scene(p, kit) {
           Y[i] += (VY[i] * (1 - loc * 0.55) - loc * 16) * dt;
           R[i] += VR[i] * (1 + loc * 3) * dt;
           F[i] += VF[i] * (1 + loc * 1.5) * dt;
-          if (Y[i] > H + 24) spawn(i, (a = 0, b = 1) => a + rnd() * (b - a), -20);
+          if (Y[i] > H + 24) spawn(i, rand01, -20);
           else if (X[i] > W + 30) X[i] = -30;
           else if (X[i] < -40) X[i] = W + 30;
         }
@@ -532,7 +592,7 @@ export function scene(p, kit) {
         const y = Y[i];
         const fc = Math.cos(F[i]);
         const fl = fc < 0 ? Math.min(-0.18, fc) : Math.max(0.18, fc);
-        const sz = (T[i] ? 21 : 13) * (0.5 + z * 0.62);
+        const sz = (T[i] ? 25 : 17) * (0.5 + z * 0.62);
         let a = (0.35 + z * 0.6) * k * (0.6 + 0.4 * Math.abs(fl));
         if (x < sw) a *= 0.4;
         const c = Math.cos(R[i]) * sz;
@@ -540,6 +600,7 @@ export function scene(p, kit) {
         ctx.setTransform(dpr * c, dpr * s, -dpr * s * fl, dpr * c * fl, dpr * x, dpr * y);
         ctx.globalAlpha = a;
         ctx.drawImage(T[i] ? BLOOM : PET[fc < 0 ? 1 : 0], -0.5, -0.5, 1, 1);
+        let ex = sz * 0.72 + 2;
         // nachts blitzen die Blätter kurz auf, wenn sie zum Licht drehen
         if (dark && z > 0.7 && fc > 0.93 && x >= sw) {
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -547,7 +608,9 @@ export function scene(p, kit) {
           ctx.globalAlpha = (fc - 0.93) * 6 * k;
           ctx.drawImage(glint, x - sz * 1.3, y - sz * 1.3, sz * 2.6, sz * 2.6);
           ctx.globalCompositeOperation = 'source-over';
+          ex = sz * 1.3 + 2;
         }
+        mark(x - ex, y - ex, x + ex, y + ex);
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.globalAlpha = 1;
