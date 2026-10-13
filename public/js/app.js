@@ -489,8 +489,8 @@ function render() {
     els.view.firstElementChild?.classList.add(`slide-${slide}`);
     slide = null;
   }
-  if (activeId === 'search') {
-    const s = document.getElementById('search');
+  if (activeId === 'search' || activeId === 'quick-add') {
+    const s = document.getElementById(activeId);
     s?.focus();
     s?.setSelectionRange(s.value.length, s.value.length);
   }

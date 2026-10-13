@@ -56,6 +56,9 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
 
 ### Kalender
 - **Monat, Woche, Liste** mit Suche – plus Mini-Kalender
+- **✨ Schnell eintragen**: Einfach schreiben, wie man es sagt – „Fr 19 Uhr Pizza bei Max“ wird ein fertiger Termin mit Tag, Uhrzeit, Ort und 🍕. Die Leiste steht in „Heute“ und oben in der Liste: Enter zeigt eine kleine Vorschau, noch einmal Enter (oder „Eintragen“) legt den Termin an, mit „Rückgängig“. „Bearbeiten“ öffnet das Termin-Fenster schon ausgefüllt. Auch dort steht das Feld ganz oben und füllt beim Tippen alle Felder darunter
+  - Versteht z. B. „heute Abend“, „morgen um 7“, „übermorgen“, „Mo“ bis „So“, „nächsten Freitag“, „am Wochenende“, „24.10.“, „24. Oktober“, „in 2 Wochen“, „19:30“, „halb 8“, „viertel nach 6“, „um 7 abends“, „18-20 Uhr“, „von 18 bis 20:30“, „2 Stunden“, „90 min“, „ganztägig“, „jeden Dienstag“, „alle 2 Wochen“, „jährlich“, „bei Max“, „im Café Lotte“, „@ Sportplatz“ und den Kalender mit „#WG“
+  - Nur ein Datum („Omas Geburtstag 14.11.“) ergibt einen ganztägigen Termin. Ist eine Uhrzeit heute schon vorbei und kein Tag genannt, ist morgen gemeint
 - **Lebendige Monatsansicht**: Ein Banner zur Jahreszeit (fallende Blätter im Herbst, Schnee im Winter …) mit dem nächsten Termin und den Zahlen des Monats, Emojis an den Terminen, Geburtstage hervorgehoben, ein roter Live-Punkt an allem, was gerade läuft, und ein Tagesfortschritt am heutigen Tag
 - **Woche und Liste** mit „Jetzt“-Linie, leicht schraffierten vergangenen Stunden und Terminfarben zum Durchblättern
 - **Emojis überall**: Passende Emojis zu Termintiteln (Pizza → 🍕, Zahnarzt → 🦷), auch ohne Emoji im Titel. Beim Anlegen gibt es eine Emoji-Auswahl und Vorschläge
@@ -148,7 +151,7 @@ Die App benutzt keine Tracker, keine Werbung und lädt keine fremden Schriften o
 npm test
 ```
 
-Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung, z. B. die Wochenansicht am 25. Oktober), die Wiederholungsregeln, die Emoji-Vorschläge, das sichere Speichern mit Sicherungskopien, die Link-Vorschau, „Wann habt ihr Zeit?“ (wer wen sehen darf, Serien, Urlaub, Privatsphäre) und die API mit Einladungen, Anmelde-Codes, Zusagen pro Termin, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
+Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung, z. B. die Wochenansicht am 25. Oktober), die Wiederholungsregeln, die Emoji-Vorschläge, die Schnell-Eingabe (über 100 Sätze, auch knifflige wie „so ein Tag“ oder „Kaffee mit Mo“), das sichere Speichern mit Sicherungskopien, die Link-Vorschau, „Wann habt ihr Zeit?“ (wer wen sehen darf, Serien, Urlaub, Privatsphäre) und die API mit Einladungen, Anmelde-Codes, Zusagen pro Termin, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
 
 ## So ist das Projekt aufgebaut
 
@@ -169,11 +172,14 @@ public/
   css/calendar.css    Die lebendige Monats-, Wochen- und Listenansicht
   css/caldav.css      Der iPhone-Import
   css/finder.css      „Wann habt ihr Zeit?“
+  css/quick.css       „Schnell eintragen“
   js/app.js       Start, Seitenleiste, Navigation, Live-Updates
   js/dashboard.js Übersicht „Heute“ mit Himmel, Countdown und Grafiken
   js/finder.js    „Wann habt ihr Zeit?“: freie Zeit mit Freunden finden
   js/views.js     Monats-, Wochen- und Listenansicht, Ziehen & Ablegen
   js/emoji-hints.js  Passende Emojis zu Termintiteln
+  js/quick-parse.js  Versteht „Fr 19 Uhr Pizza bei Max“ (ohne Bildschirm, auch für die Tests)
+  js/quick-add.js    Schnell-Eingabe: Leiste mit Vorschau und erkannte Teile als Chips
   js/sheets.js    Fenster: Termin, Editor, Kalender, Import, Profil, Neuigkeiten, Design, „Wähl deinen Look“
   js/themes.js    Designs und persönliche Einstellungen
   js/bgfx.js      Bewegte Hintergründe der Live-Stile

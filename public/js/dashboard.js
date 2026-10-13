@@ -8,6 +8,7 @@ import { addDays, daysBetween, isoWeek, sameDay, startOfDay, startOfWeek } from 
 import { avatarStack } from './ui.js';
 import { feedItem, openActivity, openDay, openEditor, openEvent, openInvitePicker } from './sheets.js';
 import { hasFriends, openFinder } from './finder.js';
+import { quickBar } from './quick-add.js';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const phaseOf = (hr) => (hr >= 5 && hr < 8 ? 'dawn' : hr >= 8 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night');
@@ -413,6 +414,7 @@ export function renderToday(container) {
   const dash = h('div.dash', { class: state.viewFresh ? 'anim' : '' },
     h('div.dash-grid', null,
       skyCard(now, today, ticks),
+      h('div.qa-dash.span-12', null, quickBar()),
       nextCard(now, today, ticks),
       todayCard(now, today),
       weekCard(today),

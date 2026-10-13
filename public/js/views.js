@@ -8,6 +8,7 @@ import { addDays, addMonths, dayFraction, dayMinutes, daysBetween, isoWeek, pars
 import { moveOccurrence, occItem, openDay, openEditor, openEvent } from './sheets.js';
 import { mountSeasonFx, seasonArt, seasonOf } from './season.js';
 import { suggestEmoji } from './emoji-hints.js';
+import { quickBar } from './quick-add.js';
 import { textOn } from './ui.js';
 
 const isNarrow = () => matchMedia('(max-width: 760px)').matches;
@@ -786,7 +787,7 @@ export function renderList(container) {
     },
   });
   const body = h('div.lv-body');
-  const view = h('div.lv', null, h('div.lv-search', null, h('label.search-box', null, icon('search', 18), searchInput)), body);
+  const view = h('div.lv', null, h('div.lv-quick', null, quickBar()), h('div.lv-search', null, h('label.search-box', null, icon('search', 18), searchInput)), body);
   container.replaceChildren(view);
 
   function drawBody() {

@@ -11,6 +11,7 @@ import {
 } from './state.js';
 import { DEFAULT_PREFS, SKINS, prefs, resolvedMode, setPrefs } from './themes.js';
 import { openFinder } from './finder.js';
+import { parseNow, quickChips, swapChips } from './quick-add.js';
 import { addDays, daysBetween, localTz, pad, parseYmd, startOfDay, ymd } from './time.js';
 import {
   avatar, avatarStack, busy, chooseDialog, confirmDialog, copyText, errorToast, field, openSheet, segmented,
@@ -486,7 +487,7 @@ async function deleteEvent(ev, o) {
 
 // ---------- Termin bearbeiten / anlegen ----------
 
-export function openEditor({ ev = null, occ = null, date = null, hour = null, start = null, end = null, calendarId = null, onSaved = null } = {}) {
+export function openEditor({ ev = null, occ = null, date = null, hour = null, start = null, end = null, calendarId = null, onSaved = null, quick = '' } = {}) {
   if (!state.calendars.length) {
     toast('Lege zuerst einen Kalender an.');
     openNewCalendar();
@@ -541,7 +542,6 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, st
     placeholder: 'Was steht an?',
     value: f.title,
     maxlength: 200,
-    autofocus: !editing,
     'aria-label': 'Titel',
     oninput: () => {
       // Emoji vorne eingetippt? Dann wandert es in den runden Knopf
@@ -706,17 +706,101 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, st
   const locInput = h('input.input', { value: f.location, placeholder: 'Adresse oder Treffpunkt', maxlength: 300, oninput: () => (f.location = locInput.value) });
   const notesInput = h('textarea.input', { placeholder: 'Was sollte man wissen?', maxlength: 5000, oninput: () => (f.notes = notesInput.value) }, f.notes);
 
+  const allDayToggle = toggle('Ganztägig', f.allDay, (v) => {
+    f.allDay = v;
+    form.classList.toggle('all-day', v);
+    keepDur = v ? Math.max(0, daysBetween(parseYmd(f.startDate), parseYmd(f.endDate))) * 864e5 : 3600e3;
+    shiftEnd();
+  });
+
+  // ---------- ✨ Schnell eintragen: Text tippen, die Felder darunter füllen sich ----------
+  const base = { ...f };
+  const baseEmoji = emoji;
+  const quickChipRow = h('div.qa-chips', { 'aria-live': 'polite' });
+  const quickInput = h('input.input.qa-input', {
+    type: 'text',
+    value: quick,
+    placeholder: 'z. B. „Fr 19 Uhr Pizza bei Max“',
+    autocomplete: 'off',
+    autocapitalize: 'sentences',
+    spellcheck: 'false',
+    enterkeyhint: 'done',
+    maxlength: 300,
+    autofocus: true,
+    'aria-label': 'Schnell eintragen',
+    oninput: () => applyQuick(),
+    onkeydown: (e) => e.key === 'Enter' && !e.isComposing && save(saveBtn),
+  });
+  function applyQuick() {
+    const text = quickInput.value;
+    const { notes, color } = f;
+    Object.assign(f, base, { notes, color });
+    let em = baseEmoji;
+    const p = text.trim() ? parseNow(text) : null;
+    if (p) {
+      const kinds = new Set(p.matched.map((m) => m.kind));
+      const ownTime = kinds.has('time') || kinds.has('duration');
+      // Ohne Datum im Text gilt der Tag, für den der Editor geöffnet wurde
+      const ownDate = kinds.has('date') || !!p.rrule || base.startDate === ymd(new Date());
+      const day = ownDate ? startOfDay(p.start) : parseYmd(base.startDate);
+      f.title = p.title;
+      em = p.emoji || '';
+      if (p.calendarId) f.calendarId = p.calendarId;
+      if (p.location) f.location = p.location;
+      if (p.rrule) ({ pattern: f.repeat, until: f.until } = splitRrule(p.rrule));
+      f.allDay = p.allDay;
+      if (p.allDay) {
+        f.startDate = ymd(day);
+        f.endDate = ymd(addDays(day, daysBetween(startOfDay(p.start), startOfDay(p.end))));
+      } else {
+        let s = toDate(ymd(day), base.startTime);
+        let dur = toDate(base.endDate, base.endTime) - s;
+        if (ownTime) {
+          s = ownDate ? p.start : toDate(ymd(day), hm(p.start));
+          dur = p.end - p.start;
+        }
+        const e = new Date(s.getTime() + dur);
+        Object.assign(f, { startDate: ymd(s), startTime: hm(s), endDate: ymd(e), endTime: hm(e) });
+      }
+    }
+    keepDur = Math.max(0, durMs());
+    // Felder nachziehen
+    titleInput.value = f.title;
+    titleInput.classList.remove('shake');
+    allDayToggle.querySelector('input').checked = f.allDay;
+    form.classList.toggle('all-day', f.allDay);
+    sDate.value = f.startDate;
+    sTime.value = f.startTime;
+    eDate.value = f.endDate;
+    eTime.value = f.endTime;
+    if (f.repeat && !presets.some((x) => x.id === f.repeat)) presets.push({ id: f.repeat, custom: true });
+    updateRepeatLabels();
+    repeatSel.value = f.repeat;
+    untilInput.value = f.until;
+    untilInput.min = f.startDate;
+    untilField.hidden = !f.repeat;
+    locInput.value = f.location;
+    drawChips();
+    drawColors();
+    setEmoji(em);
+    const chips = p ? quickChips(p) : [];
+    swapChips(quickChipRow, (chips.length ? chips : [h('span.qa-tip', null, p
+      ? 'Tipp: Tag, Uhrzeit, Ort („bei Max“), „jeden Dienstag“ oder #Kalender dazuschreiben'
+      : 'Datum, Uhrzeit, Ort, Wiederholung und #Kalender werden erkannt')]));
+  }
+  const quickBox = editing ? null : h('div.qa-editor', null,
+    h('label.qa-label', null, h('span', { 'aria-hidden': 'true' }, '✨'), 'Schnell eintragen'),
+    quickInput,
+    quickChipRow,
+  );
+
   const form = h('div.editor', { class: f.allDay ? 'all-day' : '' },
+    quickBox,
     h('div.title-row', null, emojiBtn, titleInput),
     suggestBtn,
     emojiPop,
     field('Kalender', calChips),
-    h('div.field', null, toggle('Ganztägig', f.allDay, (v) => {
-      f.allDay = v;
-      form.classList.toggle('all-day', v);
-      keepDur = v ? Math.max(0, daysBetween(parseYmd(f.startDate), parseYmd(f.endDate))) * 864e5 : 3600e3;
-      shiftEnd();
-    })),
+    h('div.field', null, allDayToggle),
     h('div.grid-2', null,
       field('Beginn', h('div.dt', null, sDate, sTime)),
       field('Ende', h('div.dt', null, eDate, eTime)),
@@ -819,6 +903,7 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, st
   }
 
   const saveBtn = h('button.btn.primary', { onclick: () => save(saveBtn) }, icon('check', 18), editing ? 'Speichern' : 'Eintragen');
+  if (!editing) applyQuick();
   const sheet = openSheet({
     className: 'editor-sheet',
     isDirty: () => snapshot() !== initial,

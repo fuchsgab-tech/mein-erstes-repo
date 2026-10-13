@@ -1,0 +1,71 @@
+/* ---------- ✨ Schnell eintragen: Leiste in „Heute“ und Liste, Feld oben im Editor ---------- */
+
+.qa-box { gap: 10px; height: 50px; padding: 0 6px 0 14px; }
+.qa-box input { font-size: 16px; } /* ab 16px zoomt das iPhone nicht hinein */
+.qa-box input::placeholder { color: var(--text-3); }
+.qa-spark { flex: none; font-size: 18px; line-height: 1; }
+.qa-go {
+  flex: none; width: 38px; height: 38px; border-radius: calc(var(--r-lg) - 6px);
+  display: grid; place-items: center; color: var(--text-3);
+  transition: background 0.15s, color 0.15s, transform 0.25s var(--spring);
+}
+.qa-go:hover { color: var(--text); background: var(--surface-2); }
+.qa-go.on { background: var(--accent); color: var(--on-accent); }
+.qa-go.on:hover { transform: scale(1.06); }
+
+.qa-preview:empty { display: none; }
+.qa-card { margin-top: 10px; padding: 14px 16px 14px; }
+.qa-card.in { animation: qaIn 0.28s var(--ease) both; }
+.qa-title { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.qa-title strong {
+  font-family: var(--font-display); font-size: 18px; font-weight: 750; letter-spacing: -0.01em;
+  overflow-wrap: anywhere; min-width: 0;
+}
+.qa-title strong.muted { color: var(--text-3); font-family: inherit; font-size: 15px; font-weight: 600; letter-spacing: 0; }
+.qa-emoji {
+  flex: none; width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center;
+  font-size: 22px; background: var(--surface-2);
+}
+.qa-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.qa-keys { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+.qa-keys kbd {
+  font: inherit; font-weight: 700; padding: 1px 6px; border-radius: 6px;
+  color: var(--text-2); background: var(--surface-2); border: 1px solid var(--line-2);
+}
+
+/* Erkannte Teile */
+.qa-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; min-width: 0; }
+.qa-chip {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 28px; max-width: 100%; padding: 3px 10px;
+  border-radius: 14px; font-size: 13px; font-weight: 650; line-height: 1.25; color: var(--text);
+  background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.qa-chip.k-cal {
+  background: color-mix(in srgb, var(--c) 15%, transparent);
+  border-color: color-mix(in srgb, var(--c) 38%, transparent);
+}
+.qa-chip.new { animation: qaPop 0.32s var(--spring) both; }
+.qa-sym { flex: none; font-size: 14px; }
+.qa-tip { font-size: 12.5px; color: var(--text-3); line-height: 1.4; }
+
+/* Im Termin-Editor */
+.qa-editor {
+  margin: 0 0 18px; padding: 12px 14px 13px; border-radius: var(--r-lg);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 11%, transparent), color-mix(in srgb, var(--accent) 3%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+}
+.qa-label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 12.5px; font-weight: 700; color: var(--text-2); }
+.qa-input { font-size: 16px; }
+.qa-editor .qa-chips { margin-top: 9px; min-height: 28px; align-items: center; }
+
+/* Platz in den Ansichten */
+.lv-quick { padding: 2px 0 10px; }
+
+@keyframes qaIn { from { opacity: 0; transform: translateY(-6px) scale(0.99); } }
+@keyframes qaPop { from { opacity: 0; transform: scale(0.8); } }
+
+@media (max-width: 760px) {
+  .qa-card { padding: 13px 14px; }
+  .qa-actions .btn { flex: 1; justify-content: center; height: 40px; }
+  .qa-actions .grow { display: none; }
+}
