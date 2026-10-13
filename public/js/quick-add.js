@@ -71,6 +71,7 @@ export function quickPayload(p, calendarId) {
 // Text und offene Vorschau bleiben erhalten, wenn die Ansicht neu gezeichnet wird (Live-Updates)
 let draft = '';
 let previewOpen = false;
+let creating = false; // schnelles doppeltes Enter soll nicht zwei Termine anlegen
 
 export function quickBar() {
   const input = h('input', {
@@ -170,6 +171,7 @@ export function quickBar() {
   }
 
   async function create(btn) {
+    if (creating) return;
     const p = parseNow(draft);
     if (!p.title) return edit();
     const cal = calById(p.calendarId) || calById(defaultCalendarId());
@@ -177,6 +179,7 @@ export function quickBar() {
       toast('Lege zuerst einen Kalender an.');
       return;
     }
+    creating = true;
     await busy(btn, async () => {
       const { event } = await api('POST', '/api/events', quickPayload(p, cal.id));
       if (btn?.isConnected) burstFrom(btn, ['✨', '🎉', '🌿', '💫'], 12);
@@ -189,6 +192,7 @@ export function quickBar() {
       if (keepFocus) document.getElementById('quick-add')?.focus({ preventScroll: true });
       toast(`„${p.title}“ eingetragen`, { action: { label: 'Rückgängig', run: () => undo(event) } });
     });
+    creating = false;
   }
 
   drawPreview();

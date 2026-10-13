@@ -813,6 +813,7 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, st
   );
 
   async function save(btn) {
+    if (btn.disabled) return; // Enter während des Speicherns: kein zweiter Termin
     error.hidden = true;
     showPicker(false);
     if (!f.title.trim()) {
