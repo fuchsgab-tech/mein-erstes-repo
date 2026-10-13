@@ -10,6 +10,7 @@ import {
   initials, rememberCalendar, setHidden, state, visibleOccurrences,
 } from './state.js';
 import { DEFAULT_PREFS, SKINS, prefs, resolvedMode, setPrefs } from './themes.js';
+import { openFinder } from './finder.js';
 import { addDays, daysBetween, localTz, pad, parseYmd, startOfDay, ymd } from './time.js';
 import {
   avatar, avatarStack, busy, chooseDialog, confirmDialog, copyText, errorToast, field, openSheet, segmented,
@@ -485,7 +486,7 @@ async function deleteEvent(ev, o) {
 
 // ---------- Termin bearbeiten / anlegen ----------
 
-export function openEditor({ ev = null, occ = null, date = null, hour = null, calendarId = null, onSaved = null } = {}) {
+export function openEditor({ ev = null, occ = null, date = null, hour = null, start = null, end = null, calendarId = null, onSaved = null } = {}) {
   if (!state.calendars.length) {
     toast('Lege zuerst einen Kalender an.');
     openNewCalendar();
@@ -514,9 +515,9 @@ export function openEditor({ ev = null, occ = null, date = null, hour = null, ca
   } else {
     const base = startOfDay(date || state.cursor);
     const h0 = hour ?? (ymd(base) === ymd(now) ? Math.min(23, now.getHours() + 1) : 10);
-    const s = new Date(base);
-    s.setHours(h0, 0, 0, 0);
-    const e = new Date(s.getTime() + 3600e3);
+    const s = start ? new Date(start) : new Date(base);
+    if (!start) s.setHours(h0, 0, 0, 0);
+    const e = start && end ? new Date(end) : new Date(s.getTime() + 3600e3);
     f = {
       title: '', calendarId: calById(calendarId) ? calendarId : defaultCalendarId(), allDay: false,
       startDate: ymd(s), startTime: hm(s), endDate: ymd(e), endTime: hm(e),
@@ -1017,6 +1018,8 @@ export function openCalendar(calId, { invite = false } = {}) {
                 },
               }, icon('x', 18)) : null,
             ))),
+            cal.members.length > 1 ? h('button.btn.block.finder-cal-btn', { onclick: () => openFinder({ userIds: cal.members.map((m) => m.id) }) },
+              icon('users', 18), 'Wann habt ihr alle Zeit?') : null,
           ),
 
           h('div.section', null, h('h3', null, 'Aussehen'), general),
@@ -1717,7 +1720,16 @@ export function openProfile() {
           ? 'Auf dem iPhone geht das, sobald Zeitgarten auf dem Home-Bildschirm liegt.'
           : blocked
             ? 'Im Browser blockiert – erlaube sie in den Einstellungen der Website.'
-            : 'Wenn jemand etwas einträgt, während Zeitgarten im Hintergrund offen ist', { disabled: !canNotify })),
+            : 'Wenn jemand etwas einträgt, während Zeitgarten im Hintergrund offen ist', { disabled: !canNotify }),
+        toggle('Freien/Belegt-Status mit Freunden teilen', state.shareBusy !== false, async (v) => {
+          try {
+            await api('PATCH', '/api/me', { shareBusy: v });
+            state.shareBusy = v;
+          } catch (err) {
+            errorToast(err);
+          }
+          sheet.refresh();
+        }, 'Für „Wann habt ihr Zeit?“: nur „frei“ oder „belegt“, nie was du vorhast. Aus: Freunde sehen nur Termine aus euren gemeinsamen Kalendern.')),
         h('div.section', null,
           h('h3', null, 'Auf anderem Gerät anmelden'),
           h('p.muted.small-text', null, 'Hol dir einen Code und gib ihn auf dem anderen Gerät ein – zum Beispiel in der Zeitgarten-App auf deinem iPhone.'),

@@ -278,6 +278,21 @@ async function seed(user, userToken) {
   await M.post('/api/events', timed('Spieleabend 🎲', 0, '20:00', '23:00', { color: '#6366f1' }));
   await L.post('/api/events', { calendarId: wg.id, title: 'Lenas Geburtstag 🎂', allDay: true, start: ymd(day(16)), end: ymd(day(16)), rrule: 'FREQ=YEARLY', color: '#ec6aa8' });
 
+  // Eigene Termine von Max und Lena – bei „Wann habt ihr Zeit?“ sieht man davon nur frei/belegt
+  const calOf = (u) => Object.values(db.calendars).find((c) => c.ownerId === u.user.id).id;
+  const busy = (who, u, title, off, from, to, extra = {}) =>
+    who.post('/api/events', { calendarId: calOf(u), title, allDay: false, start: at(off, from), end: at(off, to), tz, ...extra });
+  await busy(M, max, 'Arbeit 💼', lastWeekday(1), '09:00', '17:00', { rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR' });
+  await busy(M, max, 'Fußballtraining ⚽️', lastWeekday(2), '18:30', '20:30', { rrule: 'FREQ=WEEKLY' });
+  await busy(M, max, 'Bandprobe 🎸', lastWeekday(4), '19:00', '22:00', { rrule: 'FREQ=WEEKLY' });
+  await busy(M, max, 'Besuch bei Oma', nextWeekday(0), '14:00', '18:00');
+  await M.post('/api/events', { calendarId: calOf(max), title: 'Kurztrip Hamburg 🚆', allDay: true, start: ymd(day(12)), end: ymd(day(13)) });
+  await busy(L, lena, 'Chor 🎶', lastWeekday(3), '19:00', '21:00', { rrule: 'FREQ=WEEKLY' });
+  await busy(L, lena, 'Yoga 🧘‍♀️', lastWeekday(1), '18:00', '19:00', { rrule: 'FREQ=WEEKLY' });
+  await busy(L, lena, 'Schicht im Café ☕️', 1, '12:00', '20:00');
+  await busy(L, lena, 'Schicht im Café ☕️', 5, '15:00', '22:00');
+  await busy(L, lena, 'Uni 📚', lastWeekday(4), '10:00', '16:00', { rrule: 'FREQ=WEEKLY' });
+
   // Eigener Kalender
   const own = Object.values(db.calendars).find((c) => c.ownerId === user.id);
   const mine = (title, off, from, to, extra = {}) => U.post('/api/events', { calendarId: own.id, title, allDay: false, start: at(off, from), end: at(off, to), tz, ...extra });

@@ -18,6 +18,9 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
 - **Reaktionen** ❤️ 👍 🎉 😂 auf Termine, mit kleinem Emoji-Feuerwerk
 - **„Ich bin dabei“** mit Konfetti, und **Kommentare** („Wer bringt was mit?“). Bei Serien gilt die Zusage für den einzelnen Termin, nicht für alle Wochen
 - **Termine teilen**: Ein Tipp auf „Teilen“ schickt den Termin mit Datum und Link in den Chat
+- **„Wann habt ihr Zeit?“**: Freunde antippen, Zeitraum (diese Woche, nächste 7 oder 14 Tage), Tageszeit (abends, tagsüber, ganztags, Wochenende) und Dauer wählen. Eine Heatmap zeigt, wann wie viele frei sind, dazu die 5 besten Zeiten („Sa., 18. Okt. · 18:00–21:00 · alle 4 frei ✓“ oder „3 von 4 frei – Max nicht“). Ein Tipp legt den Termin an, gleich im gemeinsamen Kalender. „Vorschläge teilen“ schickt die 3 besten in den Chat. Zu finden in der Seitenleiste, im Kalender-Fenster und in der Übersicht „Heute“
+  - Geteilt wird nur „frei“ oder „belegt“, nie was jemand vorhat. Es zählen Termine mit Uhrzeit (auch Serien und Kalender vom iPhone) und mehrtägige wie Urlaub, Geburtstage nicht. In gemeinsamen Kalendern zählt ein Termin nur für die, die ihn eingetragen haben oder dabei sind
+  - Im Profil lässt sich das Teilen abschalten. Dann sehen Freunde nur Termine aus euren gemeinsamen Kalendern
 - **Emoji-Profilbild**: Statt Anfangsbuchstaben ein eigenes Emoji
 - **Neuigkeiten** 🔔: Glocke mit Zähler, Live-Meldungen und auf Wunsch Browser-Benachrichtigungen
 
@@ -145,7 +148,7 @@ Die App benutzt keine Tracker, keine Werbung und lädt keine fremden Schriften o
 npm test
 ```
 
-Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung, z. B. die Wochenansicht am 25. Oktober), die Wiederholungsregeln, die Emoji-Vorschläge, das sichere Speichern mit Sicherungskopien, die Link-Vorschau und die API mit Einladungen, Anmelde-Codes, Zusagen pro Termin, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
+Die Tests prüfen den Kalender-Import (Google, Apple, Outlook), den iPhone-Import über einen nachgebauten iCloud-Server (Anmeldung, Kalenderliste, Termine, falsches Passwort, Schutz vor internen Adressen), den Export, die Zeitzonen (auch bei der Zeitumstellung, z. B. die Wochenansicht am 25. Oktober), die Wiederholungsregeln, die Emoji-Vorschläge, das sichere Speichern mit Sicherungskopien, die Link-Vorschau, „Wann habt ihr Zeit?“ (wer wen sehen darf, Serien, Urlaub, Privatsphäre) und die API mit Einladungen, Anmelde-Codes, Zusagen pro Termin, Neuigkeiten, Reaktionen, Online-Status und Design-Einstellungen.
 
 ## So ist das Projekt aufgebaut
 
@@ -165,8 +168,10 @@ public/
   css/skins/       Die weiteren Live-Stile, je eine Datei (Matrix, Arcade, Sakura, …)
   css/calendar.css    Die lebendige Monats-, Wochen- und Listenansicht
   css/caldav.css      Der iPhone-Import
+  css/finder.css      „Wann habt ihr Zeit?“
   js/app.js       Start, Seitenleiste, Navigation, Live-Updates
   js/dashboard.js Übersicht „Heute“ mit Himmel, Countdown und Grafiken
+  js/finder.js    „Wann habt ihr Zeit?“: freie Zeit mit Freunden finden
   js/views.js     Monats-, Wochen- und Listenansicht, Ziehen & Ablegen
   js/emoji-hints.js  Passende Emojis zu Termintiteln
   js/sheets.js    Fenster: Termin, Editor, Kalender, Import, Profil, Neuigkeiten, Design, „Wähl deinen Look“

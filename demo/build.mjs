@@ -21,6 +21,7 @@ copy('demo/api.js', 'js/api.js'); // statt Server: alles im Browser
 copy('server/core.js', 'server/core.js');
 copy('server/ics.js', 'server/ics.js');
 copy('public/js/time.js', 'public/js/time.js'); // wird von core.js und ics.js eingebunden
+copy('public/js/recur.js', 'public/js/recur.js'); // Wiederholungen – für „Wann habt ihr Zeit?“ in core.js
 // Dieselben Stylesheets wie die echte App, in derselben Reihenfolge
 const CSS = [...fs.readFileSync(path.join(ROOT, 'public/index.html'), 'utf8').matchAll(/<link rel="stylesheet" href="css\/([^"]+)">/g)].map((m) => m[1]);
 for (const f of CSS) copy(`public/css/${f}`, `css/${f}`);

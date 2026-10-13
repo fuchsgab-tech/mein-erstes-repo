@@ -1,6 +1,7 @@
 // Zeitgarten – die eigentliche Logik (Kalender, Einladungen, Termine, Neuigkeiten …) ohne HTTP.
 // Läuft auf dem Server (server/index.js) und in der Demo direkt im Browser (demo/api.js).
 import { parseIcs } from './ics.js';
+import { occurrences } from '../public/js/recur.js';
 import { dayNum, fromDayNum, isValidTz, isYmd, pad, wallParts, zonedToUtc } from '../public/js/time.js';
 
 export class HttpError extends Error {
@@ -383,6 +384,71 @@ export function createCore({
     for (const id of contactsOf(userId)) push(id, { type: 'online', userId, online });
   }
 
+  // ---------- Wann habt ihr Zeit? (nur frei/belegt) ----------
+  // Belegt sind Termine mit Uhrzeit (auch Serien und importierte Kalender) und mehrtägige ganztägige Termine
+  // (Urlaub & Co.) – einzelne ganztägige Termine wie Geburtstage blockieren nichts. In gemeinsamen Kalendern
+  // zählt ein Termin nur für die, die ihn eingetragen haben oder dabei sind – Mamas Zahnarzt im
+  // Familienkalender macht nicht die ganze Familie „belegt“.
+  // Es kommen nur Zeiträume heraus, nie Titel, Orte oder Kalendernamen.
+  const FREEBUSY_MAX_DAYS = 42;
+  const FREEBUSY_MAX_USERS = 12;
+
+  function busyTimes(targetId, viewerId, from, to, tz, eventsByCal) {
+    let cals = calendarIdsOf(targetId);
+    // Wer „Frei/Belegt teilen“ ausschaltet, zeigt nur, was ihr ohnehin gemeinsam seht
+    if (targetId !== viewerId && db.users[targetId]?.shareBusy === false) {
+      const shared = new Set(calendarIdsOf(viewerId));
+      cals = cals.filter((id) => shared.has(id));
+    }
+    const rs = new Date(from - 2 * 864e5); // etwas Puffer für ganztägige Termine in anderen Zeitzonen
+    const re = new Date(to + 2 * 864e5);
+    const out = [];
+    for (const calId of new Set(cals)) {
+      const shared = membersOf(calId).length > 1;
+      for (const ev of eventsByCal.get(calId) || []) {
+        let span = 0;
+        if (ev.allDay) {
+          if (!isYmd(ev.start)) continue;
+          const n0 = dayNum(...ev.start.split('-').map(Number));
+          span = isYmd(ev.end) ? dayNum(...ev.end.split('-').map(Number)) - n0 : 0;
+          if (span < 1) continue; // nur Urlaub & Co. (ab 2 Tagen) blockiert
+        }
+        let occs;
+        try {
+          occs = occurrences(ev, rs, re);
+        } catch {
+          continue;
+        }
+        for (const o of occs) {
+          if (shared && ev.createdBy !== targetId && !attendeesFor(ev, o.orig).includes(targetId)) continue;
+          let s;
+          let e;
+          if (o.allDay) {
+            const [y, m, d] = (o.orig || ev.start).split('-').map(Number);
+            const last = fromDayNum(dayNum(y, m, d) + span + 1);
+            s = zonedToUtc(y, m, d, 0, 0, 0, tz);
+            e = zonedToUtc(last.y, last.m, last.d, 0, 0, 0, tz);
+          } else {
+            s = o.start.getTime();
+            e = o.end.getTime();
+          }
+          s = Math.max(s, from);
+          e = Math.min(e, to);
+          if (e > s) out.push([s, e]);
+        }
+      }
+    }
+    // Überlappende und aneinanderstoßende Zeiten zusammenfassen
+    out.sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const iv of out) {
+      const last = merged[merged.length - 1];
+      if (last && iv[0] <= last[1]) last[1] = Math.max(last[1], iv[1]);
+      else merged.push([...iv]);
+    }
+    return merged.map(([s, e]) => [new Date(s).toISOString(), new Date(e).toISOString()]);
+  }
+
   // Neuigkeiten („Max hat … eingetragen“)
   function logActivity(calId, userId, kind, extra = {}) {
     const u = db.users[userId];
@@ -559,6 +625,7 @@ export function createCore({
   route('GET', '/api/me', ({ user }) => ({
     user: publicUser(user),
     prefs: user.prefs || {},
+    shareBusy: user.shareBusy !== false,
     calendars: calendarIdsOf(user.id).map((id) => calendarView(db.calendars[id], user)),
   }));
 
@@ -583,12 +650,13 @@ export function createCore({
       else delete user.emoji;
     }
     if ('prefs' in body) user.prefs = cleanPrefs(body.prefs);
+    if (typeof body.shareBusy === 'boolean') user.shareBusy = body.shareBusy;
     save();
     if ('name' in body || 'color' in body || 'emoji' in body) {
       for (const id of calendarIdsOf(user.id)) notifyCalendar(id, { type: 'calendars' });
     }
     if ('prefs' in body) push(user.id, { type: 'prefs' });
-    return { user: publicUser(user), prefs: user.prefs || {} };
+    return { user: publicUser(user), prefs: user.prefs || {}, shareBusy: user.shareBusy !== false };
   });
 
   // Neuer Token nur für DIESES Gerät (der bisherige gilt danach nicht mehr). Andere Geräte bleiben angemeldet –
@@ -787,6 +855,30 @@ export function createCore({
     const list = Object.values(db.events).filter((ev) => mine.has(ev.calendarId) && (!only || ev.calendarId === only));
     const counts = commentCountsFor(new Set(list.map((e) => e.id)));
     return { events: list.map((ev) => eventView(ev, counts)) };
+  });
+
+  // Wann habt ihr Zeit? – frei/belegt von mir und Leuten aus meinen Kalendern
+  route('POST', '/api/freebusy', ({ user, body }) => {
+    const from = Date.parse(body.from);
+    const to = Date.parse(body.to);
+    if (Number.isNaN(from) || Number.isNaN(to) || to <= from) fail(400, 'Ungültiger Zeitraum.');
+    if (to - from > FREEBUSY_MAX_DAYS * 864e5) fail(400, `Höchstens ${FREEBUSY_MAX_DAYS} Tage auf einmal.`);
+    if (!Array.isArray(body.userIds) || body.userIds.some((id) => typeof id !== 'string')) fail(400, 'Bitte wähle Personen aus.');
+    const ids = [...new Set([user.id, ...body.userIds])];
+    if (ids.length > FREEBUSY_MAX_USERS) fail(400, `Höchstens ${FREEBUSY_MAX_USERS} Personen auf einmal.`);
+    const contacts = contactsOf(user.id);
+    if (ids.some((id) => id !== user.id && (!contacts.has(id) || !db.users[id]))) {
+      fail(403, 'Du kannst nur Leute aus deinen Kalendern auswählen.');
+    }
+    const tz = isValidTz(body.tz) ? body.tz : 'UTC';
+    const cals = new Set(ids.flatMap((id) => calendarIdsOf(id)));
+    const eventsByCal = new Map();
+    for (const ev of Object.values(db.events)) {
+      if (!cals.has(ev.calendarId)) continue;
+      if (!eventsByCal.has(ev.calendarId)) eventsByCal.set(ev.calendarId, []);
+      eventsByCal.get(ev.calendarId).push(ev);
+    }
+    return { users: ids.map((id) => ({ id, busy: busyTimes(id, user.id, from, to, tz, eventsByCal) })) };
   });
 
   route('POST', '/api/events', ({ user, body }) => {

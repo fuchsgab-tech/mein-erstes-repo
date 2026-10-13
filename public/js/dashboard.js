@@ -7,6 +7,7 @@ import { attendeesFor, calById, eventColor, hooks, person, state, visibleOccurre
 import { addDays, daysBetween, isoWeek, sameDay, startOfDay, startOfWeek } from './time.js';
 import { avatarStack } from './ui.js';
 import { feedItem, openActivity, openDay, openEditor, openEvent, openInvitePicker } from './sheets.js';
+import { hasFriends, openFinder } from './finder.js';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const phaseOf = (hr) => (hr >= 5 && hr < 8 ? 'dawn' : hr >= 8 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night');
@@ -350,7 +351,10 @@ function heatCard(today) {
     return cell;
   });
   return h('section.card.span-6.half', null,
-    h('div.card-head', null, h('h3', null, 'Die nächsten 5 Wochen')),
+    h('div.card-head', null,
+      h('h3', null, 'Die nächsten 5 Wochen'),
+      hasFriends() ? h('button.link.finder-link', { onclick: () => openFinder() }, icon('users', 15), 'Wann habt ihr Zeit?') : null,
+    ),
     h('div.heat', null, WEEKDAYS.map((d) => h('span.hd', null, d)), cells),
     h('div.legend', null, h('span', null, 'frei'), HEAT.map((c) => h('i', { style: { '--hc': c } })), h('span', null, 'voll')),
   );

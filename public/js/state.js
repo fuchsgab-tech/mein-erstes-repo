@@ -65,6 +65,7 @@ export async function loadAll() {
   ]);
   state.me = me.user;
   state.serverPrefs = me.prefs;
+  state.shareBusy = me.shareBusy !== false;
   state.calendars = me.calendars;
   state.events = new Map(ev.events.map((e) => [e.id, e]));
   state.activity = act.activity;
@@ -93,6 +94,7 @@ export async function loadMe() {
   const me = await api('GET', '/api/me');
   state.me = me.user;
   state.serverPrefs = me.prefs;
+  state.shareBusy = me.shareBusy !== false;
   state.calendars = me.calendars;
 }
 

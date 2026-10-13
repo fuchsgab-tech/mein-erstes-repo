@@ -13,6 +13,7 @@ import {
 } from './ui.js';
 import { renderList, renderMini, renderMonth, renderWeek } from './views.js';
 import { renderToday } from './dashboard.js';
+import { openFinder } from './finder.js';
 import './bgfx.js';
 import {
   activityText, actor, inviteCard, openActivity, openCalendar, openDesign, openEditor, openEventById, openImport,
@@ -413,6 +414,7 @@ function renderSidebar() {
     ),
     h('div.side-actions', null,
       h('button.side-link', { onclick: action(openInvitePicker) }, icon('userPlus', 18), 'Freunde einladen'),
+      h('button.side-link', { onclick: action(() => openFinder()) }, icon('users', 18), 'Wann habt ihr Zeit?'),
       h('button.side-link', { onclick: action(() => openImport()) }, icon('upload', 18), 'Kalender importieren'),
       h('button.side-link.fancy', { onclick: action(openDesign) }, icon('palette', 18), 'Design & Stil'),
     ),
