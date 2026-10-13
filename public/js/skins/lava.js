@@ -2,8 +2,9 @@
 // Hell: cremige Pastell-Lampe in Pfirsich, Rosa und Flieder.
 // skin: Eintrag für die Stil-Auswahl (Vorschau-Farben je Hell/Dunkel).
 // scene(p, kit): bewegter Hintergrund (siehe js/bgfx.js).
-// Technik: Metaball-Feld auf grobem Raster (1/4 bzw. 1/5 der CSS-Auflösung), Farbe aus einer Tabelle,
-// dann weich hochskaliert – kein Rechnen pro Bildschirmpixel, kein CSS-Filter.
+// Technik: Metaball-Feld auf grobem Raster (Zellen von 4–5 CSS-Pixeln, bei dpr 2 also 1/8–1/10 der Auflösung),
+// Farbe und Lichthof aus einer Tabelle, dann weich hochskaliert – kein Rechnen pro Bildschirmpixel,
+// kein CSS-Filter, keine zusätzliche Leuchtebene über das ganze Bild.
 
 // Vorschau: Blasen mit hellem Kern, unten ein Wachsbecken
 const BLOB = ([x, y, w, h], [core, body, rim]) =>
@@ -62,7 +63,7 @@ export function scene(p, kit) {
       const s = clamp((f - T - 0.03) / (1.3 - T), 0, 1); // 0 am Rand, wächst zur Mitte: inneres Leuchten
       const c = s < 0.18 ? mix(deep, body, s / 0.18) : mix(body, core, ((s - 0.18) / 0.82) ** 1.7);
       const col = mix(halo, c, e);
-      const glowA = (dark ? 0.17 : 0.1) * ss(0.015, T, f) ** 2.2;
+      const glowA = (dark ? 0.26 : 0.12) * ss(0.015, T, f) ** 1.9; // Lichthof um jede Blase
       const a = (glowA * (1 - e) + (dark ? 0.9 : 0.8) * e) * k;
       LUT[hi * NL + l] = ((Math.round(clamp(a, 0, 1) * 255) << 24) | (col[2] << 16) | (col[1] << 8) | col[0]) >>> 0;
     }
@@ -95,7 +96,6 @@ export function scene(p, kit) {
   let px = null;
   let img = null;
   let field = null;
-  let bloom = null;
   // zur Seitenleiste und zur Kopfzeile hin löst sich das Wachs weich auf (dort bleibt es ruhig)
   const FADE = new Float32Array(64);
   let nfade = 0;
@@ -256,7 +256,6 @@ export function scene(p, kit) {
       for (let i = 0; i < nfade; i++) FADE[i] = ss(0, 1, i / nfade) ** 1.5;
       ntop = Math.min(TOPF.length, Math.ceil((W > 760 ? 96 : 78) / cell));
       for (let j = 0; j < ntop; j++) TOPF[j] = ss(0.25, 1, j / ntop) ** 1.3;
-      bloom = dark ? kit.layer(Math.ceil(gw / 4), Math.ceil(gh / 4), false) : null;
       seat(kit.seeded(7070 + (W > 760 ? 0 : 1)));
     },
 
@@ -270,21 +269,7 @@ export function scene(p, kit) {
       splat();
       field.g.putImageData(img, 0, 0);
       ctx.imageSmoothingEnabled = true;
-      const ox = gx0 - cell / 2;
-      const oy = -cell / 2;
-      ctx.drawImage(field.c, ox, oy, gw * cell, gh * cell);
-      // dunkel: weicher Lichtschein aus einer viertel so großen Kopie
-      if (bloom) {
-        const bw = bloom.c.width;
-        const bh = bloom.c.height;
-        bloom.g.clearRect(0, 0, bw, bh);
-        bloom.g.drawImage(field.c, 0, 0, gw / 4, gh / 4);
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.18 * k;
-        ctx.drawImage(bloom.c, ox, oy, bw * cell * 4, bh * cell * 4);
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
-      }
+      ctx.drawImage(field.c, gx0 - cell / 2, -cell / 2, gw * cell, gh * cell);
     },
   };
 }
