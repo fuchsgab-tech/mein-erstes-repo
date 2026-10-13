@@ -36,6 +36,9 @@ Lade Freunde und Familie per Link ein, plant live zusammen, hol deine bestehende
   - **Lagerfeuer**: aufsteigende Funken und Glut unter dem Sternenhimmel
   - **Liquid Glass**: schimmerndes Glas mit wandernden Farbwolken
   - **Lavalampe**: wabernde Blasen im 70er-Stil
+
+![Die 8 neuen Live-Stile auf dem iPhone](docs/neue-designs.png)
+
 - Neue Freunde wählen direkt nach dem Beitreten unter „Wähl deinen Look“ ihren Stil. Live-Stile wechseln dabei automatisch auf Dunkel, dort wirken sie am besten
 - **Selbst einstellen**: Akzentfarbe, Termin-Stil (getönt, kräftig, Linie), Schrift für Überschriften (modern, rund, elegant, technisch), Ecken (eckig bis extra rund), Abstände, Kalenderwochen, bewegter Hintergrund, Effekte
 - Dein Design wird **auf allen deinen Geräten** übernommen
