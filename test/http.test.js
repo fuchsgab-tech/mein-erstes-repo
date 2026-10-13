@@ -53,8 +53,11 @@ before(async () => {
   port = new URL(base).port;
 });
 
-after(() => {
+after(async () => {
+  // Erst warten, bis der Server beim Beenden fertig gespeichert hat – sonst schreibt er noch in den Ordner
+  const exited = server.exitCode === null && server.signalCode === null ? new Promise((r) => server.once('exit', r)) : null;
   server.kill();
+  await exited;
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
 

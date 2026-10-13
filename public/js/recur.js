@@ -138,10 +138,18 @@ export function occurrences(ev, rangeStart, rangeEnd) {
     (ev.exdates || []).map((x) => (allDay ? String(x).slice(0, 10) : Date.parse(x))),
   );
 
+  const rsN = dayNum(rangeStart.getFullYear(), rangeStart.getMonth() + 1, rangeStart.getDate());
+  const lookback = spanDays + Math.ceil(dur / 864e5) + 8;
   let count = 0;
   const emit = (n) => {
     if (n < startN) return true;
     if (allDay && limit?.day !== undefined && n > limit.day) return false;
+    // Weit vor dem Zeitraum nur mitzählen (für COUNT) – ohne die teure Zeitzonen-Rechnung.
+    // Wichtig, seit auch der Server Serien ausrechnet („Wann habt ihr Zeit?“)
+    if (n < rsN - lookback) {
+      count++;
+      return !(rule.count && count > rule.count);
+    }
     const { y, m, d } = fromDayNum(n);
     const { s, e, orig } = make(y, m, d);
     if (!allDay && limit?.ts !== undefined && s.getTime() > limit.ts) return false;
@@ -160,8 +168,6 @@ export function occurrences(ev, rangeStart, rangeEnd) {
   // Schnellvorlauf zum sichtbaren Bereich (geht nur ohne COUNT)
   if (!rule.count && (rule.freq === 'DAILY' || rule.freq === 'WEEKLY')) {
     const period = rule.freq === 'DAILY' ? iv : 7 * iv;
-    const rsN = dayNum(rangeStart.getFullYear(), rangeStart.getMonth() + 1, rangeStart.getDate());
-    const lookback = spanDays + Math.ceil(dur / 864e5) + 8;
     k0 = Math.max(0, Math.floor((rsN - lookback - startN) / period));
   }
   const weekDays = rule.byday?.length

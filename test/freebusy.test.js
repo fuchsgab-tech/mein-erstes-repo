@@ -139,3 +139,20 @@ test('Frei/belegt: ausgeschaltetes Teilen zeigt nur gemeinsame Kalender, und nie
   const self = await call('POST', '/api/freebusy', ben.token, { userIds: [], ...range });
   assert.equal(busyOf(self, ben).length, 2);
 });
+
+test('Frei/belegt: sehr lange Serien von früher sind schnell und enden richtig', async () => {
+  const { call, ownCal, add, anna } = await setup();
+  // Jeden Tag seit dem Jahr 2000, letzter Termin am 20.10.2026 (COUNT zählt alle Tage davor mit)
+  const count = (Date.UTC(2026, 9, 20) - Date.UTC(2000, 0, 1)) / 864e5 + 1;
+  await add(anna, ownCal(anna), { start: '2000-01-01T08:00:00Z', end: '2000-01-01T09:00:00Z', tz: 'UTC', rrule: `FREQ=DAILY;COUNT=${count}` });
+  // Bis 2099 (UNTIL) mit 28 Tagen pro Monat, seit 1800 – darf den Server nicht lange blockieren
+  await add(anna, ownCal(anna), { start: '1800-01-01T12:00:00Z', end: '1800-01-01T13:00:00Z', tz: 'UTC', rrule: `FREQ=MONTHLY;BYMONTHDAY=${Array.from({ length: 28 }, (_, i) => i + 1).join(',')};UNTIL=20991231T000000Z` });
+  const t0 = performance.now();
+  const res = await call('POST', '/api/freebusy', anna.token, { userIds: [], ...range });
+  assert.ok(performance.now() - t0 < 400, 'schnell');
+  const busy = busyOf(res, anna);
+  const early = busy.filter(([s]) => s.slice(11, 13) === '08');
+  assert.equal(early.at(-1)[0].slice(0, 10), '2026-10-20');
+  assert.equal(early.length, 9); // 12.–20. Oktober
+  assert.equal(busy.length - early.length, 14); // jeden Tag 12–13 Uhr
+});
