@@ -232,7 +232,7 @@ export function scene(p, kit) {
   function seat(rnd) {
     const { W, H } = kit;
     const area = cw * H;
-    nj = dark ? (W > 760 ? 6 : 4) : 0;
+    nj = dark ? (W > 760 ? 6 : 3) : 0; // am Handy weniger Quallen – spart Rechenzeit
     for (let i = 0; i < nj; i++) {
       const j = i * 8;
       const z = rnd(0.45, 1);
@@ -509,7 +509,7 @@ export function scene(p, kit) {
           const sy = 1 + 0.08 * c;
           const L = BR * (2.4 + z * 0.8);
           // Fangarme: vorn kräftig, hinten fein
-          for (let pass = 0; pass < 2; pass++) {
+          for (let pass = 0; pass < (W > 760 ? 2 : 1); pass++) { // am Handy nur die kräftigen Fangarme
             ctx.globalAlpha = glowA * (pass ? 0.28 : 0.6);
             ctx.lineWidth = (pass ? 1.4 : 2) / s;
             ctx.beginPath();

@@ -1036,15 +1036,46 @@ function draw(t, dt) {
   scene.frame(t, dt);
 }
 
+// Langsame Geräte: Kommt der Browser nicht hinterher, zeichnet der Hintergrund seltener und gröber,
+// damit Scrollen und Tippen flüssig bleiben. Stufen: 1 = 30 Bilder/s, 2 = 15, 3 = 15 in halber Auflösung,
+// 4 = 10 in halber Auflösung. Alle 30 s wird die nächstbessere Stufe wieder versucht.
+const RATE = [0, 1, 2, 2, 3];
+const LOWRES = 3;
+let level = 1;
+let gap = 1000 / 60; // gleitender Abstand zwischen zwei Bildern des Browsers (ms)
+let cost = 0; // gleitende Zeichenzeit der Szene (ms)
+let prevRaf = 0;
+let since = 0;
+
+function setLevel(n, now) {
+  const sharp = (level >= LOWRES) !== (n >= LOWRES);
+  level = n;
+  since = now;
+  gap = 1000 / 60;
+  cost = 0;
+  if (sharp && measure()) scene.resize(); // Auflösung gewechselt: ruhende Ebenen neu berechnen
+}
+
+function adapt(now) {
+  if (now - since < 1500) return;
+  if ((cost > 9 || gap > 26) && level < 4) setLevel(level + 1, now);
+  else if (level > 1 && now - since > 30000 && cost < 4) setLevel(level - 1, now);
+}
+
 function tick(now) {
   raf = requestAnimationFrame(tick);
+  if (prevRaf) gap += (Math.min(120, now - prevRaf) - gap) * 0.06;
+  prevRaf = now;
   // Hinter einem offenen Fenster reicht die halbe Bildrate
-  const step = document.getElementById('overlay-root')?.childElementCount ? STEP * 2 : STEP;
+  const step = STEP * RATE[level] * (document.getElementById('overlay-root')?.childElementCount ? 2 : 1);
   if (now - last < step - 2) return;
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   clock += dt;
+  const t0 = performance.now();
   draw(clock, dt);
+  cost += (performance.now() - t0 - cost) * 0.1;
+  adapt(now);
 }
 
 function run() {
@@ -1055,13 +1086,15 @@ function run() {
   draw(still ? STILL : clock, 0);
   if (still) return;
   last = performance.now();
+  prevRaf = 0;
+  since = last; // nach dem Start kurz einschwingen lassen
   raf = requestAnimationFrame(tick);
 }
 
 function measure() {
   const w = Math.round(cv.clientWidth || innerWidth);
   const h = Math.round(cv.clientHeight || innerHeight);
-  const d = Math.min(2, devicePixelRatio || 1);
+  const d = Math.min(level >= LOWRES ? 1 : 2, devicePixelRatio || 1);
   if (w === W && h === H && d === dpr) return false;
   W = w;
   H = h;
@@ -1119,6 +1152,13 @@ function sync() {
   const key = `${root.dataset.skin}|${p.key}`;
   if (key !== sceneKey) {
     sceneKey = key;
+    if (level >= LOWRES) {
+      level = 1;
+      measure();
+    }
+    level = 1;
+    cost = 0;
+    gap = 1000 / 60;
     scene = make(p, kit);
     scene.resize();
   } else if (resized) {
