@@ -8,5 +8,6 @@ import * as tiefsee from './tiefsee.js';
 import * as glut from './glut.js';
 import * as glas from './glas.js';
 import * as lava from './lava.js';
+import * as hochsee from './hochsee.js';
 
-export const EXTRA_SKINS = [matrix, arcade, sakura, comic, tiefsee, glut, glas, lava];
+export const EXTRA_SKINS = [matrix, arcade, sakura, comic, tiefsee, glut, glas, lava, hochsee];
