@@ -66,3 +66,7 @@ MAP DECISION (user, later 2026-10-14): "Egal, dann machen wir es so, dass in der
    in Hilfe: link button "Interaktive Karte im Bellwright-Wiki (Rohstoffe & Orte)" -> https://bellwright.fandom.com/wiki/Map:Karvenia,
    target=_blank rel="noopener", caption "Fan-Wiki, öffnet sich in neuem Tab". Fold this into feature 8 (Außenposten) notes.
    No assets capability needed; publish capabilities stay {db:{}, sample:{images:true}, user:{scopes:["profile"]}}.
+OUTPOST DECISION (user, 2026-10-14 ~20:10): "Außenposten weg, aber Link zur Minikarte soll bleiben in einem eigenen Menü mit cooler Animation!"
+-> Feature 8 (Außenposten) CANCELLED. New BUILD 9 "Karte-Menü mit Animation" (spec at the end of roadmap.txt) replaces it:
+   own tab "Karte" before Hilfe, app-drawn animated parchment map, button to https://bellwright.fandom.com/wiki/Map:Karvenia.
+   The animation setting from batch 2b must also gate playMapIntro().

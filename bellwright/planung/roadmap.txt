@@ -348,7 +348,8 @@ TEST (node harness):
 - 'Auto' removes the pin.
 - A second phone sees the fix within about 1 s.
 ====================================================================================================
-BUILD: 8. Außenposten planen + „Wer passt hin?“ | effort L
+CANCELLED BY USER (2026-10-14) – DO NOT BUILD: 8. Außenposten planen + „Wer passt hin?“ | effort L
+(Kept only for later reference. Replaced by BUILD: 9 at the end of this file.)
 WHY: This is the group's next step: they have outposts but no workers there yet. As soon as one villager moves, the single plan is wrong. Outpost workers only work at their outpost's buildings (the app's own Hilfe says so), and small groups never get Lieferung near the front, because delivery is only weighted from 5 workers. It comes last because it is the biggest change. Outposts appear in the UI only once one is created, so the app stays simple until then.
 SPEC:
 DATA:
@@ -418,3 +419,42 @@ QUESTIONS:
 - Wer trägt die Zahlen im Spiel ein – nur der Host oder jeder von euch? Und habt ihr eure Mitspieler per E-Mail als Bearbeiter eingeladen oder die Seite per Link geteilt?
 - Welche Außenposten habt ihr (z. B. Mine, Holzfällerlager, Hof), und wie viele Leute wollt ihr ungefähr dorthin schicken?
 - Was steht als Nächstes an: neue Leute anwerben, Bücher verteilen oder Wachen bestimmen?
+
+====================================================================================================
+BUILD: 9. Karte-Menü mit Animation (ersetzt Außenposten) | effort M
+WHY: The user cancelled the outpost feature but wants the link to the wiki's interactive map kept, in its OWN menu, with a cool animation
+("Außenposten weg, aber Link zur Minikarte soll bleiben in einem eigenen Menü mit cooler Animation!"). The app cannot embed the wiki map
+(CSP blocks foreign images/iframes) and must not copy the game's map image or the wiki's marker data, so the menu is an app-drawn,
+animated parchment map vignette that leads to the wiki map.
+SPEC:
+PLACE: a new tab "Karte" (role=tab, same pattern as the others, keyboard arrows/Home/End keep working), placed before "Hilfe".
+- The tab row must still fit at 360px without horizontal overflow and with legible labels; if five text tabs do not fit, switch narrow
+  screens to a compact tab bar (small icon above a short label) for ALL tabs. Tap targets >= 44px.
+CONTENT of the Karte panel:
+- Heading "Karte von Karvenia" (font-display).
+- An inline-SVG parchment map vignette drawn by the app: a GENERIC hand-drawn medieval landscape (coast line, river, forest symbols,
+  hills, mountains, a small village with a bell tower, a dotted road), NOT the real Bellwright geography, no external images.
+  Colors from the existing tokens (parchment = warm light browns derived from --accent/--surface-2; ink = dark brown; ember accents).
+- Text: "Die interaktive Karte mit Rohstoffen, Lagern und Orten pflegen Fans im Bellwright-Wiki."
+- Big primary button "Interaktive Karte öffnen" -> https://bellwright.fandom.com/wiki/Map:Karvenia (an <a> styled as .btn.primary,
+  target="_blank" rel="noopener noreferrer"), caption under it "Fan-Wiki, öffnet sich in neuem Tab". Tapping the map vignette itself
+  does NOT navigate (avoid accidental opens); it replays/skips the animation.
+- Hilfe gets a short line with the same link (small).
+ANIMATION ("cool", medieval, not cheesy; all inside @media (prefers-reduced-motion: no-preference); total intro <= 2.6 s):
+  1. the parchment unrolls from the centre (clip-path/scaleX) while two rolled wooden scroll ends slide outward;
+  2. ink lines draw themselves (stroke-dasharray/dashoffset), staggered: coast -> river -> hills/mountains -> forest -> road;
+  3. the compass rose spins in with a slight overshoot and settles; the needle keeps a very slow sway;
+  4. the dotted road draws from the village to a "?" mark at the edge;
+  5. a wax seal (bell emblem) stamps onto the village with a short thump and a small ember burst (reuse the ember palette);
+  6. idle: slow drifting cloud/fog shadows across the parchment and a faint warm torch-light flicker at one edge;
+  7. the "Interaktive Karte öffnen" button gets a light shine sweep once the intro ends, and an ember glow on hover/focus.
+- The intro plays when the Karte tab is opened (each time, but tapping the map skips to the end state); idle animations pause when
+  the tab is hidden or the page is not visible (animation-play-state / visibilitychange).
+- Reduced motion: show the finished map statically, no movement.
+- Implement through ONE function playMapIntro(panel) and CSS classes on the panel so the later "Animationen: voll / ruhig / aus"
+  setting (batch 2b) can gate it: "ruhig" = only a short fade of the finished map, "aus" = static.
+- Performance: SVG + CSS only, no canvas, no libraries; keep the SVG small (< ~12 KB); no layout shift while animating.
+NO new capabilities, no db, nothing stored.
+TEST (feat-map.js): tab exists before Hilfe and is keyboard reachable; tabs.js still passes; link href/target/rel correct; panel and tab
+row have no horizontal overflow at 360/390/1280; with reduced motion the final state is visible immediately; without it all map parts
+are visible after ~3 s; tapping the map skips to the end state; switching tabs mid-intro leaves no stuck state; no console errors.
