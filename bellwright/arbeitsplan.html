@@ -263,6 +263,11 @@ table.matrix { border-collapse: separate; border-spacing: 0; width: 100%; min-wi
 .tick { appearance: none; border: 1px solid var(--line-strong); background: var(--field); color: var(--fg); font: inherit; font-size: 0.75rem; border-radius: 999px; padding: 2px 8px; margin-top: 4px; cursor: pointer; }
 .tick:hover { border-color: var(--accent); color: var(--accent-hi); }
 .tick.done { color: var(--good); border-color: transparent; background: none; cursor: default; padding-left: 0; }
+/* Who ticked a villager off and when: under the seal on cards, next to the tick in the table. */
+.applied-box { display: grid; justify-items: end; gap: 2px; min-width: 0; }
+.applied-who { font-size: 0.75rem; color: var(--muted); font-weight: 400; line-height: 1.3; overflow-wrap: anywhere; }
+.matrix .tick.done { display: block; text-align: left; line-height: 1.3; }
+@media (max-width: 420px) { .applied-box { justify-items: start; } }
 
 /* Worker editor */
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
@@ -363,7 +368,11 @@ table.ktable { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
 .foot { margin-top: 36px; padding-top: 14px; border-top: 3px double var(--line-strong); font-size: var(--step--1); color: var(--muted); text-align: center; }
 
 .copy-fallback { display: grid; gap: 8px; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(180deg, #3a2e23, #2a2119); color: var(--fg); border: 1px solid var(--accent); padding: 10px 16px; border-radius: var(--radius); font-size: 0.9375rem; max-width: calc(100% - 32px); z-index: 10; box-shadow: var(--shadow), 0 0 18px rgb(217 164 65 / 0.2); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(180deg, #3a2e23, #2a2119); color: var(--fg); border: 1px solid var(--accent); padding: 10px 16px; border-radius: var(--radius); font-size: 0.9375rem; width: max-content; max-width: min(40rem, calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); z-index: 10; box-shadow: var(--shadow), 0 0 18px rgb(217 164 65 / 0.2); }
+.toast.has-act { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 8px 8px 16px; }
+.toast-msg { flex: 1 1 auto; min-width: 0; }
+.toast-act { flex: none; margin-left: auto; color: var(--accent-hi); border-color: var(--accent); }
+@media (pointer: coarse) { .toast .toast-act { min-height: 44px; padding-inline: 16px; } }
 section { display: grid; gap: 12px; min-width: 0; }
 
 /* Motion: all of it is decoration and stays off for people who ask for less motion. */
@@ -809,6 +818,7 @@ section { display: grid; gap: 12px; min-width: 0; }
     isOwner: false,         // this viewer owns the page (user capability); false when unknown
     userKnown: false,       // the user capability has answered (or is missing), so the owner line can show
     notConnected: false,    // opened in Claude, but no shared data (signed out or private window): local mode
+    ingameReady: false,     // the "im Spiel eingetragen" state has arrived (db: first ingame snapshot; local: at boot)
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -826,10 +836,24 @@ section { display: grid; gap: 12px; min-width: 0; }
   const isExample = () => state.ready && !state.loadFailed && state.workers.size === 0;
   const activeWorkers = () => isExample() ? EXAMPLE : sortedWorkers();
 
-  // What each viewer last copied into the game (per browser, a convenience only).
+  // What was last entered in the game per villager: applied = {wid: {jobId: 0..9}} (0 = aus/X).
+  // Shared mode: the 'ingame' collection (doc id = worker id, {vals, by, at}), so every phone sees the same ticks.
+  // Local mode: this browser's AP_KEY, exactly as before. appliedMeta = {wid: {by, at}} exists only in shared mode.
   const AP_KEY = "bellwright-arbeitsplan-eingetragen-v1";
+  const MIGRATED_KEY = "bellwright-ingame-migriert-v1";
   let applied = lsGet(AP_KEY, {});
   if (!applied || typeof applied !== "object") applied = {};
+  let appliedMeta = {};
+  // Display names for the "eingetragen von" line: memory only, never stored ("" = unknown).
+  const names = new Map();
+  const namesAsked = new Set();
+  // A stored snapshot, cleaned: whole numbers 0..9 per job; anything else is dropped.
+  function cleanIngame(d) {
+    if (!d || typeof d !== "object" || !d.vals || typeof d.vals !== "object" || Array.isArray(d.vals)) return null;
+    const vals = {};
+    for (const [k, v] of Object.entries(d.vals)) if (k.length <= 40 && Number.isInteger(v) && v >= 0 && v <= 9) vals[k] = v;
+    return { vals, by: typeof d.by === "string" ? d.by.slice(0, 200) : "", at: typeof d.at === "number" && isFinite(d.at) ? d.at : 0 };
+  }
 
   // ---------- The planner ----------
   function hungarian(a) { // rows <= cols, minimise total cost; returns column per row
@@ -1162,7 +1186,41 @@ section { display: grid; gap: 12px; min-width: 0; }
     }
     return d;
   }
-  function tracking() { return !isExample() && state.ready && !state.loadFailed; }
+  // Also waits for the shared tick-off, so the dots never flash "Noch nie eingetragen" while it loads.
+  function tracking() { return !isExample() && state.ready && !state.loadFailed && state.ingameReady; }
+
+  // "gerade eben" / "vor 5 Min." / "vor 2 Std." / "gestern" / "am 12.10."
+  function relTime(at, now = Date.now()) {
+    if (!(at > 0)) return "";
+    const d = now - at;
+    if (d < 60e3) return "gerade eben";
+    if (d < 3600e3) return `vor ${Math.floor(d / 60e3)} Min.`;
+    const day = t => { const x = new Date(t); return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); };
+    const days = Math.round((day(now) - day(at)) / 864e5);
+    if (days <= 0 || d < 6 * 3600e3) return `vor ${Math.floor(d / 3600e3)} Std.`;
+    if (days === 1) return "gestern";
+    const x = new Date(at), two = n => String(n).padStart(2, "0");
+    return `am ${two(x.getDate())}.${two(x.getMonth() + 1)}.`;
+  }
+  // "eingetragen von Lena · vor 2 Std.", or "eingetragen vor 2 Std." while the name is unknown.
+  function whoWhen(wid) {
+    const m = appliedMeta[wid];
+    if (!m || !(m.at > 0)) return "";
+    const name = m.by ? names.get(m.by) || "" : "";
+    return name ? `eingetragen von ${name} · ${relTime(m.at)}` : `eingetragen ${relTime(m.at)}`;
+  }
+  // Names are looked up when they are about to be shown, then the plan is drawn once more.
+  function wantNames(ids) {
+    const u = userNs;
+    if (!u || typeof u.profiles !== "function") return;
+    const miss = [...new Set(ids)].filter(id => id && !names.has(id) && !namesAsked.has(id));
+    if (!miss.length) return;
+    for (const id of miss) namesAsked.add(id);
+    Promise.resolve().then(() => u.profiles(miss)).then(ps => {
+      for (const id of miss) { const p = ps && ps[id]; names.set(id, p && typeof p.name === "string" ? p.name.trim().slice(0, 60) : ""); }
+      renderPlan();
+    }, () => { for (const id of miss) names.set(id, ""); });
+  }
 
   function renderPhaseControls() {
     for (const seg of $$(".phase-seg")) {
@@ -1250,15 +1308,18 @@ section { display: grid; gap: 12px; min-width: 0; }
     if (nl.innerHTML !== notesHtml) nl.innerHTML = notesHtml;
     nl.hidden = !notes.length;
     $("#legend-chg").hidden = !changed.length;
-    $("#mark-all").hidden = !track;
-    $("#mark-all").disabled = !track;
+    // Viewers who cannot save see the ticks of the others, but get no tick buttons.
+    const canTick = track && !locked();
+    $("#mark-all").hidden = !canTick;
+    $("#mark-all").disabled = !canTick;
+    if (track) wantNames(plan.team.map(w => appliedMeta[w.id] && appliedMeta[w.id].by).filter(Boolean));
 
     const hasGrid = plan.jobs.length && plan.team.length;
     let html;
     if (!plan.jobs.length) html = `<div class="empty"><p class="muted">Alle Jobs sind abgeschaltet. Schaltet unter „Einstellungen“ mindestens einen ein.</p></div>`;
     else if (!plan.team.length) html = `<div class="empty"><p class="muted">Es ist niemand als Arbeiter eingeteilt. Wachen und Begleiter bekommen keine Jobs.</p></div>`;
-    else if (state.view === "cards") html = `<div class="wplan">${plan.team.map(w => cardPlanHtml(plan, w, track)).join("")}</div>`;
-    else html = tableHtml(plan, track);
+    else if (state.view === "cards") html = `<div class="wplan">${plan.team.map(w => cardPlanHtml(plan, w, track, canTick)).join("")}</div>`;
+    else html = tableHtml(plan, track, canTick);
     swapPlanHtml(view, html);
     if (hasGrid) afterRender(plan);
 
@@ -1284,14 +1345,16 @@ section { display: grid; gap: 12px; min-width: 0; }
     renderReason();
   }
 
-  function tableHtml(plan, track) {
+  function tableHtml(plan, track, canTick) {
     const head = `<thead><tr><th class="wcol" scope="col">Arbeiter</th>${plan.jobs.map(j => `<th scope="col">${esc(j.label)}<span class="en">${esc(j.game)}</span></th>`).join("")}</tr></thead>`;
     const body = plan.team.map(w => {
       const mj = JOB[plan.main[w.id]];
       const d = track ? changesFor(plan, w) : null;
       const nChg = d ? Object.keys(d).length : 0;
+      const who = track ? whoWhen(w.id) : "";
       const tick = !track ? "" : (applied[w.id] && !nChg)
-        ? `<span class="tick done${justApplied.has(w.id) ? " stamp" : ""}">✓ eingetragen</span>`
+        ? `<span class="tick done${justApplied.has(w.id) ? " stamp" : ""}">${who ? `✓ <span class="applied-who">${esc(who)}</span>` : "✓ eingetragen"}</span>`
+        : !canTick ? ""
         : `<button type="button" class="tick" data-applied="${esc(w.id)}" data-focus="ap:${esc(w.id)}" aria-label="${esc(`${w.name || "Arbeiter"} als im Spiel eingetragen abhaken`)}">abhaken</button>`;
       const cells = plan.jobs.map(j => {
         const c = plan.cells[w.id][j.id];
@@ -1312,7 +1375,7 @@ section { display: grid; gap: 12px; min-width: 0; }
     return `<div class="matrix-wrap"><table class="matrix">${head}<tbody>${body}</tbody>${foot}</table></div>`;
   }
 
-  function cardPlanHtml(plan, w, track) {
+  function cardPlanHtml(plan, w, track, canTick) {
     const mj = JOB[plan.main[w.id]];
     const d = track ? changesFor(plan, w) : null;
     const hasSnap = track && !!applied[w.id];
@@ -1329,9 +1392,11 @@ section { display: grid; gap: 12px; min-width: 0; }
     const body = done
       ? `<details class="wp-more" data-key="more|${esc(w.id)}"><summary data-focus="m:${esc(w.id)}">Zahlen zeigen</summary><div class="wp-rows">${rows}</div></details>`
       : `<div class="wp-rows">${rows}</div>`;
-    const foot = !track || done ? ""
+    const foot = !canTick || done ? ""
       : `<div><button type="button" class="btn small" data-applied="${esc(w.id)}" data-focus="ap:${esc(w.id)}">${hasSnap ? `${zahlen(nChg)} geändert – abhaken, wenn nachgezogen` : "Im Spiel eingetragen? Abhaken"}</button></div>`;
-    return `<article class="wp-card" id="wp-${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${done ? `<span class="applied-ok${justApplied.has(w.id) ? " stamp" : ""}">im Spiel eingetragen</span>` : ""}</div>${body}${foot}</article>`;
+    const who = done ? whoWhen(w.id) : "";
+    const seal = done ? `<div class="applied-box"><span class="applied-ok${justApplied.has(w.id) ? " stamp" : ""}">im Spiel eingetragen</span>${who ? `<small class="applied-who">${esc(who)}</small>` : ""}</div>` : "";
+    return `<article class="wp-card" id="wp-${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${seal}</div>${body}${foot}</article>`;
   }
 
   function renderReason() {
@@ -1352,20 +1417,48 @@ section { display: grid; gap: 12px; min-width: 0; }
     const v = lsGet(AP_KEY, {});
     applied = v && typeof v === "object" ? v : {};
   }
+  // The one place that changes a villager's tick-off: memory first (so the plan updates at once), then the backend.
+  // doc = {vals, by, at} or null to remove it. Resolves true when it was saved.
+  function putIngame(wid, doc) {
+    if (state.mode === "local") reloadApplied();   // another tab may have changed it
+    if (doc) {
+      applied[wid] = doc.vals;
+      if (state.mode === "local") delete appliedMeta[wid];
+      else appliedMeta[wid] = { by: doc.by || "", at: doc.at || 0 };
+    } else { delete applied[wid]; delete appliedMeta[wid]; }
+    return doc ? backend.setIngame(wid, { vals: { ...doc.vals }, by: doc.by || "", at: doc.at || 0 }) : backend.deleteIngame(wid);
+  }
+  const ingameDoc = wid => applied[wid] ? { vals: applied[wid], by: (appliedMeta[wid] || {}).by || "", at: (appliedMeta[wid] || {}).at || 0 } : null;
+  // Ticks the villagers off (all of the plan's team when ids is null). Returns what they had before, for Rückgängig.
   function markApplied(ids) {
     const plan = lastPlan;
-    if (!plan || !tracking()) return;
-    reloadApplied();   // another tab may have changed it
+    if (!plan || !tracking() || locked()) return null;
+    if (state.mode === "local") reloadApplied();   // another tab may have changed it
+    const at = Date.now(), prev = {};
     for (const w of plan.team) {
       if (ids && !ids.includes(w.id)) continue;
-      applied[w.id] = Object.fromEntries(plan.jobs.map(j => [j.id, cellVal(plan.cells[w.id][j.id])]));
+      prev[w.id] = ingameDoc(w.id);
+      putIngame(w.id, { vals: Object.fromEntries(plan.jobs.map(j => [j.id, cellVal(plan.cells[w.id][j.id])])), by: myId, at });
     }
-    lsSet(AP_KEY, applied);
     justApplied.clear();
     for (const w of plan.team) if (!ids || ids.includes(w.id)) justApplied.add(w.id);
     renderPlan();
     ring();
     setTimeout(() => justApplied.clear(), 900);
+    return prev;
+  }
+  function tickOff(ids) {
+    const prev = markApplied(ids);
+    if (!prev || !Object.keys(prev).length) return;
+    const msg = !ids ? "Alle als eingetragen gemerkt."
+      : state.mode === "local" ? "Als im Spiel eingetragen gemerkt." : "Für alle als eingetragen gemerkt.";
+    toast(msg, { label: "Rückgängig", fn: () => {
+      if (locked() || !tracking()) { toast("Rückgängig geht gerade nicht."); return null; }
+      for (const [wid, doc] of Object.entries(prev)) putIngame(wid, doc);
+      renderPlan();
+      toast("Rückgängig gemacht.");
+      return ids && ids.length === 1 ? document.querySelector(`[data-focus="ap:${CSS.escape(ids[0])}"]`) : $("#mark-all");
+    } });
   }
 
   // ---------- Rendering: worker editor ----------
@@ -1537,6 +1630,9 @@ section { display: grid; gap: 12px; min-width: 0; }
     setWorker() { this.save(); },
     deleteWorker() { this.save(); },
     setSettings() { this.save(); },
+    // Tick-off per browser, as before: putIngame already merged the change into `applied`.
+    setIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
+    deleteIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
   };
 
   function makeDbBackend(db) {
@@ -1545,53 +1641,73 @@ section { display: grid; gap: 12px; min-width: 0; }
     const timers = {};
     let unsubs = [];
     let retries = 0, retryT = null;
-    let gotW = false, gotS = false;      // first delivery of each listener ever
-    let sinceW = false, sinceS = false;  // delivered since the last subscribe()
+    let gotW = false, gotS = false, gotI = false;          // first delivery of each listener ever
+    let sinceW = false, sinceS = false, sinceI = false;    // delivered since the last subscribe()
+    let srvWorkers = new Map();                            // the last workers the server sent, to undo a refused delete
+    let srvIngame = { ids: new Set(), vals: {}, meta: {} }; // the last tick-offs the server sent, to undo a refused write
+    let liveW = false, liveI = false;                      // a snapshot from the server itself arrived (not a cached page)
+    let migrateTried = false;                              // the one-time migration runs at most once per page load
     function settle() {
       if (gotW && gotS) state.ready = true;
-      if (sinceW && sinceS) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
+      if (gotI) state.ingameReady = true;
+      if (sinceW && sinceS && sinceI) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
     }
 
+    // Resolves true when the write went through (after one retry for a transient error).
     async function attempt(run) {
-      try { await run(); }
+      try { await run(); return true; }
       catch (e) {
         if (e && e.code === "unavailable") {
           await sleep(600 + Math.random() * 900);
-          try { await run(); } catch (e2) { onWriteError(e2); }
-        } else onWriteError(e);
+          try { await run(); return true; } catch (e2) { onWriteError(e2); return false; }
+        }
+        onWriteError(e);
+        return false;
       }
     }
     // One write at a time per document. A key stays "pending" while a timer is armed or a write
     // runs, so incoming snapshots never overwrite local edits that are not saved yet.
-    function schedule(key, delay, run) {
-      const s = timers[key] || (timers[key] = { t: null, busy: false, again: false, run: null, p: null });
+    // done(ok) runs after this write finished; a write replaced before it started reports false.
+    function schedule(key, delay, run, done) {
+      const s = timers[key] || (timers[key] = { t: null, busy: false, again: false, run: null, p: null, done: null });
       s.run = run;
       pending.add(key);
+      if (s.done) { const old = s.done; s.done = null; old(false); }
+      s.done = done || null;
       clearTimeout(s.t);
       s.t = setTimeout(go, delay);
       async function go() {
         s.t = null;
         if (s.busy) { s.again = true; return; }
         s.busy = true;
-        try { await (s.p = attempt(s.run)); }
+        const fin = s.done; s.done = null;
+        let ok = false;
+        try { ok = await (s.p = attempt(s.run)); }
         finally {
           s.busy = false; s.p = null;
           if (s.again) { s.again = false; go(); }
           else if (!s.t) pending.delete(key);
         }
+        if (fin) fin(ok);
       }
     }
     function onWorkers(snap) {
       gotW = sinceW = true;
+      if (!(snap.metadata && snap.metadata.fromCache)) liveW = true;
+      const srv = new Map();
+      for (const d of snap.docs) srv.set(d.id, normWorker(d.id, d.data()));
+      srvWorkers = srv;
       const m = new Map();
-      for (const d of snap.docs) if (!deleting.has(d.id)) m.set(d.id, normWorker(d.id, d.data()));
+      for (const [id, w] of srv) if (!deleting.has(id)) m.set(id, w);
       for (const key of pending) if (key.startsWith("w:")) {
         const wid = key.slice(2);
         if (state.workers.has(wid)) m.set(wid, state.workers.get(wid));
+        else m.delete(wid);   // deleted here, the delete is not through yet
       }
       state.workers = m;
       settle();
       renderAll();
+      migrate();
     }
     function onSettings(snap) {
       gotS = sinceS = true;
@@ -1599,6 +1715,61 @@ section { display: grid; gap: 12px; min-width: 0; }
       if (!pending.has("settings") && snap.exists) state.settings = normSettings(snap.data());
       settle();
       renderAll();
+    }
+    function onIngame(snap) {
+      gotI = sinceI = true;
+      if (!(snap.metadata && snap.metadata.fromCache)) liveI = true;
+      const vals = {}, meta = {}, ids = new Set();
+      for (const d of snap.docs) {
+        ids.add(d.id);
+        const doc = cleanIngame(d.data && d.data());
+        if (!doc) continue;
+        vals[d.id] = doc.vals; meta[d.id] = { by: doc.by, at: doc.at };
+      }
+      srvIngame = { ids, vals, meta };
+      const a = { ...vals }, m = { ...meta };
+      // A tick or Rückgängig that is not saved yet keeps the local copy.
+      for (const key of pending) if (key.startsWith("i:")) {
+        const wid = key.slice(2);
+        if (applied[wid]) { a[wid] = applied[wid]; m[wid] = appliedMeta[wid] || { by: "", at: 0 }; }
+        else { delete a[wid]; delete m[wid]; }
+      }
+      applied = a; appliedMeta = m;
+      settle();
+      renderAll();
+      migrate();
+    }
+    // A refused tick-off write: show what the server has again, unless a newer write is on its way.
+    function restoreIngame(wid) {
+      if (pending.has("i:" + wid)) return;
+      if (srvIngame.vals[wid]) { applied[wid] = srvIngame.vals[wid]; appliedMeta[wid] = srvIngame.meta[wid]; }
+      else { delete applied[wid]; delete appliedMeta[wid]; }
+      renderPlan();
+    }
+    function writeIngame(wid, run) {
+      return new Promise(res => schedule("i:" + wid, 0, run, ok => { if (!ok) restoreIngame(wid); res(ok); }));
+    }
+    // Once per device: ticks this browser kept before the shared tick-off existed become shared docs.
+    // Never overwrites an existing doc; entries for villagers that are not in this list stay in AP_KEY.
+    // Waits for server snapshots (a cached first page may miss docs) and tries once per page load,
+    // so a failing write is never repeated from the snapshot callbacks; the next visit tries again.
+    async function migrate() {
+      if (migrateTried || !liveW || !liveI || !state.userKnown || state.readOnly || state.loadFailed || state.mode !== "db") return;
+      if (lsGet(MIGRATED_KEY, false) === true) return;
+      migrateTried = true;
+      const old = lsGet(AP_KEY, {});
+      const todo = Object.entries(old && typeof old === "object" ? old : {})
+        .map(([wid, vals]) => [wid, cleanIngame({ vals })])
+        .filter(([wid, doc]) => doc && state.workers.has(wid) && !srvIngame.ids.has(wid) && !applied[wid] && !pending.has("i:" + wid));
+      const at = Date.now();
+      const writes = todo.map(([wid, doc]) => putIngame(wid, { vals: doc.vals, by: myId, at }).then(ok => ok ? wid : null));
+      if (todo.length) renderPlan();
+      const done = (await Promise.all(writes)).filter(Boolean);
+      if (done.length) {
+        const cur = lsGet(AP_KEY, {});
+        if (cur && typeof cur === "object") { for (const wid of done) delete cur[wid]; lsSet(AP_KEY, cur); }
+      }
+      if (done.length === todo.length) lsSet(MIGRATED_KEY, true);   // a refused write tries again next visit
     }
     function onListenError(e) {
       const code = e && e.code;
@@ -1609,7 +1780,7 @@ section { display: grid; gap: 12px; min-width: 0; }
       }
       for (const u of unsubs) { try { u(); } catch (x) { /* ignore */ } }
       unsubs = [];
-      if (retryT) return;   // both listeners fail together when the bridge dies: retry once
+      if (retryT) return;   // all listeners fail together when the bridge dies: retry once
       const terminal = ["invalid_argument", "resource_exhausted", "transform_error"].includes(code);
       if (!terminal && retries < 2) {
         retries++;
@@ -1621,32 +1792,42 @@ section { display: grid; gap: 12px; min-width: 0; }
       }
     }
     function subscribe() {
-      sinceW = sinceS = false;
+      sinceW = sinceS = sinceI = false;
       unsubs = [
         db.collection("workers").onSnapshot(onWorkers, onListenError),
         db.doc("settings/main").onSnapshot(onSettings, onListenError),
+        db.collection("ingame").onSnapshot(onIngame, onListenError),
       ];
     }
     return {
       start: subscribe,
+      migrate,
       setWorker(id, delay = 600) {
+        deleting.delete(id);   // saved again (Rückgängig after Löschen): show it as soon as the server has it
         schedule("w:" + id, delay, () => {
           const w = state.workers.get(id);
           return w ? db.collection("workers").doc(id).set(toDoc(w)) : Promise.resolve();
         });
       },
-      async deleteWorker(id) {
-        const key = "w:" + id;
-        const s = timers[key];
+      // Through the same queue as saves, so an edit still on its way can never bring the villager back,
+      // and Rückgängig (a save of the same id) always lands after the delete.
+      deleteWorker(id) {
         deleting.add(id);
-        if (s) { clearTimeout(s.t); s.t = null; s.again = false; if (s.p) await s.p.catch(() => {}); }
-        try { await db.collection("workers").doc(id).delete(); } catch (e) { onWriteError(e); }
-        pending.delete(key);
-        setTimeout(() => deleting.delete(id), 4000);
+        schedule("w:" + id, 0, () => db.collection("workers").doc(id).delete(), ok => {
+          if (!ok && !pending.has("w:" + id) && !state.workers.has(id) && srvWorkers.has(id)) {
+            deleting.delete(id);   // refused: it is still there for everyone
+            state.workers.set(id, srvWorkers.get(id));
+            renderAll();
+            return;
+          }
+          setTimeout(() => deleting.delete(id), 4000);
+        });
       },
       setSettings() {
         schedule("settings", 400, () => db.doc("settings/main").set(JSON.parse(JSON.stringify(state.settings))));
       },
+      setIngame(wid, doc) { return writeIngame(wid, () => db.collection("ingame").doc(wid).set(doc)); },
+      deleteIngame(wid) { return writeIngame(wid, () => db.collection("ingame").doc(wid).delete()); },
     };
   }
 
@@ -1810,12 +1991,60 @@ section { display: grid; gap: 12px; min-width: 0; }
     } catch (e) { fallback(); }
   }
 
-  let toastT = null;
-  function toast(msg) {
+  // A short message at the bottom (role=status). With an action ({label, fn}) it gets a button and stays 8 s;
+  // it waits while pointer or focus is on it, and Strg+Z runs the action. fn may return an element to focus.
+  let toastT = null, toastAct = null, toastMs = 0;
+  function hideToast() { clearTimeout(toastT); toastT = null; toastAct = null; $("#toast").hidden = true; }
+  function armToast(ms) { clearTimeout(toastT); toastT = setTimeout(hideToast, ms); }
+  function toast(msg, action) {
     const t = $("#toast");
-    t.textContent = msg; t.hidden = false;
-    clearTimeout(toastT);
-    toastT = setTimeout(() => { t.hidden = true; }, 3600);
+    const span = document.createElement("span");
+    span.className = "toast-msg";
+    span.textContent = msg;
+    t.replaceChildren(span);
+    toastAct = action && typeof action.fn === "function" ? action : null;
+    if (toastAct) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn small toast-act";
+      b.textContent = toastAct.label || "Rückgängig";
+      b.setAttribute("aria-keyshortcuts", "Control+Z Meta+Z");
+      t.append(b);
+    }
+    t.classList.toggle("has-act", !!toastAct);
+    t.hidden = false;
+    toastMs = toastAct ? 8000 : 3600;
+    armToast(toastMs);
+  }
+  function runToastAct() {
+    const act = toastAct, t = $("#toast");
+    if (!act) return;
+    const hadFocus = t.contains(document.activeElement);
+    hideToast();
+    const el = act.fn();
+    // Focus was on the hidden button: put it back where the work is.
+    if (hadFocus) {
+      const target = el && el.isConnected && !el.closest("[hidden]") ? el : $("#panel-" + (TABS.find(n => !$("#panel-" + n).hidden) || "plan"));
+      if (target) target.focus({ preventScroll: !!el });
+    }
+  }
+  {
+    const t = $("#toast");
+    t.addEventListener("click", e => { if (e.target.closest(".toast-act")) runToastAct(); });
+    // Only a toast with a button waits for the person who is about to press it.
+    const hold = () => { if (toastAct) clearTimeout(toastT); };
+    const resume = () => { if (toastAct && !t.hidden && !t.matches(":hover") && !t.contains(document.activeElement)) armToast(4000); };
+    t.addEventListener("pointerenter", hold);
+    t.addEventListener("pointerleave", resume);
+    t.addEventListener("focusin", hold);
+    t.addEventListener("focusout", () => setTimeout(resume, 0));
+    document.addEventListener("keydown", e => {
+      if (!toastAct || t.hidden || e.key.toLowerCase() !== "z" || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      const el = e.target;
+      if (el && (el.isContentEditable || (el.matches && el.matches("input, textarea, select")))) return;   // their own undo
+      e.preventDefault();
+      runToastAct();
+    });
   }
 
   // ---------- Tabs ----------
@@ -1849,7 +2078,7 @@ section { display: grid; gap: 12px; min-width: 0; }
       return;
     }
     const ap = e.target.closest("[data-applied]");
-    if (ap) { markApplied([ap.dataset.applied]); toast("Als im Spiel eingetragen gemerkt."); return; }
+    if (ap) { tickOff([ap.dataset.applied]); return; }
     const cell = e.target.closest("[data-cell]");
     if (cell) {
       state.selected = state.selected === cell.dataset.cell ? null : cell.dataset.cell;
@@ -1876,12 +2105,25 @@ section { display: grid; gap: 12px; min-width: 0; }
       const card = del.closest("[data-wid]");
       if (del.dataset.armed && Date.now() - +del.dataset.armed > 450) {
         const id = card.dataset.wid;
-        const name = (state.workers.get(id) || {}).name;
+        const w = state.workers.get(id);
+        if (!w) return;
+        // Kept in memory for Rückgängig: the same villager (same id) and the same tick-off.
+        if (state.mode === "local") reloadApplied();
+        const ing = ingameDoc(id);
         state.workers.delete(id);
         backend.deleteWorker(id);
-        reloadApplied(); delete applied[id]; lsSet(AP_KEY, applied);
+        putIngame(id, null);
         renderAll();
-        toast(`${name || "Arbeiter"} gelöscht.`);
+        toast(`${w.name || "Arbeiter"} gelöscht.`, { label: "Rückgängig", fn: () => {
+          if (locked()) { toast("Rückgängig geht gerade nicht."); return null; }
+          if (!state.workers.has(id)) {
+            saveWorker(w, 0);
+            if (ing) putIngame(id, ing);
+            renderAll();
+          }
+          toast(`${w.name || "Arbeiter"} ist wieder da.`);
+          return document.querySelector(`#wlist [data-wid="${CSS.escape(id)}"] [data-act="del"]`);
+        } });
       } else if (!del.dataset.armed) {
         del.dataset.armed = String(Date.now()); del.classList.add("armed"); del.textContent = "Sicher?";
         setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.classList.remove("armed"); del.textContent = "Löschen"; } }, 3000);
@@ -1991,7 +2233,7 @@ section { display: grid; gap: 12px; min-width: 0; }
   $("#copy-plan").addEventListener("click", () => copy(planText(), "Plan kopiert."));
   $("#ask-owner").addEventListener("click", () => copy(ASK_OWNER, "Nachricht kopiert. Schickt sie dem Besitzer."));
   $("#copy-roster").addEventListener("click", () => copy(rosterText(), "Arbeiterliste kopiert. Einfach im Chat bei Claude einfügen."));
-  $("#mark-all").addEventListener("click", () => { markApplied(null); toast("Alle als im Spiel eingetragen gemerkt."); });
+  $("#mark-all").addEventListener("click", () => tickOff(null));
 
   window.addEventListener("hashchange", () => showTab(location.hash.slice(1), false));
 
@@ -2320,7 +2562,8 @@ Reply with only this JSON:
   });
 
   // ---------- Boot ----------
-  window.addEventListener("storage", e => { if (e.key === AP_KEY) { reloadApplied(); renderPlan(); } });
+  // Old tabs keep writing AP_KEY; only local mode reads it.
+  window.addEventListener("storage", e => { if (e.key === AP_KEY && state.mode === "local") { reloadApplied(); renderPlan(); } });
   const use = window.claude && typeof window.claude.use === "function" ? n => window.claude.use(n) : async () => null;
   // Drifting embers like from a camp fire: a few dozen dots, paused while the tab is hidden.
   function startEmbers() {
@@ -2371,6 +2614,8 @@ Reply with only this JSON:
   renderKnowledge();
   showTab(location.hash.slice(1), false);
   renderAll();
+  // "vor 5 Min." grows older while the page stays open. Drawing only, nothing is saved.
+  setInterval(() => { if (!document.hidden && tracking() && Object.keys(appliedMeta).length) renderPlan(); }, 60e3);
 
   (async () => {
     try {
@@ -2399,6 +2644,7 @@ Reply with only this JSON:
     }
     state.userKnown = true;
     renderAll();
+    if (backend.migrate) backend.migrate();   // the old per-device ticks need the viewer's id and write access first
   }
 
   (async () => {
@@ -2412,6 +2658,7 @@ Reply with only this JSON:
       try { localStorage.setItem("__bw_probe", "1"); localStorage.removeItem("__bw_probe"); } catch (e) { state.noStore = true; }
       local.load();
       state.ready = true;
+      state.ingameReady = true;   // ticks stay in this browser (AP_KEY), as before
       backend = local;
       window.addEventListener("storage", e => {
         if (e.key !== LS_KEY) return;
@@ -2423,6 +2670,7 @@ Reply with only this JSON:
       return;
     }
     state.mode = "db";
+    applied = {}; appliedMeta = {};   // the shared tick-off replaces this browser's AP_KEY
     backend = makeDbBackend(db);
     backend.start();
     renderAll();
