@@ -458,3 +458,42 @@ NO new capabilities, no db, nothing stored.
 TEST (feat-map.js): tab exists before Hilfe and is keyboard reachable; tabs.js still passes; link href/target/rel correct; panel and tab
 row have no horizontal overflow at 360/390/1280; with reduced motion the final state is visible immediately; without it all map parts
 are visible after ~3 s; tapping the map skips to the end state; switching tabs mid-intro leaves no stuck state; no console errors.
+
+====================================================================================================
+BUILD: 10. Animationen: Eintragen-Modus lebendig + passende Effekte | effort M-L
+WHY: The user picked "Eintragen-Modus lebendig" plus "something fitting, nothing lame". It must feel hand-crafted and medieval
+(ledger, wax, embers, bell), short, smooth on a phone, and never get in the way of entering numbers.
+SETTING (do this first, everything below depends on it):
+- Einstellungen gets "Animationen: voll / ruhig / aus" (segmented control like the existing ones), stored PER DEVICE in
+  localStorage 'bellwright-anim-v1' (try/catch; default "voll"), applied as <html data-anim="voll|ruhig|aus">.
+- Movement only when @media (prefers-reduced-motion: no-preference) AND data-anim != "aus". With reduced motion the page behaves
+  like "aus" whatever the setting says (say so under the control: "Euer Gerät wünscht weniger Bewegung – Animationen sind aus.").
+- "ruhig" = only short functional fades/transitions (<= 200 ms): no embers (pause the ember canvas), no infinite pulses (main seal
+  glow), no sweeps, no flips, no shakes, no rolling. "aus" = no animation at all (also the existing ones: reveal, bell, bump,
+  stamp, seal, toast, embers).
+ENTRY MODE (#entry, use the existing hooks: entryGo(to, dir) is the only switch function, #entry-stage[data-dir], one
+article.entry-card per villager with .entry-page and .entry-seal, section#entry-finale):
+1. Page turn between villagers: a ledger page flip (perspective on the stage, rotateY around the spine edge, backface hidden,
+   light shading gradient on the turning page), direction-aware for Weiter/Zurück, ~450 ms. A tap during the flip finishes it
+   at once; never delay focus or the write.
+2. Wax seal on "Fertig": the seal drops onto the card (scale ~1.6 -> 1 with a hard landing), the card does a tiny thump
+   (2-3 px), and a short ember burst sprays from the seal (<= 24 small particles, ~600 ms, transform/opacity only). Keep the
+   current timing contract: the next villager comes after the stamp (adjust the 750 ms only if needed, max ~950 ms in "voll").
+3. Finale (all entered): a banner unfurls "Alle eingetragen" (scaleY from the top with ribbon tails), an ember fountain rises
+   behind it (~1.5 s), and the existing bell rings. The partial finale ("k von n …") gets only a calm fade.
+4. Rolling numbers: in the entry rows the target number rolls like an odometer from the old value to the new one when the card
+   appears ("von 5 →" then 5 rolls to 2; X/aus crossfades). 
+PLAN:
+5. Changed plan cells/badges after a recompute roll from old to new (odometer) instead of the plain bump in "voll"; "ruhig"
+   keeps a short fade/bump-free update; "aus" none.
+6. Phase switch (phase buttons): a warm light sweep runs across the plan grid/cards, staggered by column/card; changed cells glow
+   briefly as it passes. ~700 ms total.
+7. Header torch flicker: a very subtle, irregular flicker of the title glow (text-shadow/opacity), only in "voll", paused when
+   the page is hidden.
+RULES: transform/opacity only (no layout animation), particles capped and removed after use, pause everything on
+visibilitychange hidden, no flashing faster than 3/s, nothing blocks input or delays db writes, no horizontal overflow at 360px.
+TEST (feat-anim.js): setting persists per device and sets html[data-anim]; blocked localStorage falls back to "voll" without errors;
+with reduced motion no animations run (document.getAnimations() empty after interactions) and the note shows; in "aus" no
+animations; in "ruhig" no infinite/long animations; entry flow works in all three modes (Fertig ticks via the shared tick-off,
+advances, Zurück, double taps ignored, finale reached); timing: next villager within ~1.2 s; rolling numbers end on the right
+value; phase switch sweep ends and leaves no stuck classes; no console errors; 360/390/1280 no overflow.
