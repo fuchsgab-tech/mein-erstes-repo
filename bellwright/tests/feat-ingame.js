@@ -416,7 +416,7 @@ const clickUndo = page => page.click('#toast .toast-act');
     await B.page.waitForTimeout(200);
     // Agnes has an empty snapshot, so she shows changes. Give Edda a snapshot that matches the plan, so she is sealed.
     const vals = await B.page.evaluate(() => { const c = document.getElementById('wp-w_edda'); return [...c.querySelectorAll('.pbadge')].map(b => b.textContent); });
-    const jobs = ['construction', 'delivery', 'woodcutting', 'harvesting', 'farming', 'hunting', 'animals', 'cooking', 'crafting', 'smelting', 'research'];
+    const jobs = ['crafting', 'smelting', 'harvesting', 'farming', 'woodcutting', 'delivery', 'cooking', 'hunting', 'construction', 'animals', 'research'];   // game order (badges are shown in it)
     srv.ingame.set('w_edda', { vals: Object.fromEntries(jobs.map((j, i) => [j, vals[i] === 'aus' ? 0 : +vals[i]])), by: 'u_stranger', at: Date.now() - 2 * 3600e3 - 5000 });
     srv.broadcast('ingame');
     await until(async () => (await card(B.page, 'w_edda')).sealed);

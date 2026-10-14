@@ -196,7 +196,7 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     check('rows in plan order: "von" = snapshot, badge = plan cell, same rows say "bleibt"', jobsShown === jobIds.length && !mism.length, mism.slice(0, 3));
     const nDiff = e.rows.filter(r => r.diff).length;
     check('chip "n Zahlen ändern"', e.chip === `${nDiff} ${nDiff === 1 ? 'Zahl' : 'Zahlen'} ändern`, e.chip);
-    check('header: where line, no new-villager line (has a snapshot), Überspringen', e.where === `Im Spiel: Bevölkerung → ${firstName} → Job-Prioritäten` && !e.isNew && e.skip, e);
+    check('header: where line, no new-villager line (has a snapshot), Überspringen', e.where === `Im Spiel: Bevölkerung → ${firstName} → Arbeitsprioritäten` && !e.isNew && e.skip, e);
     check('why details: one item per row', e.whyItems === jobsShown, e.whyItems);
     const sizes = await P.evaluate(() => {
       const d = document.querySelector('.er-row.diff'), s = document.querySelector('.er-row.same'), b = document.querySelector('.er-row.diff .er-to');

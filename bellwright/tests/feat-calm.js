@@ -23,6 +23,13 @@ let passes = 0;
 const check = (name, ok, detail) => { if (ok) passes++; else fails.push(name + (detail !== undefined ? ' -> ' + JSON.stringify(detail).slice(0, 600) : '')); };
 const info = [];
 const deq = (a, b) => { try { assert.deepStrictEqual(a, b); return true; } catch (e) { return false; } };
+// Since the game-order update the job labels and the display order of plan.jobs changed on purpose (and a
+// switched-off job 'caravanguard' exists). TEST 1 therefore compares the numbers: same team, same main jobs,
+// and per cell the same p/off/main/side/weak/cover, plus the same number of notes.
+const numbers = p => ({ team: p.team.map(w => w.id), others: (p.others || []).map(w => w.id), jobs: p.jobs.map(j => j.id).sort(), main: p.main,
+  notes: p.notes.length, cells: Object.fromEntries(Object.entries(p.cells).map(([wid, cs]) => [wid, Object.fromEntries(Object.keys(cs).sort().map(jid => {
+    const c = cs[jid]; return [jid, { p: c.p, off: !!c.off, main: !!c.main, side: !!c.side, weak: !!c.weak, cover: !!c.cover }]; }))])) });
+const deqN = (a, b) => deq(numbers(a), numbers(b));
 
 // ---------- planner helpers ----------
 const setPhase = (M, s, id) => { const ph = M.PHASES.find(x => x.id === id); s.phase = id; for (const j of M.JOBS) s.jobs[j.id].imp = ph.imp[j.id]; return s; };
@@ -86,7 +93,7 @@ function partA() {
       'calm false + anchor': T.compute(ex(), s, { calm: false, anchor: snapStart }),
       'calm undefined + anchor': T.compute(ex(), s, { anchor: snapStart }),
     };
-    for (const [k, got] of Object.entries(variants)) check(`TEST 1 ${ph.id}: ${k} deep-equals the saved compute`, deq(got, want));
+    for (const [k, got] of Object.entries(variants)) check(`TEST 1 ${ph.id}: ${k} deep-equals the saved compute`, deqN(got, want));
   }
   // The same over 840 random teams with varied settings (logic.js), with and without an anchor.
   {
@@ -98,7 +105,7 @@ function partA() {
       const want = O.compute(clone(ws), sO);
       const anchor = rep % 2 ? vals(want) : {};
       runs++;
-      if (!deq(T.compute(clone(ws), sN), want) || !deq(T.compute(clone(ws), sN, { calm: false, anchor }), want)) bad.push(`N=${N} rep=${rep}`);
+      if (!deqN(T.compute(clone(ws), sN), want) || !deqN(T.compute(clone(ws), sN, { calm: false, anchor }), want)) bad.push(`N=${N} rep=${rep}`);
     }
     check(`TEST 1 fuzz: calm off deep-equals the saved compute (${runs} teams)`, !bad.length, bad.slice(0, 5));
   }

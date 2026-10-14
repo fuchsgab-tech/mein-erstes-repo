@@ -533,7 +533,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 <div class="wrap">
   <header class="mast reveal" style="--i:0">
     <div class="mast-title">
-      <span class="eyebrow">Bellwright · Job-Prioritäten</span>
+      <span class="eyebrow">Bellwright · Arbeitsprioritäten</span>
       <div class="title-row">
         <svg class="bell" id="bell" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M24 4c1.7 0 3 1.3 3 3v1.2c6.6 1.4 11 7.2 11 14.3V31l4 5v2H6v-2l4-5v-8.5C10 15.4 14.4 9.6 21 8.2V7c0-1.7 1.3-3 3-3z"/><path fill="currentColor" d="M19 41h10a5 5 0 0 1-10 0z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55" d="M15 22c0-4 2.5-7.5 6-8.6"/></svg>
         <h1>Bellwright Arbeitsplan</h1>
@@ -595,7 +595,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
           <button type="button" data-view="table">Tabelle</button>
         </div>
       </div>
-      <p class="howto"><b>Im Spiel:</b> Bevölkerung → Dorfbewohner wählen → Reiter Job-Prioritäten. Zahlen von hier übernehmen, „aus“ heißt Job sperren (im Spiel ein X). Neue Dorfbewohner stehen überall auf 5; habt ihr schon etwas verstellt, setzt es auf die Zahl von hier. Seid ihr mit einem Arbeiter fertig, hakt ihn hier ab. Ändert sich der Plan später, zeigen Punkte, was ihr nachziehen müsst.</p>
+      <p class="howto"><b>Im Spiel:</b> Bevölkerung → Dorfbewohner wählen → Arbeitsprioritäten. Oder in der Bevölkerung oben rechts „Arbeitsprioritäten“ wählen, dann seht ihr alle als Tabelle. Zahlen von hier übernehmen, „aus“ heißt Job sperren (im Spiel ein X). Neue Dorfbewohner stehen überall auf 5; habt ihr schon etwas verstellt, setzt es auf die Zahl von hier. Seid ihr mit einem Arbeiter fertig, hakt ihn hier ab. Ändert sich der Plan später, zeigen Punkte, was ihr nachziehen müsst.</p>
       <div class="legend">
         <span class="scale" aria-hidden="true"><span class="p1">1</span><span class="p2">2</span><span class="p3">3</span><span class="p5">5</span><span class="p7">7</span><span class="p9">9</span><span class="p0">aus</span></span>
         <span>1 = zuerst · 9 = zuletzt</span>
@@ -735,14 +735,14 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     </section>
 
     <section class="prose">
-      <h2>So funktionieren Job-Prioritäten im Spiel</h2>
+      <h2>So funktionieren Arbeitsprioritäten im Spiel</h2>
       <ul>
-        <li>Unter <strong>Bevölkerung (Population)</strong> einen Dorfbewohner als <strong>Arbeiter (Worker)</strong> einteilen, dann den Reiter <strong>Job-Prioritäten</strong> öffnen.</li>
+        <li>Unter <strong>Bevölkerung (Population)</strong> einen Dorfbewohner als <strong>Arbeiter (Worker)</strong> einteilen, dann <strong>Arbeitsprioritäten</strong> öffnen. Noch schneller: in der Bevölkerung oben rechts die Ansicht <strong>„Arbeitsprioritäten“</strong> wählen, dann stehen alle Dorfbewohner als Tabelle untereinander, mit den Jobs in derselben Reihenfolge wie hier.</li>
         <li><strong>1 ist die höchste Priorität</strong> (wird zuerst erledigt), <strong>9 die niedrigste</strong>. Ein gesperrter Job (im Spiel ein X) wird von diesem Arbeiter nie gemacht.</li>
         <li><strong>5 ist der Standardwert.</strong> Neue Dorfbewohner stehen überall auf 5. Bei gleicher Zahl wählen sie zufällig, darum lohnt sich ein klarer Hauptjob.</li>
         <li>Ein Arbeiter nimmt immer die offene Aufgabe mit der kleinsten Zahl. Gibt es dort nichts zu tun, geht er zur nächsten.</li>
         <li>Nur Arbeiter bekommen Jobs. Wachen und Begleiter arbeiten nicht im Dorf.</li>
-        <li><strong>Job-Priorität und Gebäude-Priorität sind zwei Dinge.</strong> Die Job-Priorität sagt, <em>was</em> jemand macht. Die Gebäude-Priorität sagt, <em>welche Werkstatt</em> innerhalb eines Jobs zuerst bedient wird, zum Beispiel welcher von zwei Rennöfen.</li>
+        <li><strong>Arbeitspriorität und Gebäude-Priorität sind zwei Dinge.</strong> Die Arbeitspriorität sagt, <em>was</em> jemand macht. Die Gebäude-Priorität sagt, <em>welche Werkstatt</em> innerhalb eines Jobs zuerst bedient wird, zum Beispiel welcher von zwei Rennöfen.</li>
         <li><strong>Training:</strong> Seht ihr eine ausgegraute Spalte „Training“, könnt ihr sie ignorieren. Laut Spielern hat sie noch keine Funktion.</li>
         <li><strong>Außenposten:</strong> Arbeiter arbeiten nur an Gebäuden ihres eigenen Dorfs oder Außenpostens. Ist ein Job ausgegraut, fehlt dort das Gebäude. Plant Außenposten am besten getrennt und gebt dort die Lieferung weit vorne.</li>
       </ul>
@@ -775,7 +775,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       </ol>
     </section>
 
-    <p class="sources">Stand: Oktober 2026 (Early Access, nach dem Sommer-Update 2026). Grundlage sind Community-Quellen: <a href="https://bellwright.fandom.com/wiki/Job_Priorities" target="_blank" rel="noopener">Wiki: Job-Prioritäten</a>, <a href="https://bellwright.fandom.com/wiki/Attributes" target="_blank" rel="noopener">Wiki: Attribute</a>, <a href="https://bellwright.fandom.com/wiki/Traits" target="_blank" rel="noopener">Wiki: Eigenschaften</a>, <a href="https://steamcommunity.com/app/1812450/discussions/0/604154603520431429/" target="_blank" rel="noopener">Steam: „Hunting to Handling?“</a> und der <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3380034073" target="_blank" rel="noopener">Advanced Bellwright Guide</a>. Job-Namen und Zuordnungen ändern sich mit Patches. Prüft im Spiel, welche Jobs euer Prioritäten-Fenster zeigt, und schaltet fehlende unter „Einstellungen“ ab.</p>
+    <p class="sources">Stand: Oktober 2026 (Early Access, nach dem Sommer-Update 2026). Grundlage sind Community-Quellen: <a href="https://bellwright.fandom.com/wiki/Job_Priorities" target="_blank" rel="noopener">Wiki: Arbeitsprioritäten</a>, <a href="https://bellwright.fandom.com/wiki/Attributes" target="_blank" rel="noopener">Wiki: Attribute</a>, <a href="https://bellwright.fandom.com/wiki/Traits" target="_blank" rel="noopener">Wiki: Eigenschaften</a>, <a href="https://steamcommunity.com/app/1812450/discussions/0/604154603520431429/" target="_blank" rel="noopener">Steam: „Hunting to Handling?“</a> und der <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3380034073" target="_blank" rel="noopener">Advanced Bellwright Guide</a>. Job-Namen und Zuordnungen ändern sich mit Patches. Prüft im Spiel, welche Jobs euer Prioritäten-Fenster zeigt, und schaltet fehlende unter „Einstellungen“ ab.</p>
   </div>
   <footer class="foot">Inoffizielles Fan-Tool für Bellwright. Nicht von Donkey Crew und nicht mit dem Spiel verbunden.</footer>
 </div>
@@ -829,25 +829,28 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   // yieldKind: "hard" = output depends strongly on skill (weak workers can be switched off),
   //            "soft" = skill only adds a little extra yield (weak workers go to 9 instead).
   const JOBS = [
-    { id: "construction", label: "Bauen",          game: "Construction",    attr: "labourer",
+    { id: "construction", label: "Bau",            game: "Construction",    attr: "labourer",
       covers: "Gebäude errichten und aufwerten.",
       tip: "Am Anfang weit vorne. Wenn die Grundgebäude stehen, reichen 1–2 feste Bauarbeiter. Braucht Zimmermannshämmer im Lager." },
     { id: "delivery",     label: "Lieferung",      game: "Delivery",        attr: null,
       covers: "Material zu Werkstätten bringen, Brennstoff nachfüllen, fertige Waren und Erträge aus Hütten ins Lager tragen.",
       tip: "Keine eigene Fertigkeit. Ab ca. 5 Arbeitern einen festen Träger, bei allen anderen 5 lassen." },
-    { id: "caravan",      label: "Karawane",       game: "Caravan",         attr: null, defaultOn: false,
+    { id: "caravan",      label: "Karawanenträger", game: "Caravan",        attr: null, defaultOn: false,
       covers: "Karren an der Karawanenstation beladen und Waren zu euren anderen Orten bringen.",
       tip: "Nur mit Karawanenstation, darum hier anfangs aus. Keine Arbeits-Fertigkeit: schnelle Leute (hohe Agility, Eigenschaft Nomad) eignen sich. Gibt es die Spalte bei euch nicht, ausgeschaltet lassen." },
+    { id: "caravanguard", label: "Karawanenwache", game: "Caravan Guard", attr: null, defaultOn: false,
+      covers: "Karawanen unterwegs begleiten und beschützen.",
+      tip: "Nur wenn ihr Karawanen losschickt, darum hier anfangs aus. Die App kennt keine Kampfwerte: nehmt kampfstarke, gut ausgerüstete Leute." },
     { id: "woodcutting",  label: "Holzfällen",     game: "Woodcutting",     attr: "harvesting", yieldKind: "soft",
       covers: "Bäume fällen, Holzfällerlager.",
-      tip: "Äxte im Lager, Arbeitsradius des Lagers prüfen. Bretter aus Stämmen laufen über Herstellung." },
-    { id: "harvesting",   label: "Ernten",         game: "Harvesting",      attr: "harvesting", yieldKind: "soft",
+      tip: "Äxte im Lager, Arbeitsradius des Lagers prüfen. Bretter aus Stämmen laufen über Handwerk." },
+    { id: "harvesting",   label: "Ernte",          game: "Harvesting",      attr: "harvesting", yieldKind: "soft",
       covers: "Stein und Erz abbauen, Lehm und Torf stechen, Beeren, Pilze und Kräuter sammeln.",
       tip: "Spitzhacke und Spaten im Lager, Arbeitsradius prüfen." },
     { id: "farming",      label: "Landwirtschaft", game: "Farming",         attr: "farming", yieldKind: "hard",
       covers: "Felder bestellen, säen und ernten.",
       tip: "Erfahrung bekommt, wer gesät hat. Feste Bauern leveln am schnellsten. Braucht Hacken." },
-    { id: "hunting",      label: "Jagd",           game: "Hunting",         attr: "hunting", yieldKind: "hard",
+    { id: "hunting",      label: "Jagen",          game: "Hunting",         attr: "hunting", yieldKind: "hard",
       covers: "Jagen, Fallen stellen und leeren, auch die Fischerhütte.",
       tip: "Nutzt die Fertigkeit Animal Handling. Bögen und Fallen, für die Fischerhütte Angelruten und Köder." },
     { id: "animals",      label: "Tierhaltung",    game: "Animal Handling", attr: "hunting", yieldKind: "hard",
@@ -856,7 +859,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     { id: "cooking",      label: "Kochen",         game: "Cooking",         attr: "cooking",
       covers: "Kochstellen beladen und Mahlzeiten zubereiten.",
       tip: "Erfahrung bekommt, wer die Kochstelle belädt. Essen darf nie ausgehen." },
-    { id: "crafting",     label: "Herstellung",    game: "Crafting",        attr: "crafting",
+    { id: "crafting",     label: "Handwerk",       game: "Crafting",        attr: "crafting",
       covers: "Alle Werkstätten: Bretter, Werkzeug, Kleidung, Waffen, Rüstung, Reparaturen, Schlachten, Dreschen.",
       tip: "Manche Rezepte brauchen eine Mindeststufe (rot im Werkstattmenü), Waffen und Rüstung hohe Stufen. Je nach Rezept zählt statt Herstellung auch Landwirtschaft, Kochen oder Tierhaltung." },
     { id: "smelting",     label: "Schmelzen",      game: "Smelting",        attr: "crafting",
@@ -867,18 +870,23 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       tip: "Immer mindestens eine Person auf 1 oder 2." },
   ];
   const JOB = Object.fromEntries(JOBS.map(j => [j.id, j]));
+  // Display order = the order of the Arbeitsprioritäten list in the game (left column top to bottom, then the right one).
+  // compute() keeps iterating JOBS so its tie-breaks stay the same; only what is shown follows this order.
+  const GAME_ORDER = ["crafting", "smelting", "harvesting", "farming", "woodcutting", "delivery", "cooking", "hunting",
+    "construction", "animals", "research", "caravan", "caravanguard"];
+  const JOBS_SHOWN = GAME_ORDER.map(id => JOB[id]).concat(JOBS.filter(j => !GAME_ORDER.includes(j.id)));
   // Jobs whose speed depends on the "productivity" a trait changes.
   const PROD_JOBS = new Set(["construction", "crafting", "smelting", "cooking", "research"]);
 
   const PHASES = [
     { id: "start",   label: "Start",      sub: "Essen & Bau",
-      imp: { construction: 5, delivery: 4, caravan: 2, woodcutting: 4, harvesting: 4, farming: 3, hunting: 3, animals: 2, cooking: 4, crafting: 3, smelting: 2, research: 3 } },
+      imp: { construction: 5, delivery: 4, caravan: 2, caravanguard: 2, woodcutting: 4, harvesting: 4, farming: 3, hunting: 3, animals: 2, cooking: 4, crafting: 3, smelting: 2, research: 3 } },
     { id: "ausbau",  label: "Ausbau",     sub: "Handwerk & Forschung",
-      imp: { construction: 3, delivery: 4, caravan: 3, woodcutting: 3, harvesting: 3, farming: 4, hunting: 2, animals: 3, cooking: 4, crafting: 5, smelting: 3, research: 5 } },
+      imp: { construction: 3, delivery: 4, caravan: 3, caravanguard: 3, woodcutting: 3, harvesting: 3, farming: 4, hunting: 2, animals: 3, cooking: 4, crafting: 5, smelting: 3, research: 5 } },
     { id: "krieg",   label: "Aufrüsten",  sub: "Waffen & Rüstung",
-      imp: { construction: 2, delivery: 4, caravan: 2, woodcutting: 3, harvesting: 4, farming: 3, hunting: 2, animals: 2, cooking: 4, crafting: 5, smelting: 5, research: 3 } },
+      imp: { construction: 2, delivery: 4, caravan: 2, caravanguard: 2, woodcutting: 3, harvesting: 4, farming: 3, hunting: 2, animals: 2, cooking: 4, crafting: 5, smelting: 5, research: 3 } },
     { id: "ausgewogen", label: "Ausgewogen", sub: "alles gleich",
-      imp: { construction: 3, delivery: 3, caravan: 3, woodcutting: 3, harvesting: 3, farming: 3, hunting: 3, animals: 3, cooking: 3, crafting: 3, smelting: 3, research: 3 } },
+      imp: { construction: 3, delivery: 3, caravan: 3, caravanguard: 3, woodcutting: 3, harvesting: 3, farming: 3, hunting: 3, animals: 3, cooking: 3, crafting: 3, smelting: 3, research: 3 } },
   ];
   const IMP_LABEL = ["", "unwichtig", "nebenbei", "normal", "wichtig", "dringend"];
   const ROLE_LABEL = { worker: "Arbeiter", guard: "Wache", companion: "Begleiter" };
@@ -1070,7 +1078,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const team = workers.filter(w => w.role === "worker");
     const others = workers.filter(w => w.role !== "worker");
     const N = team.length;
-    const out = { jobs, team, others, cells: {}, main: {}, notes: [], coverage: {} };
+    const out = { jobs: JOBS_SHOWN.filter(j => jobs.includes(j)), team, others, cells: {}, main: {}, notes: [], coverage: {} };
     if (!N || !jobs.length) return out;
     // What is entered in the game for w (null = never entered).
     const snapOf = w => { const s = anchor[w.id]; return s && typeof s === "object" && !Array.isArray(s) ? s : null; };
@@ -1212,7 +1220,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
               : (j.id === "delivery" && h.lab >= h.spare) ? `${attrName("labourer")} ${fmt(w, "labourer")} hilft beim Tragen.`
               : `Die Fertigkeiten von ${nm(w)} werden anderswo am wenigsten gebraucht.`;
             c.why = j.id === "caravan"
-              ? `Hauptjob Karawane. ${why} Die Karawane bringt Waren zu euren anderen Orten.`
+              ? `Hauptjob Karawanenträger. ${why} Die Karawane bringt Waren zu euren anderen Orten.`
+              : j.id === "caravanguard"
+              ? `Hauptjob Karawanenwache. Die App kennt keine Kampfwerte: prüft selbst, ob ${nm(w)} gut kämpfen kann und gut ausgerüstet ist.`
               : `Hauptjob, fester Träger. ${why} Die Lieferung hält alle Werkstätten am Laufen: Material, Brennstoff und fertige Waren.`;
           } else {
             const s = jobSkill(w, j);
@@ -1238,8 +1248,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         if (!j.attr) {
           const i = imp(j.id);
           c.p = i >= 5 ? 4 : i <= 2 ? 6 : 5;
-          const what = j.id === "caravan"
-            ? "Die Karawane hat keine Arbeits-Fertigkeit."
+          const what = j.id === "caravan" ? "Die Karawane hat keine Arbeits-Fertigkeit."
+            : j.id === "caravanguard" ? "Für die Karawanenwache zählen Kampfwerte und Ausrüstung, die die App nicht kennt."
             : "Die Lieferung hat keine eigene Fertigkeit. So hilft die Person beim Tragen, ohne dass alle gleichzeitig hin und her laufen.";
           c.why = c.p === 5
             ? `Auf 5 lassen (Standard im Spiel), bzw. auf 5 zurücksetzen, falls ihr es verstellt habt. ${what}`
@@ -1327,7 +1337,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (c.held) { delete c.held; delete c.ideal; }   // calm only: coverage decides this number now
       c.why = j.attr
         ? `Auf ${need}, damit ${j.label} überhaupt jemand weit vorne hat. ${attrName(j.attr)} ${fmt(pick, j.attr)} gehört zu den besten Werten im Team.`
-        : j.id === "caravan" ? `Auf ${need}, damit sich jemand um die Karawane kümmert.` : `Auf ${need}, damit jemand fest beim Tragen hilft.`;
+        : j.id === "caravan" ? `Auf ${need}, damit sich jemand um die Karawane kümmert.`
+        : j.id === "caravanguard" ? `Auf ${need}, damit eure Karawanen eine Wache haben.` : `Auf ${need}, damit jemand fest beim Tragen hilft.`;
     }
     out.cells = cells;
 
@@ -1804,7 +1815,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const head = `<div class="ep-head"><h2 class="ep-name" id="entry-name" tabindex="-1">${esc(w.name || "Ohne Namen")}</h2>`
       + `<p class="ep-main">Hauptjob: ${esc(mj ? mj.label : "–")}</p>`
       + `<div class="ep-meta">${chip}${skip}</div>${seal}`
-      + `<p class="ep-where">Im Spiel: Bevölkerung → ${esc(w.name || "Dorfbewohner")} → Job-Prioritäten</p>`
+      + `<p class="ep-where">Im Spiel: Bevölkerung → ${esc(w.name || "Dorfbewohner")} → Arbeitsprioritäten</p>`
       + (applied[w.id] ? "" : `<p class="ep-new">Neue Dorfbewohner stehen überall auf 5. Habt ihr bei ${esc(w.name || "diesem Dorfbewohner")} schon etwas verstellt, stellt jede Zeile auf die große Zahl.</p>`)
       + (entry.changed ? `<p class="ep-changed">Der Plan hat sich gerade geändert.</p>` : "")
       + `</div>`;
@@ -2189,7 +2200,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   function renderJobs() {
     const box = $("#jobrows");
     if (!box.childElementCount) {
-      box.innerHTML = JOBS.map(j => {
+      box.innerHTML = JOBS_SHOWN.map(j => {
         const skill = j.attr ? (ATTR[j.attr].game !== j.game ? ` · Fertigkeit: ${esc(ATTR[j.attr].game)}` : "") : " · keine Fertigkeit";
         return `<div class="jobrow" data-job="${j.id}">
         <input type="checkbox" id="on-${j.id}" data-s="on:${j.id}" aria-label="${esc(j.label)} im Plan">
@@ -2219,7 +2230,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   }
 
   function renderKnowledge() {
-    $("#ktable-body").innerHTML = JOBS.map(j => `<tr>
+    $("#ktable-body").innerHTML = JOBS_SHOWN.map(j => `<tr>
       <td>${esc(j.label)}<span class="en">${esc(j.game)}</span></td>
       <td data-label="Fertigkeit">${j.attr ? esc(ATTR[j.attr].game) : "keine"}</td>
       <td data-label="Was dazugehört">${esc(j.covers)}</td>
