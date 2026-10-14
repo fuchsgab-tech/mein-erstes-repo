@@ -357,14 +357,19 @@ const clickUndo = page => page.click('#toast .toast-act');
   }
 
   // ===== 3) Loading: no ticks and no "Noch nie eingetragen" before the first ingame snapshot =====
-  {
-    const srv = makeServer({ workers: SEED_W, ingame: { w_agnes: { vals: ALL5, by: 'u_lena', at: Date.now() } } });
+  // BUILD 4 changed this on purpose: with "Plan ruhig halten" (the default) the numbers depend on the tick-off,
+  // so the plan itself waits for it ("Lädt …"). With the option off the plan shows at once, as before.
+  for (const calm of [true, false]) {
+    const seed = { workers: SEED_W, ingame: { w_agnes: { vals: ALL5, by: 'u_lena', at: Date.now() } } };
+    if (!calm) seed.settings = { main: { phase: 'start', growth: 0.35, disableWeak: true, calm: false } };
+    const srv = makeServer(seed);
     const A = await phone(browser, srv, { name: 'A', inClaude: true, writable: true, ingameDelay: 1500, user: { id: 'u_owner', owner: true, can: true } });
-    const early = await A.page.evaluate(() => ({ ticks: document.querySelectorAll('[data-applied]').length, markAll: !document.getElementById('mark-all').hidden, notes: document.getElementById('notes').textContent, cards: document.querySelectorAll('.wp-card').length }));
-    check('loading: plan shows, but no ticks and no "Noch nie"', early.cards === 5 && early.ticks === 0 && !early.markAll && !early.notes.includes('Noch nie'), early);
+    const early = await A.page.evaluate(() => ({ ticks: document.querySelectorAll('[data-applied]').length, markAll: !document.getElementById('mark-all').hidden, notes: document.getElementById('notes').textContent, cards: document.querySelectorAll('.wp-card').length, view: document.getElementById('plan-view').textContent }));
+    if (calm) check('loading (calm): the plan waits for the tick-off, no ticks and no "Noch nie"', early.cards === 0 && /Lädt/.test(early.view) && early.ticks === 0 && !early.markAll && !early.notes.includes('Noch nie'), early);
+    else check('loading (calm off): plan shows, but no ticks and no "Noch nie"', early.cards === 5 && early.ticks === 0 && !early.markAll && !early.notes.includes('Noch nie'), early);
     await A.page.waitForTimeout(1500);
-    const late = await A.page.evaluate(() => ({ ticks: document.querySelectorAll('[data-applied]').length, markAll: !document.getElementById('mark-all').hidden, notes: document.getElementById('notes').textContent }));
-    check('loaded: ticks and notes appear', late.ticks > 0 && late.markAll && late.notes.includes('Noch nie eingetragen'), late);
+    const late = await A.page.evaluate(() => ({ ticks: document.querySelectorAll('[data-applied]').length, markAll: !document.getElementById('mark-all').hidden, notes: document.getElementById('notes').textContent, cards: document.querySelectorAll('.wp-card').length }));
+    check(`loaded (calm ${calm}): plan, ticks and notes appear`, late.cards === 5 && late.ticks > 0 && late.markAll && late.notes.includes('Noch nie eingetragen'), late);
     await A.ctx.close();
   }
 

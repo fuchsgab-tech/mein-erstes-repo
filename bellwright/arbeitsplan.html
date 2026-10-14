@@ -163,6 +163,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px;
 .seg button:last-child { border-right: 0; }
 .seg button:hover:not(:disabled):not([aria-pressed="true"]) { background: rgb(217 164 65 / 0.08); }
 .seg button small { display: block; color: var(--muted); }
+.seg button small.cost { color: var(--ember); }   /* what switching to this phase would change in the game */
 .seg button[aria-pressed="true"] { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--on-accent); font-weight: 700; }
 .seg button[aria-pressed="true"] small { color: inherit; opacity: 0.8; font-weight: 400; }
 .seg button:disabled { cursor: default; }
@@ -704,6 +705,10 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
           <input type="checkbox" id="opt-weak">
           <span><strong>Schwache Arbeiter bei Ertragsjobs zurückstellen</strong><br><small class="muted">Bei Feldarbeit, Jagd &amp; Fischen und Tierhaltung hängt die Ausbeute stark an der Fertigkeit: Wer dort höchstens 2 hat, während mindestens zwei andere deutlich besser sind, bekommt „aus“. Bei Ernten und Holzfällen gibt es nur weniger Extra-Ertrag, dort kommen Schwache auf 9 statt „aus“. Ein hoher Max-Wert schützt davor.</small></span>
         </label>
+        <label class="opt-check" for="opt-calm">
+          <input type="checkbox" id="opt-calm">
+          <span><strong>Plan ruhig halten</strong><br><small class="muted">Kleine Verschiebungen um eins werden nicht umgestellt, und Hauptjobs wechseln nur, wenn es sich deutlich lohnt. So müsst ihr im Spiel weniger umstellen.</small></span>
+        </label>
       </div>
     </section>
   </div>
@@ -911,9 +916,11 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
 
+  // calm = "Plan ruhig halten". A missing value counts as on, so an older tab that rewrites settings/main
+  // without the field leaves it on.
   function defaultSettings() {
     const p = PHASES[0];
-    return { phase: p.id, growth: 0.35, disableWeak: true,
+    return { phase: p.id, growth: 0.35, disableWeak: true, calm: true,
       jobs: Object.fromEntries(JOBS.map(j => [j.id, { on: j.defaultOn !== false, imp: p.imp[j.id] }])) };
   }
   function normSettings(d) {
@@ -922,6 +929,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     if (typeof d.phase === "string" && (d.phase === "eigene" || PHASES.some(p => p.id === d.phase))) s.phase = d.phase;
     if (typeof d.growth === "number") s.growth = clamp(d.growth, 0, 1);
     if (typeof d.disableWeak === "boolean") s.disableWeak = d.disableWeak;
+    if (typeof d.calm === "boolean") s.calm = d.calm;
     const ph = PHASES.find(p => p.id === s.phase);
     for (const j of JOBS) {
       const v = d.jobs && d.jobs[j.id];
@@ -979,6 +987,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     userKnown: false,       // the user capability has answered (or is missing), so the owner line can show
     notConnected: false,    // opened in Claude, but no shared data (signed out or private window): local mode
     ingameReady: false,     // the "im Spiel eingetragen" state has arrived (db: first ingame snapshot; local: at boot)
+    ingameDenied: false,    // db: refused before the first ingame snapshot, so it never comes (the plan then shows without it)
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -1039,7 +1048,15 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     return res;
   }
 
-  function compute(workers, settings) {
+  // "Plan ruhig halten": an anchored main job gets this bonus, about one skill level.
+  // Far below the must bonus (1000), so coverage of important jobs still wins.
+  const STICK = 1.2;
+  // opts.calm: keep the plan close to what is entered in the game (opts.anchor = {wid: {jobId: 0..9}},
+  // the shared tick-off). Without opts, or with calm off, the result is exactly the plain plan.
+  // opts.explain === false skips the extra plain run that only adds the "Bleibt Hauptjob" text (numbers stay the same).
+  function compute(workers, settings, opts = {}) {
+    const calm = !!(opts && opts.calm);
+    const anchor = calm && opts.anchor && typeof opts.anchor === "object" ? opts.anchor : {};
     const jobs = JOBS.filter(j => settings.jobs[j.id].on);
     const imp = id => settings.jobs[id].imp;
     const g = settings.growth;
@@ -1048,6 +1065,15 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const N = team.length;
     const out = { jobs, team, others, cells: {}, main: {}, notes: [], coverage: {} };
     if (!N || !jobs.length) return out;
+    // What is entered in the game for w (null = never entered).
+    const snapOf = w => { const s = anchor[w.id]; return s && typeof s === "object" && !Array.isArray(s) ? s : null; };
+    // (a) The anchored main job: the single switched-on job on 1 in the game. None for 0 or 2+ such jobs.
+    const anchorMain = {};
+    if (calm) for (const w of team) {
+      const s = snapOf(w);
+      const ones = s ? jobs.filter(j => s[j.id] === 1) : [];
+      if (ones.length === 1) anchorMain[w.id] = ones[0].id;
+    }
 
     const tr = new Map(team.map(w => [w.id, traitInfo(w)]));
     const cur = (w, a) => w.stats[a].cur;
@@ -1119,17 +1145,32 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const cols = [];
     for (const j of jobs) for (let k = 0; k < slots[j.id]; k++) cols.push(j);
     if (cols.length >= N) {
-      const cost = team.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0))));
+      // (b) calm: the main job that is already entered in the game gets a small head start (STICK).
+      const cost = calm
+        ? team.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0) + (j.id === anchorMain[w.id] ? STICK : 0))))
+        : team.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0))));
       const asg = hungarian(cost);
       team.forEach((w, i) => { main[w.id] = cols[asg[i]].id; });
     }
     for (const w of team) if (!main[w.id]) main[w.id] = jobs.reduce((a, j) => score(w, j) > score(w, a) ? j : a, jobs[0]).id;
     // Jobs that share a skill (Handwerk/Schmelzen, Ernten/Holzfällen, Jagd/Tierhaltung) score alike,
     // so the assignment above can swap them at random: give the more important one the better worker.
+    // (c) calm: whoever keeps the main job entered in the game stays out of this re-sort, or it would undo (b).
+    //     If more of them have the same job of the group entered than it has places, the assignment above is a tie
+    //     between them: the better worker keeps it, so the result never flips when someone else gets ticked off.
     for (const grp of [["crafting", "smelting"], ["harvesting", "woodcutting"], ["animals", "hunting"]]) {
-      const ws = team.filter(w => grp.includes(main[w.id]));
-      if (ws.length < 2) continue;
+      let ws = team.filter(w => grp.includes(main[w.id]));
       const cnt = Object.fromEntries(grp.map(id => [id, ws.filter(w => main[w.id] === id).length]));
+      if (calm) {
+        ws.sort((a, b) => raw(b, JOB[grp[0]]) - raw(a, JOB[grp[0]]));
+        const rest = [];
+        for (const w of ws) {
+          const a = anchorMain[w.id];
+          if (grp.includes(a) && cnt[a] > 0) { main[w.id] = a; cnt[a]--; } else rest.push(w);
+        }
+        ws = rest;
+        if (!ws.length) continue;
+      } else if (ws.length < 2) continue;
       ws.sort((a, b) => raw(b, JOB[grp[0]]) - raw(a, JOB[grp[0]]));
       const order = grp.filter(id => cnt[id]).sort((a, b) => imp(b) - imp(a) || grp.indexOf(a) - grp.indexOf(b));
       let k = 0;
@@ -1245,6 +1286,21 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       const twos = jobs.filter(j => cells[w.id][j.id].p === 2)
         .sort((a, b) => (cells[w.id][b.id].side ? 1 : 0) - (cells[w.id][a.id].side ? 1 : 0) || imp(b.id) - imp(a.id) || jobSkill(w, b) - jobSkill(w, a));
       for (const j of twos.slice(2)) { cells[w.id][j.id].p = 3; cells[w.id][j.id].why += " Auf 3 statt 2, damit die Person nicht zu viele Jobs gleichzeitig vorne hat."; }
+      // (d) calm: a shift by one is not worth a trip to the game. Keep what is entered there (new villagers: 5).
+      //     Main, side, off, weak and fixed cells are never held, nor are 0/1/2 or a job that is newer than the entry.
+      if (calm) {
+        const snap = snapOf(w);
+        for (const j of jobs) {
+          const c = cells[w.id][j.id];
+          if (c.main || c.side || c.off || c.weak || c.fixed) continue;
+          const a = snap ? snap[j.id] : 5;
+          if (!Number.isInteger(a) || a < 3 || a > 9 || c.p < 2 || c.p > 9 || Math.abs(c.p - a) !== 1) continue;
+          c.ideal = c.p; c.p = a; c.held = true;
+          c.why += snap
+            ? ` Rechnerisch ${c.ideal}, im Spiel steht ${a} – zu wenig Unterschied, um es umzustellen.`
+            : ` Rechnerisch ${c.ideal}. Neue Dorfbewohner stehen auf 5 – der kleine Unterschied lohnt das Umstellen nicht.`;
+        }
+      }
     }
 
     // 4) Coverage: from 3 workers on, every job that matters needs someone near the front:
@@ -1261,11 +1317,21 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       const pick = cands.filter(w => jobSkill(w, j) >= top - 1).sort((a, b) => twoCount(a) - twoCount(b))[0] || cands[0];
       const c = cells[pick.id][j.id];
       c.p = need; c.off = false; c.weak = false; c.cover = true;
+      if (c.held) { delete c.held; delete c.ideal; }   // calm only: coverage decides this number now
       c.why = j.attr
         ? `Auf ${need}, damit ${j.label} überhaupt jemand weit vorne hat. ${attrName(j.attr)} ${fmt(pick, j.attr)} gehört zu den besten Werten im Team.`
         : j.id === "caravan" ? `Auf ${need}, damit sich jemand um die Karawane kümmert.` : `Auf ${need}, damit jemand fest beim Tragen hilft.`;
     }
     out.cells = cells;
+
+    // (e) calm: say so where only the head start kept a main job (one plain run to compare; numbers stay the same).
+    if (calm && opts.explain !== false && team.some(w => main[w.id] === anchorMain[w.id])) {
+      const plain = compute(workers, settings, { ...opts, calm: false });
+      for (const w of team) {
+        const m = main[w.id];
+        if (m === anchorMain[w.id] && plain.main[w.id] !== m) cells[w.id][m].why += " Bleibt Hauptjob, weil es schon so im Spiel steht und ein Wechsel kaum etwas bringt.";
+      }
+    }
 
     for (const j of jobs) {
       const ps = team.map(w => cells[w.id][j.id]);
@@ -1295,6 +1361,11 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (bestCraft < 6) out.notes.push({ sev: "warn", text: `Für Waffen und Rüstung braucht ihr meist hohe Handwerk-Stufen (Crafting, oft 6 und mehr). ${crafters.length ? "Euer Haupt-Handwerker hat" : "Euer bester Wert ist"} ${bestCraft}. Bücher und Essen mit Lernbonus helfen.` });
     }
     if (N < 3) out.notes.push({ sev: "info", text: "Mit so wenigen Arbeitern macht jeder fast alles. Die Hauptjobs zeigen trotzdem, wer wofür am besten ist." });
+    // (f) calm: how many numbers stayed as they are in the game.
+    if (calm) {
+      const held = team.reduce((n, w) => n + jobs.filter(j => cells[w.id][j.id].held).length, 0);
+      if (held) out.notes.push({ sev: "info", text: `Ruhig gehalten: ${held} ${held === 1 ? "Zahl bleibt" : "Zahlen bleiben"} wie im Spiel, weil sich kaum etwas ändern würde.` });
+    }
     return out;
   }
 
@@ -1382,15 +1453,52 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     }, () => { for (const id of miss) names.set(id, ""); });
   }
 
-  function renderPhaseControls() {
+  // The plan's options. The tick-off is the anchor only while it is tracked, so the example team never gets one.
+  const planOpts = settings => ({ calm: !!settings.calm, anchor: tracking() ? applied : undefined });
+  // With "Plan ruhig halten" the numbers depend on what is entered in the game: in shared mode the plan waits for
+  // the first tick-off snapshot instead of showing numbers that change a moment later.
+  const anchorWait = () => !!state.settings.calm && state.mode === "db" && !state.ingameReady && !state.ingameDenied && state.workers.size > 0;
+
+  // What switching would cost in the game: {phaseId: numbers to change}, counted like the Eintragen-Modus does
+  // (against the tick-off, new villagers from 5). One plan per phase, only while the Plan tab is in view;
+  // remembered until the team, the settings or the tick-off change. null = nothing to show.
+  let phaseMemo = { key: "", costs: null };
+  function phaseCosts(plan) {
+    if (!plan || !tracking() || !plan.team.length || !plan.jobs.length || !plan.team.some(w => applied[w.id])) return null;
+    if ($("#panel-plan").hidden || entry.open) return null;
+    const s0 = state.settings;
+    const key = JSON.stringify([activeWorkers().map(w => [w.id, w.role, w.traits, w.stats]), s0.phase, s0.growth, s0.disableWeak, !!s0.calm,
+      JOBS.map(j => s0.jobs[j.id].on), plan.team.map(w => applied[w.id] || 0)]);
+    if (key === phaseMemo.key) return phaseMemo.costs;
+    const costs = {};
+    for (const p of PHASES) {
+      if (p.id === s0.phase) continue;
+      const s = JSON.parse(JSON.stringify(s0));
+      s.phase = p.id;
+      for (const j of JOBS) s.jobs[j.id].imp = p.imp[j.id];   // the same as tapping the phase
+      const pp = compute(activeWorkers(), s, { ...planOpts(s), explain: false });
+      costs[p.id] = pp.team.reduce((n, w) => n + entryRows(pp, w).filter(r => r.chg).length, 0);
+    }
+    phaseMemo = { key, costs };
+    return costs;
+  }
+
+  // costs: from phaseCosts, shown under the other phases on the Plan tab only (Einstellungen keeps the short texts).
+  function renderPhaseControls(costs) {
     for (const seg of $$(".phase-seg")) {
       const custom = state.settings.phase === "eigene";
       const html = PHASES.map(p => `<button type="button" data-phase="${p.id}">${esc(p.label)}<small>${esc(p.sub)}</small></button>`).join("")
         + (custom ? `<button type="button" data-phase="eigene" disabled>Eigene<small>von Hand</small></button>` : "");
       if (seg.dataset.custom !== String(custom)) { seg.innerHTML = html; seg.dataset.custom = String(custom); }
+      const onPlan = !!seg.closest("#panel-plan");
       for (const b of seg.querySelectorAll("button")) {
         b.setAttribute("aria-pressed", String(b.dataset.phase === state.settings.phase));
-        if (b.dataset.phase !== "eigene") b.disabled = locked();
+        if (b.dataset.phase === "eigene") continue;
+        b.disabled = locked();
+        const p = PHASES.find(x => x.id === b.dataset.phase), sm = b.querySelector("small");
+        const n = onPlan && costs && p.id !== state.settings.phase ? costs[p.id] : undefined;
+        const text = n === undefined ? p.sub : `${zahlen(n)} ändern`;
+        if (sm && sm.textContent !== text) { sm.textContent = text; sm.classList.toggle("cost", !!n); }
       }
     }
   }
@@ -1420,7 +1528,6 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   }
 
   function renderPlan() {
-    renderPhaseControls();
     renderViewToggle();
     const view = $("#plan-view");
     const exBanner = $("#example-banner");
@@ -1437,8 +1544,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       $("#notes").hidden = true; $("#reason").hidden = true; $("#others").hidden = true;
       $("#mark-all").hidden = true; $("#legend-chg").hidden = true; $("#chips").hidden = true; $("#card-hint").hidden = true;
     };
-    if (!state.ready || state.loadFailed) {
+    if (!state.ready || state.loadFailed || anchorWait()) {
       lastPlan = null;
+      renderPhaseControls(null);
       swapPlanHtml(view, state.loadFailed
         ? `<div class="empty"><p class="muted">Die Arbeiterliste konnte nicht geladen werden. Ladet die Seite neu.</p></div>`
         : `<p class="muted">Lädt eure Arbeiterliste …</p>`);
@@ -1447,8 +1555,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       entryRefresh();
       return;
     }
-    const plan = compute(activeWorkers(), state.settings);
+    const plan = compute(activeWorkers(), state.settings, planOpts(state.settings));
     lastPlan = plan;
+    renderPhaseControls(phaseCosts(plan));
 
     const notes = [...plan.notes];
     const track = !!(tracking() && plan.team.length && plan.jobs.length);
@@ -2094,11 +2203,12 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (rg !== document.activeElement) rg.value = String(cfg.imp);
       $(`#imp-${j.id}-out`).textContent = IMP_LABEL[cfg.imp];
     }
-    const gr = $("#opt-growth"), wk = $("#opt-weak");
-    gr.disabled = wk.disabled = locked();
+    const gr = $("#opt-growth"), wk = $("#opt-weak"), cm = $("#opt-calm");
+    gr.disabled = wk.disabled = cm.disabled = locked();
     if (gr !== document.activeElement) gr.value = String(Math.round(state.settings.growth * 100));
     $("#opt-growth-out").textContent = Math.round(state.settings.growth * 100) + " %";
     if (wk !== document.activeElement) wk.checked = state.settings.disableWeak;
+    cm.checked = state.settings.calm;   // also while focused: a tick has no half-done state, and another phone may change it
   }
 
   function renderKnowledge() {
@@ -2314,6 +2424,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (["revoked", "not_granted", "capability_disabled", "capability_removed"].includes(code)) {
         state.readOnly = true;
         if (!gotW) state.loadFailed = true;
+        if (!gotI) state.ingameDenied = true;
         state.ready = true; renderAll(); return;
       }
       for (const u of unsubs) { try { u(); } catch (x) { /* ignore */ } }
@@ -2597,6 +2708,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (t === name && wasHidden) { p.classList.remove("enter"); void p.offsetWidth; p.classList.add("enter"); }
     }
     if (push) { try { history.replaceState(null, "", "#" + name); } catch (e) { /* ignore */ } }
+    if (name === "plan" && lastPlan) renderPhaseControls(phaseCosts(lastPlan));   // worked out only while the Plan tab is in view
     if (focus) { const p = $("#panel-" + name); p.focus({ preventScroll: true }); window.scrollTo({ top: 0 }); }
   }
 
@@ -2715,6 +2827,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   });
   $("#opt-growth").addEventListener("input", e => setSettings(s => { s.growth = +e.target.value / 100; }));
   $("#opt-weak").addEventListener("change", e => setSettings(s => { s.disableWeak = e.target.checked; }));
+  $("#opt-calm").addEventListener("change", e => setSettings(s => { s.calm = e.target.checked; }));
 
   $("#toggle-import").addEventListener("click", e => {
     const box = $("#import");

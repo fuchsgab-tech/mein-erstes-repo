@@ -310,7 +310,9 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const fin = await P.evaluate(() => ({ hidden: document.getElementById('entry').hidden, btn: document.getElementById('entry-open').hidden, active: document.activeElement.id }));
     check('Schließen: closed, no button (nothing open), focus on the plan title', fin.hidden && fin.btn && fin.active === 'plan-title', fin);
     // Close midway, reload, dismiss the banner with ×.
-    await P.click('#panel-plan [data-phase="start"]'); await P.waitForTimeout(150);
+    // (BUILD 4: with "Plan ruhig halten" Ausbau → Start only changes one villager, so this goes to Aufrüsten,
+    // which leaves several open, as the test needs.)
+    await P.click('#panel-plan [data-phase="krieg"]'); await P.waitForTimeout(150);
     await P.click('#entry-open'); await P.waitForTimeout(150);
     await P.keyboard.press('ArrowRight'); await P.keyboard.press('Escape');
     await P.reload(); await P.waitForTimeout(600);
