@@ -53,3 +53,10 @@ ANIMATIONS (respect setting voll/ruhig/aus + prefers-reduced-motion): pins drop 
   chip flies to the pin (FLIP) and the count rolls (odometer); selected pin glows ember. "ruhig" = only short fades.
 TESTS feat-map.js: mocked assets upload/delete, pins persist + second viewer sees them, drag/select assignment sets loc and
   recomputes, undo, read-only viewer, fallback without image and on blob load error, local mode, 360px no overflow.
+MAP ADDENDUM (user sent https://bellwright.fandom.com/wiki/Map:Karvenia, the wiki's interactive map with resources):
+- Artifact pages cannot load images/iframes from fandom (CSP), and this session's network blocks fandom, so no embedding
+  and no copying of the wiki's marker data. Instead: in the Karte tab (top, next to "Spielkarte hochladen") and in Hilfe a
+  link button "Rohstoffe & Orte suchen: interaktive Karte im Bellwright-Wiki" -> https://bellwright.fandom.com/wiki/Map:Karvenia
+  (target=_blank rel="noopener"), small caption "Fan-Wiki, öffnet sich in neuem Tab".
+- Upload accepts ANY image the group saves themselves (Xbox screenshot or a map image they saved); copy:
+  "Euer Xbox-Screenshot oder ein Kartenbild, das ihr selbst gespeichert habt."
