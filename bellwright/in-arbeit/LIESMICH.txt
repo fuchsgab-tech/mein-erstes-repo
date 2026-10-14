@@ -1,0 +1,5 @@
+Unfertiger Zwischenstand (am 14.10.2026 auf Wunsch angehalten, um das Nutzungslimit zu schonen).
+- photo-unfertig.html : Fotos richtig zuordnen (BUILD 5), etwa halb gebaut, NICHT geprüft, NICHT veröffentlicht.
+  Basis ist arbeitsplan.html (Version 9). Nur als Startpunkt für später.
+Noch nicht begonnen: Foto zuschneiden (BUILD 6), Festlegen (BUILD 7), Karte-Menü mit Animation (BUILD 9),
+Animationen + „wer trägt gerade ein“ (Runde 2 Teil 2). Specs: planung/roadmap.txt und planung/batch2-notes.txt.
