@@ -661,7 +661,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 
     <div class="import" id="import" hidden>
       <label for="import-text"><strong>Eine Zeile pro Arbeiter.</strong> Werte als <code>Stufe/Max</code>. Deutsche und englische Namen gehen beide. Steht ein Name schon in der Liste, werden nur die genannten Werte geändert.</label>
-      <textarea id="import-text" rows="6" placeholder="Agnes [Arbeiter]: Labourer 3/5, Harvesting 6/9, Farming 2/4, Cooking 1/3, Crafting 2/6, Research 0/2, Animal Handling 5/8 – Traits: Optimist&#10;Bertram: Bauen 7/9, Ernten 4/6, Kochen 2/4, Herstellung 3/5&#10;Kunibert [Wache]: Labourer 3/4"></textarea>
+      <textarea id="import-text" rows="6" placeholder="Agnes [Arbeiter]: Arbeiter 3/5, Ernte 6/9, Landwirtschaft 2/4, Kochen 1/3, Handwerk 2/6, Forschen 0/2, Tierpflege 5/8 – Eigenschaften: Optimist&#10;Bertram: Arbeiter 7/9, Ernte 4/6, Kochen 2/4, Handwerk 3/5&#10;Kunibert [Wache]: Arbeiter 3/4"></textarea>
       <div class="row">
         <button class="btn primary" type="button" id="do-import">Übernehmen</button>
         <span class="muted" id="import-msg" aria-live="polite"></span>
@@ -815,13 +815,13 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   // Attribute ids stay stable so saved rosters keep working. "hunting" holds Animal Handling
   // (the game merged the Hunting skill into Animal Handling in 2025).
   const ATTRS = [
-    { id: "labourer",    game: "Labourer",        de: "Bauen" },
-    { id: "harvesting",  game: "Harvesting",      de: "Ernten" },
+    { id: "labourer",    game: "Labourer",        de: "Arbeiter" },
+    { id: "harvesting",  game: "Harvesting",      de: "Ernte" },
     { id: "farming",     game: "Farming",         de: "Landwirtschaft" },
     { id: "cooking",     game: "Cooking",         de: "Kochen" },
-    { id: "crafting",    game: "Crafting",        de: "Herstellung" },
-    { id: "researching", game: "Researching",     de: "Forschung" },
-    { id: "hunting",     game: "Animal Handling", de: "Tierhaltung" },
+    { id: "crafting",    game: "Crafting",        de: "Handwerk" },
+    { id: "researching", game: "Researching",     de: "Forschen" },
+    { id: "hunting",     game: "Animal Handling", de: "Tierpflege" },
   ];
   const ATTR = Object.fromEntries(ATTRS.map(a => [a.id, a]));
   const MAXV = 15;
@@ -837,7 +837,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       tip: "Keine eigene Fertigkeit. Ab ca. 5 Arbeitern einen festen Träger, bei allen anderen 5 lassen." },
     { id: "caravan",      label: "Karawanenträger", game: "Caravan",        attr: null, defaultOn: false,
       covers: "Karren an der Karawanenstation beladen und Waren zu euren anderen Orten bringen.",
-      tip: "Nur mit Karawanenstation, darum hier anfangs aus. Keine Arbeits-Fertigkeit: schnelle Leute (hohe Agility, Eigenschaft Nomad) eignen sich. Gibt es die Spalte bei euch nicht, ausgeschaltet lassen." },
+      tip: "Nur mit Karawanenstation, darum hier anfangs aus. Keine Arbeits-Fertigkeit: schnelle Leute (hohe Gewandtheit, Eigenschaft Nomad) eignen sich. Gibt es die Spalte bei euch nicht, ausgeschaltet lassen." },
     { id: "caravanguard", label: "Karawanenwache", game: "Caravan Guard", attr: null, defaultOn: false,
       covers: "Karawanen unterwegs begleiten und beschützen.",
       tip: "Nur wenn ihr Karawanen losschickt, darum hier anfangs aus. Die App kennt keine Kampfwerte: nehmt kampfstarke, gut ausgerüstete Leute." },
@@ -852,7 +852,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       tip: "Erfahrung bekommt, wer gesät hat. Feste Bauern leveln am schnellsten. Braucht Hacken." },
     { id: "hunting",      label: "Jagen",          game: "Hunting",         attr: "hunting", yieldKind: "hard",
       covers: "Jagen, Fallen stellen und leeren, auch die Fischerhütte.",
-      tip: "Nutzt die Fertigkeit Animal Handling. Bögen und Fallen, für die Fischerhütte Angelruten und Köder." },
+      tip: "Nutzt die Fertigkeit Tierpflege (Animal Handling). Bögen und Fallen, für die Fischerhütte Angelruten und Köder." },
     { id: "animals",      label: "Tierhaltung",    game: "Animal Handling", attr: "hunting", yieldKind: "hard",
       covers: "Hühner, Schweine und Kühe füttern und versorgen. Lieferungen zu den Ställen laufen laut Patch-Notes über diesen Job.",
       tip: "Wer Vieh hat, braucht hier jemanden auf 1 und den Stall weit vorne. Ohne Vieh abschalten." },
@@ -861,7 +861,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       tip: "Erfahrung bekommt, wer die Kochstelle belädt. Essen darf nie ausgehen." },
     { id: "crafting",     label: "Handwerk",       game: "Crafting",        attr: "crafting",
       covers: "Alle Werkstätten: Bretter, Werkzeug, Kleidung, Waffen, Rüstung, Reparaturen, Schlachten, Dreschen.",
-      tip: "Manche Rezepte brauchen eine Mindeststufe (rot im Werkstattmenü), Waffen und Rüstung hohe Stufen. Je nach Rezept zählt statt Herstellung auch Landwirtschaft, Kochen oder Tierhaltung." },
+      tip: "Manche Rezepte brauchen eine Mindeststufe (rot im Werkstattmenü), Waffen und Rüstung hohe Stufen. Je nach Rezept zählt statt Handwerk auch Landwirtschaft, Kochen oder Tierpflege." },
     { id: "smelting",     label: "Schmelzen",      game: "Smelting",        attr: "crafting",
       covers: "Erz im Rennofen oder Schmelzofen zu Barren machen.",
       tip: "Braucht Lieferung für Erz und Brennholz. Rennofen-Gebäudepriorität hoch setzen." },
@@ -2552,7 +2552,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 
   // ---------- Text import / export ----------
   const ALIASES = {
-    labourer: ["labourer", "laborer", "labour", "labor", "arbeitskraft", "handlanger", "tagelöhner", "construction", "bauen", "bau"],
+    labourer: ["labourer", "laborer", "labour", "labor", "arbeiter", "arbeitskraft", "handlanger", "tagelöhner", "construction", "bauen", "bau"],
     harvesting: ["harvesting", "harvest", "gathering", "woodcutting", "ernten", "ernte", "sammeln", "holzfällen"],
     farming: ["farming", "farm", "feldarbeit", "landwirtschaft", "ackerbau", "feld"],
     cooking: ["cooking", "cook", "kochen", "koch", "küche"],
@@ -2924,16 +2924,16 @@ For every villager whose name you can read, extract:
 - "role": "worker", "guard" or "companion" only if the image clearly shows it, otherwise null.
 - "traits": list of trait names as shown (for example Optimist, Slacker, Dullard). Empty list if none are visible.
 - "stats": the WORK attributes only, each as {"cur": current level, "max": maximum level or null}. Levels are whole numbers, usually 0 to 10; copy higher numbers exactly as shown. Use these keys:
-  labourer (Labourer, Laborer; German for example Handlanger, Tagelöhner, Arbeitskraft)
-  harvesting (Harvesting; German for example Ernten, Sammeln)
+  labourer (Labourer, Laborer; German "Arbeiter" – the skill row with the hammer icon, not the villager's role)
+  harvesting (Harvesting; German "Ernte")
   farming (Farming; German for example Landwirtschaft, Ackerbau)
   cooking (Cooking; German Kochen)
-  crafting (Crafting; German for example Herstellung, Handwerk)
-  researching (Researching, Research; German Forschung, Forschen)
-  hunting (Animal Handling; in older game versions Hunting; German for example Tierhaltung, Tierpflege, Jagd)
+  crafting (Crafting; German "Handwerk")
+  researching (Researching, Research; German "Forschen")
+  hunting (Animal Handling; in older game versions Hunting; German "Tierpflege")
   The maximum may be shown as "3/6", as a second number, as the empty or lighter part of a bar, or as unfilled pips. If no maximum is visible, use null. Leave out an attribute that is not visible. Never guess a number you cannot read.
 - "unsure": one short sentence in German about anything you could not read clearly, or "".
-Ignore combat attributes (Strength, Agility, weapon skills), needs, health and equipment.
+Ignore combat attributes (Strength, Agility, weapon skills; German Stärke, Gewandtheit, Einhand, Zweihand, Stangenwaffen, Schilde, Bogenschießen), needs, health and equipment.
 If the same villager appears in several images, merge them into one entry.
 
 Reply with only this JSON:
