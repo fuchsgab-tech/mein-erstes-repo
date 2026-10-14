@@ -1,0 +1,17 @@
+User answers (2026-10-14), to feed into batch 2:
+1. Screenshot of the Xbox job priorities tab: will come later -> keep plan.jobs order for now.
+2. Who enters priorities in the game: ALL players -> shared tick-off (build 2) is essential; add a live
+   "wer trägt gerade ein" hint (e.g. room presence or a short-lived claim in db) so two players don't enter the same villager.
+3. Outposts: ONE outpost that gathers tin (Zinn) and mud (Schlamm) -> both are Harvesting/Ernten (mining camp + mud collector),
+   plus Lieferung to bring goods home. Build 8: template "Mine / Steinbruch" fits; use placeholder "z. B. Zinn & Schlamm".
+4. Next goals (recruiting / books / guards): not decided -> keep those in "later".
+5. Animations (user picked): "Eintragen-Modus lebendig" + "was Passendes dazu, nichts Lahmes".
+   Build in round 2 (all inside prefers-reduced-motion: no-preference, plus a setting "Animationen: voll / ruhig / aus",
+   stored per device in localStorage; "ruhig" = no embers/pulses/waves but keep short functional transitions; "aus" = none):
+   - Entry mode: ledger page turn between villagers (3D rotateY page flip, direction-aware for Zurück/Weiter),
+     big wax seal stamped on "Fertig" with a short thump (scale/shake) and an ember burst from the seal,
+     finale: banner unfurls "Alle eingetragen" with an ember fountain + bell ring.
+   - Rolling numbers: changed values roll like an odometer from old to new (entry-mode rows "von 5 → 2" and plan cells/badges).
+   - Phase switch: a warm light sweep runs across the plan (staggered by column), changed cells glow as it passes.
+   - Header torch flicker: very subtle light flicker on the title glow (only in "voll").
+   Not doing: day/night, seasonal leaves, sound (user did not pick them).
