@@ -15,3 +15,41 @@ User answers (2026-10-14), to feed into batch 2:
    - Phase switch: a warm light sweep runs across the plan (staggered by column), changed cells glow as it passes.
    - Header torch flicker: very subtle light flicker on the title glow (only in "voll").
    Not doing: day/night, seasonal leaves, sound (user did not pick them).
+
+6. MAP (user 2026-10-14: "die echte Bellwright-Karte mit der 1. Sache" = village/outpost map ON the real game map).
+   We may NOT ship the game's map image or third-party resource data. Solution: the group uploads THEIR OWN screenshot of
+   the in-game world map; the app puts village + outposts + workers on it. Without an image: an app-drawn parchment
+   fallback map (generic, not Bellwright geography). Build as its own feature AFTER Außenposten (8) and AFTER the animation
+   feature (so it uses the "Animationen voll/ruhig/aus" setting).
+
+BUILD: 11. Karte – euer Dorf und die Außenposten auf eurer Spielkarte | effort L
+DATA:
+- Capability: add `assets: {}` (editors = Owner + invited Bearbeiter only; use("assets") null for others -> hide upload).
+  Publish capabilities become {db:{}, sample:{images:true}, user:{scopes:["profile"]}, assets:{}}.
+- db doc map/main: {img: assetId|null, w, h, by, at, village:{x,y}}; display via "/_blob/" + id; tolerate load error
+  (placeholder + fallback map). Location coords: locations/<id>.pos = {x,y} in 0..1 of the image (null = not placed).
+- Local mode (no window.claude): image kept as a downscaled JPEG data URL (≤1 MP) in localStorage with try/catch;
+  if it does not fit, keep it for this session only and say so.
+UPLOAD ("Spielkarte hochladen", editors):
+- file input image/* -> reuse the crop/rotate sheet from feature 6 -> JPEG up to ~4 MP q≈0.85 -> assets.upload ->
+  set map/main. Replace = upload new, then delete the old asset (ignore not_uploader).
+- Tip: "Am besten: auf der Xbox die Weltkarte öffnen, mit der Teilen-Taste einen Screenshot machen und ihn in der
+  Xbox-App am Handy unter „Aufnahmen“ speichern. Den Fernseher abfotografieren geht auch."
+VIEW: new tab "Karte" (check 360px tab row: tabs must still fit; shorten labels or scroll if needed).
+- Pan (one finger / mouse drag), pinch + wheel zoom, double-tap zoom, buttons + / − / "Alles zeigen"; clamp;
+  touch-action:none only on the map; map height ~60vh (min 320px) so the page still scrolls.
+- Pins: Hauptdorf (bigger seal/banner) + every outpost from 'locations'. Pin shows name, worker count badge and small
+  icons of the jobs switched on there (e.g. Ernten, Lieferung for "Zinn & Schlamm"). Unplaced locations listed in a strip
+  "Noch nicht auf der Karte: … (antippen und dann auf die Karte tippen)".
+- Tap pin -> sheet (bottom sheet on phone): name, its jobs, workers there with main job, buttons "Wer passt hin?"
+  (feature 8) and "Plan für diesen Ort" (switches to Plan tab with that location chip selected).
+EDIT (editors only, toggle "Karte bearbeiten"):
+- drag pins (pointer events, save on drop through schedule()); arrow keys move a focused pin; tap empty map ->
+  "Hier Außenposten anlegen" opens feature 8's create dialog with pos prefilled.
+- assign workers: drag a worker chip (roster strip under the map) onto a pin -> prefs/<wid>.loc -> recompute; toast with
+  Rückgängig (feature 2). Non-drag alternative: in the pin sheet "+ Bewohner hierher" select. Guards/companions excluded.
+READ-ONLY viewers: can pan/zoom and open pins, nothing else.
+ANIMATIONS (respect setting voll/ruhig/aus + prefers-reduced-motion): pins drop in with a small bounce; assigned worker
+  chip flies to the pin (FLIP) and the count rolls (odometer); selected pin glows ember. "ruhig" = only short fades.
+TESTS feat-map.js: mocked assets upload/delete, pins persist + second viewer sees them, drag/select assignment sets loc and
+  recomputes, undo, read-only viewer, fallback without image and on blob load error, local mode, 360px no overflow.
