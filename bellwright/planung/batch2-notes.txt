@@ -60,3 +60,9 @@ MAP ADDENDUM (user sent https://bellwright.fandom.com/wiki/Map:Karvenia, the wik
   (target=_blank rel="noopener"), small caption "Fan-Wiki, öffnet sich in neuem Tab".
 - Upload accepts ANY image the group saves themselves (Xbox screenshot or a map image they saved); copy:
   "Euer Xbox-Screenshot oder ein Kartenbild, das ihr selbst gespeichert habt."
+MAP DECISION (user, later 2026-10-14): "Egal, dann machen wir es so, dass in der App der Link zur interaktiven Karte ist."
+-> DROP feature 11 (own map, assets capability, upload, pins, drag) for now; moved to "later" (if they get more outposts).
+-> BUILD ONLY the link: a small "Karte" block (no new tab) in the Plan tab near the location chips / Außenposten section and
+   in Hilfe: link button "Interaktive Karte im Bellwright-Wiki (Rohstoffe & Orte)" -> https://bellwright.fandom.com/wiki/Map:Karvenia,
+   target=_blank rel="noopener", caption "Fan-Wiki, öffnet sich in neuem Tab". Fold this into feature 8 (Außenposten) notes.
+   No assets capability needed; publish capabilities stay {db:{}, sample:{images:true}, user:{scopes:["profile"]}}.
