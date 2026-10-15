@@ -1,10 +1,6 @@
-Zwischenstände (nicht veröffentlicht). Live ist arbeitsplan.html = Version 12.
+Zwischenstände (nicht veröffentlicht). Live ist arbeitsplan.html (Version 13, mit Festlegen).
 
-- festlegen-gebaut-ungeprueft.html : Festlegen (BUILD 7) – fertig gebaut am 14.10.2026, alle Tests grün
-  (inkl. feat-pins.js 89/0), aber die Gegenprüfung durch einen zweiten Durchgang fehlt noch. Basis: Version 12.
-  Nächster Schritt: Gegenprüfung laufen lassen, dann als arbeitsplan.html übernehmen und veröffentlichen.
-  Dazu gehören feat-pins.js und mk-festlegen.js (erweiterte Test-Seite).
 - photo-unfertig.html : Fotos richtig zuordnen (BUILD 5), etwa halb gebaut, ungeprüft. Basis: Version 9.
 
-Noch offen: Animationen (BUILD 10, Spec in planung/roadmap.txt), Foto zuschneiden (BUILD 6), Karte-Menü (BUILD 9),
+Noch offen: Animationen (BUILD 10, wird gerade gebaut), Foto zuschneiden (BUILD 6), Karte-Menü (BUILD 9),
 „wer trägt gerade ein“. Außenposten (BUILD 8) ist gestrichen.
