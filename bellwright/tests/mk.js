@@ -5,6 +5,6 @@ const wrap = b => '<!doctype html><html><head><meta charset=utf8><meta name=view
 fs.writeFileSync('page.html', wrap(body));
 const idx = body.lastIndexOf('})();\n</script>');
 if (idx < 0) throw new Error('IIFE end not found');
-const exp = body.slice(0, idx) + 'window.__t = { reloadApplied, compute, normWorker, normSettings, defaultSettings, parseRoster, cleanPhotoResult, JOBS, ATTRS, PHASES, EXAMPLE, state, mergeStat, getUser: () => ({ userNs, myId }), getIngame: () => ({ applied, appliedMeta, names: Object.fromEntries(names) }), relTime, whoWhen, cleanIngame };\n' + body.slice(idx);
+const exp = body.slice(0, idx) + 'window.__t = { reloadApplied, compute, normWorker, normSettings, defaultSettings, parseRoster, cleanPhotoResult, JOBS, ATTRS, PHASES, EXAMPLE, state, mergeStat, getUser: () => ({ userNs, myId }), getIngame: () => ({ applied, appliedMeta, names: Object.fromEntries(names) }), relTime, whoWhen, cleanIngame, review: { normName, nameSim, matchScore, rankTargets, matchLevel, autoTarget, rowDoubts, sameAfter, photoPrompt, rosterNames, addReviewCards, rv, openDoubts } };\n' + body.slice(idx);
 fs.writeFileSync('expose.html', wrap(exp));
 console.log('ok');

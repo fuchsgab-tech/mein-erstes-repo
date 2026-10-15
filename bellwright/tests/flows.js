@@ -78,7 +78,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     await page.fill('#rv-0-name', 'Kunibert');
     const roleShown = await page.$eval('#rv-0-role', e => e.value);
     await page.click('#review-apply');
-    const msg1 = await page.$eval('#photo-msg', e => e.textContent);
+    const msg1 = await page.$eval('#review-msg', e => e.textContent);   // the review has its own message line (BUILD 5)
     const stillThere = await page.$$eval('#review .rcard', c => c.length);
     await page.fill('#rv-1-name', 'Mira');
     await page.click('#review-apply'); await page.waitForTimeout(200);

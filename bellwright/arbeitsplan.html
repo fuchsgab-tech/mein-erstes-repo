@@ -83,7 +83,7 @@ small { font-size: var(--step--1); }
 ::selection { background: rgb(217 164 65 / 0.45); color: var(--fg); }
 
 /* Panels: oak boards with an iron edge */
-.wcard, .wp-card, .photo, .import, .opts, .jobrows, .matrix-wrap, .ktable-wrap, .reason, .notes li, .empty, .banner {
+.wcard, .wp-card, .photo, .import, .review, .opts, .jobrows, .matrix-wrap, .ktable-wrap, .reason, .notes li, .empty, .banner {
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -295,7 +295,7 @@ table.matrix { border-collapse: separate; border-spacing: 0; width: 100%; min-wi
 .wc-traits { width: 100%; }
 .empty { padding: 28px 20px; text-align: center; display: grid; gap: 12px; justify-items: center; border-style: dashed; }
 .empty p { max-width: 52ch; }
-.import { display: grid; gap: 10px; padding: 16px; }
+.import { display: grid; gap: 10px; padding: 16px; scroll-margin: 16px; }
 .import code, .tips code { font-size: 0.875rem; background: var(--field); padding: 1px 5px; border-radius: 3px; color: var(--accent-hi); }
 
 /* Photo reading */
@@ -312,23 +312,86 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
 .working::before { content: ""; width: 16px; height: 16px; flex: none; background: var(--accent); transform-origin: 50% 10%;
   -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M24 4c1.7 0 3 1.3 3 3v1.2c6.6 1.4 11 7.2 11 14.3V31l4 5v2H6v-2l4-5v-8.5C10 15.4 14.4 9.6 21 8.2V7c0-1.7 1.3-3 3-3zM19 41h10a5 5 0 0 1-10 0z'/></svg>") center / contain no-repeat;
           mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M24 4c1.7 0 3 1.3 3 3v1.2c6.6 1.4 11 7.2 11 14.3V31l4 5v2H6v-2l4-5v-8.5C10 15.4 14.4 9.6 21 8.2V7c0-1.7 1.3-3 3-3zM19 41h10a5 5 0 0 1-10 0z'/></svg>") center / contain no-repeat; }
-.review { display: grid; gap: 12px; }
-.rcard { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: var(--field); min-width: 0; }
+/* Cost note (once per device) above "Werte auslesen". */
+.cost-info { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); font-size: 0.9375rem; }
+.cost-info p { flex: 1 1 220px; min-width: 0; max-width: 70ch; }
+
+/* The review: what a photo or the text import read, checked before anything is saved. It sits under the text import.
+   One card per villager read: the photo it came from (tap = zoom), "übernehmen", the name as read and the role, then
+   "Werte für" (Neu anlegen or an existing villager, best match first) with the match status, then the numbers:
+   "bisher 4/7" for an existing villager, unchanged ones dimmed, doubts outlined in amber with "stimmt".
+   The actions stick to the bottom of the screen while the review is in view, so a phone works with one thumb. */
+.review { display: grid; gap: 12px; padding: 16px 16px 0; scroll-margin: 16px; min-width: 0; }
+.review h3:focus { outline: none; }
+.review-intro { max-width: 72ch; }
+.rc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 500px), 1fr)); gap: 12px; min-width: 0; align-items: start; }
+.rcard { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: var(--field); min-width: 0; scroll-margin: 16px; }
 .rcard.skip { opacity: 0.55; }
-.rc-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.rc-head input[type="text"] { flex: 1 1 160px; font-weight: 700; }
-.rc-take { display: inline-flex; align-items: center; gap: 6px; font-size: var(--step--1); min-height: 40px; cursor: pointer; }
+.rc-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px 12px; align-items: center; min-width: 0; }
+.rcard.has-thumb .rc-head { grid-template-columns: 64px minmax(0, 1fr); }
+.rc-thumb { grid-row: span 2; align-self: start; appearance: none; width: 64px; height: 64px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--bg); cursor: zoom-in; box-shadow: var(--edge); }
+.rc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rc-thumb:hover { border-color: var(--accent); }
+.rc-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; min-width: 0; }
+.rcard .rc-name { width: 100%; font-weight: 700; }
+.rc-take { display: inline-flex; align-items: center; gap: 8px; font-size: var(--step--1); min-height: 40px; cursor: pointer; }
+.chip.rc-chk, .chip.rc-chk:hover { cursor: default; display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border-color: var(--warn); color: var(--warn); font-weight: 700; }
+.rc-target { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.rc-for { font-size: var(--step--1); color: var(--muted); }
+.rc-target select { flex: 1 1 150px; max-width: 100%; min-height: 40px; font-weight: 700; }
+.rc-target select.upd { border-color: var(--good); }
+.rc-target select.ask, .rc-target select[aria-invalid="true"] { border-color: var(--warn); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.35), 0 0 0 1px var(--warn); }
+.rc-target .badge { white-space: normal; }
+.rc-target .badge, .rc-target [data-r="yes"] { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }   /* a long name never widens the page */
 .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
-.badge.new { color: var(--good); border-color: var(--good); }
-.badge.upd { color: var(--accent-hi); border-color: var(--accent); }
-.badge.none { color: var(--warn); border-color: var(--warn); }
-.rc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 6px 14px; }
-.rc-stat { display: grid; grid-template-columns: minmax(0, 1fr) 3em auto 3em; gap: 4px; align-items: center; font-size: 0.875rem; }
-.rc-stat label { line-height: 1.15; }
+.badge.upd { color: var(--good); border-color: var(--good); }
+.badge.new { color: var(--accent-hi); border-color: var(--accent); }
+.badge.none, .badge.ask { color: var(--warn); border-color: var(--warn); }
+.badge.ask { font-weight: 700; font-size: 0.8125rem; }
+.rc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 4px 14px; align-items: start; }
+.rc-stat { display: grid; grid-template-columns: minmax(0, 1fr) 3.25rem auto 3.25rem; gap: 4px 6px; align-items: center; align-content: start; font-size: 0.875rem; padding: 4px 6px; border-radius: var(--radius); min-width: 0; }
+.rc-stat label { line-height: 1.15; min-width: 0; }
 .rc-stat label small { display: block; color: var(--muted); font-size: 0.75rem; }
-.rc-stat input[type="number"] { width: 3em; padding: 4px; font-size: 16px; min-height: 36px; }
-.rc-unsure { font-size: 0.875rem; color: var(--warn); }
-.rc-traits { width: 100%; }
+.rc-stat .rc-was:not([hidden]) + .rc-en { display: none; }   /* "bisher 4/6" takes the English name's line */
+.rc-stat input[type="number"] { width: 100%; padding: 4px; font-size: 16px; min-height: 36px; }
+.rc-stat.same { opacity: 0.6; }
+.rc-stat.doubt { opacity: 1; background: color-mix(in oklab, var(--warn) 9%, var(--field)); box-shadow: 0 0 0 1px var(--warn); }
+.rc-stat.doubt input[type="number"] { border-color: var(--warn); }
+.rc-was { font-variant-numeric: lining-nums tabular-nums; }
+.rc-doubt { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.8125rem; color: var(--warn); line-height: 1.25; }
+.rc-why { flex: 1 1 120px; min-width: 0; }
+.rc-unsure { font-size: 0.875rem; color: var(--warn); overflow-wrap: anywhere; }
+.rc-more { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.rc-more select { flex: 0 0 auto; }
+.rc-traits { flex: 1 1 160px; min-width: 0; }
+.review .btn.small { min-height: 32px; }
+.review-act { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-inline: -16px; padding: 10px 16px max(12px, env(safe-area-inset-bottom, 0px)); background: linear-gradient(180deg, color-mix(in oklab, var(--surface-2) 96%, transparent), var(--surface) 60%); border-top: 1px solid var(--line-strong); border-radius: 0 0 var(--radius) var(--radius); box-shadow: 0 -8px 18px rgb(0 0 0 / 0.35); }
+.review-msg { flex: 1 1 100%; order: -1; min-width: 0; font-size: 0.9375rem; color: var(--fg); overflow-wrap: anywhere; }
+.review-msg:empty { display: none; }
+@media (max-width: 480px) {
+  .review { padding: 12px 12px 0; }
+  .review-act { margin-inline: -12px; padding-inline: 12px; }
+  .rcard { padding: 10px; }
+  /* one row on a phone: "Verwerfen" left, the main button right under the thumb (wraps when "Trotzdem …" is longer) */
+  .review-act { gap: 8px; }
+  .review-act .btn { flex: 1 0 auto; padding-inline: 12px; }
+  .review-act #review-apply { flex-grow: 2; order: 2; }
+  .review-act #review-discard { order: 1; }
+}
+@media (pointer: coarse) {
+  .review .btn.small, .cost-info .btn.small, .zoom .btn.small, .rc-take, .rc-target select, .rc-name, .rc-more select, .rc-traits { min-height: 44px; }
+  .rc-stat input[type="number"] { min-height: 44px; }
+}
+/* Zoom on the photo a card was read from: full width, "Größer" doubles it inside a scroll box (pinch works there too). */
+.zoom { width: min(960px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); max-width: none; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: linear-gradient(180deg, var(--surface-2), var(--surface)); color: var(--fg); box-shadow: var(--shadow); overflow: hidden; }
+.zoom[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.zoom::backdrop { background: rgb(8 6 4 / 0.82); }
+.zoom-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.zoom-top h3 { font-size: var(--step-1); color: var(--accent-hi); }
+.zoom-box { overflow: auto; touch-action: pan-x pan-y pinch-zoom; overscroll-behavior: contain; background: var(--bg); min-height: 0; }
+.zoom-box img { display: block; width: 100%; height: auto; }
+.zoom.big .zoom-box img { width: 200%; max-width: none; }
+#zoom-big[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-hi); background: color-mix(in oklab, var(--accent) 18%, var(--surface)); }
 
 /* Settings tab */
 .jobrows { display: grid; }
@@ -732,6 +795,16 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   [data-anim="ruhig"] .entry-card:is(.page-open, .page-fade) { animation: calmIn 0.16s ease-out both; }
   [data-anim="ruhig"] .entry-seal.landing { animation: calmIn 0.18s ease-out both; }
   [data-anim="ruhig"] .entry-finale { animation: calmIn 0.18s ease-out both; }
+
+  /* Review: new cards rise in one after another (voll) or fade (ruhig); a number marked "stimmt" glows green once (voll);
+     the zoom fades in and "Größer" grows smoothly (voll + ruhig, <= 200 ms). */
+  [data-anim="voll"] .rcard.rc-in { animation: fadein 0.32s ease-out backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+  [data-anim="ruhig"] .rcard.rc-in { animation: calmIn 0.18s ease-out both; }
+  :is([data-anim="voll"], [data-anim="ruhig"]) .rc-stat { transition: background-color 0.2s, box-shadow 0.2s, opacity 0.2s; }
+  [data-anim="voll"] .rc-stat.cleared { animation: okflash 0.7s ease-out; }
+  @keyframes okflash { from { box-shadow: 0 0 0 2px var(--good), 0 0 14px color-mix(in oklab, var(--good) 45%, transparent); } to { box-shadow: 0 0 0 0 transparent; } }
+  :is([data-anim="voll"], [data-anim="ruhig"]) .zoom[open] { animation: calmIn 0.18s ease-out both; }
+  :is([data-anim="voll"], [data-anim="ruhig"]) .zoom-box img { transition: width 0.2s ease; }
 }
 </style>
 
@@ -859,23 +932,30 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         <p class="muted small"><b>Xbox:</b> Share-Taste am Controller drücken (Screenshot), das Bild in der Xbox-App aufs Handy holen, in der Galerie auf das Fenster des Dorfbewohners zuschneiden und hier mit „Bilder auswählen“ hochladen. Schneller: den Fernseher direkt mit „Foto machen“ abfotografieren, gerade, nah ran, Licht aus gegen Spiegelungen. <b>PC:</b> mit Win+Umschalt+S nur das Fenster ausschneiden und hier mit Strg+V einfügen.</p>
       </div>
       <div class="thumbs" id="thumbs"></div>
+      <div class="cost-info" id="cost-info" hidden>
+        <p>Fotos lesen nutzt euer eigenes Claude-Kontingent, ähnlich wie eine Chat-Nachricht mit Bild. Beim ersten Mal fragt Claude um Erlaubnis.</p>
+        <button class="btn small" type="button" id="cost-ok">Verstanden</button>
+      </div>
       <div class="row">
         <button class="btn primary" type="button" id="photo-read" disabled>Werte auslesen</button>
         <button class="btn" type="button" id="photo-stop" hidden>Stopp</button>
         <button class="btn" type="button" id="photo-goplan" data-goto="plan" hidden>Zum Plan</button>
+        <button class="btn" type="button" id="photo-astext" aria-controls="import" hidden>Als Text eintragen</button>
         <span class="muted" id="photo-msg" aria-live="polite"></span>
       </div>
-      <div class="review" id="review" hidden></div>
     </div>
 
     <div class="import" id="import" hidden>
-      <label for="import-text"><strong>Eine Zeile pro Arbeiter.</strong> Werte als <code>Stufe/Max</code>. Deutsche und englische Namen gehen beide. Steht ein Name schon in der Liste, werden nur die genannten Werte geändert.</label>
+      <label for="import-text"><strong>Eine Zeile pro Arbeiter.</strong> Werte als <code>Stufe/Max</code>. Deutsche und englische Namen gehen beide. Steht ein Name schon in der Liste, werden nur die genannten Werte geändert. Mit „Prüfen“ seht ihr zuerst, zu wem die Werte gehören; gespeichert wird erst mit „Ausgewählte übernehmen“.</label>
       <textarea id="import-text" rows="6" placeholder="Agnes [Arbeiter]: Arbeiter 3/5, Ernte 6/9, Landwirtschaft 2/4, Kochen 1/3, Handwerk 2/6, Forschen 0/2, Tierpflege 5/8 – Eigenschaften: Optimist&#10;Bertram: Arbeiter 7/9, Ernte 4/6, Kochen 2/4, Handwerk 3/5&#10;Kunibert [Wache]: Arbeiter 3/4"></textarea>
       <div class="row">
-        <button class="btn primary" type="button" id="do-import">Übernehmen</button>
+        <button class="btn primary" type="button" id="do-import">Prüfen</button>
         <span class="muted" id="import-msg" aria-live="polite"></span>
       </div>
     </div>
+
+    <!-- What a photo or the text import read: checked here, saved only with "Ausgewählte übernehmen". -->
+    <div class="review" id="review" role="region" aria-labelledby="review-title" hidden></div>
 
     <div class="empty" id="w-empty" hidden>
       <h3>Noch keine Arbeiter eingetragen</h3>
@@ -1031,6 +1111,17 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   <div class="entry-fx" id="entry-fx" aria-hidden="true"></div>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
+<!-- The photo a review card was read from, large. -->
+<dialog class="zoom" id="zoom" aria-labelledby="zoom-title" lang="de">
+  <div class="zoom-top">
+    <h3 id="zoom-title">Bild</h3>
+    <div class="row">
+      <button class="btn small" type="button" id="zoom-big" aria-pressed="false">Größer</button>
+      <button class="btn small" type="button" id="zoom-close">Schließen</button>
+    </div>
+  </div>
+  <div class="zoom-box" id="zoom-box"><img id="zoom-img" alt=""></div>
+</dialog>
 
 <script>
 (() => {
@@ -2891,6 +2982,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     renderEditor();
     renderJobs();
     renderPhotoAvail();
+    refreshReview();
   }
 
   // ---------- Storage backends ----------
@@ -3190,14 +3282,14 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (w) fillCard(card, w);
     }
   }
-  // Merge new stat values into a worker; a missing Max keeps the known one when it still fits.
+  // Merge imported stat values (photo or text) into a worker. A missing Max keeps the known one while it still fits,
+  // and an import never lowers a known Max: a smaller one read from a photo is far more often a misread than a real
+  // change (the review says so; the worker editor can still lower it by hand). The Stufe is taken as given.
   function mergeStat(w, a, cur, max) {
     const old = w.stats[a];
     const c = cur === null ? old.cur : cur;
-    let m;
-    if (max !== null) m = Math.max(c, max);
-    else m = old.max !== null && old.max >= c ? old.max : null;
-    w.stats[a] = { cur: c, max: m };
+    const known = old.max !== null && old.max >= c ? old.max : null;
+    w.stats[a] = { cur: c, max: max !== null ? Math.max(c, max, known === null ? 0 : known) : known };
   }
 
   // ---------- Text import / export ----------
@@ -3220,6 +3312,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   const ROLE_RE = /(^|[^a-zäöüß])(wache|guard|begleiter|begleiterin|companion)([^a-zäöüß]|$)/i;
 
   // Returns { rows, skipped }: rows have stats (or only traits for a known name), skipped are lines without values.
+  // Each row keeps its original line (line), so a review that is dropped can put it back into the field.
   function parseRoster(text) {
     const rows = [], skipped = [];
     if (!aliasRe) return { rows, skipped };
@@ -3240,7 +3333,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         spans.push([start, aliasRe.lastIndex]);
         const id = aliasMap[m[2].toLowerCase()];
         const cur = toNum(m[3], 0);
-        const max = m[4] !== undefined ? Math.max(cur, toNum(m[4], cur)) : null;
+        // A Max below the Stufe stays as typed: the review flags it ("Stufe über Max"), saving raises it (mergeStat).
+        const max = m[4] !== undefined ? toNum(m[4], cur) : null;
         stats[id] = { cur, max };
       }
       const tm = line.match(/(?:traits?|eigenschaften|merkmale)\s*:\s*/i);
@@ -3267,7 +3361,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       }
       head = head.replace(/[\s:;,–—\-]+$/g, "").replace(/^[\s:;,–—\-]+/g, "").replace(/\s+/g, " ").trim();
       if (!head || (first < 0 && !traits)) { skipped.push(original); continue; }
-      rows.push({ name: head.slice(0, 40), role, traits, stats, traitsOnly: first < 0 });
+      rows.push({ name: head.slice(0, 40), role, traits, stats, traitsOnly: first < 0, line: original });
     }
     return { rows, skipped };
   }
@@ -3490,6 +3584,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     saveWorker(normWorker(id, w, { raiseMax: false }));
     renderPlan();
     refreshCardsMain();
+    refreshReview();   // an open review compares with the values stored now ("bisher", doubts)
   });
   // When a field is left, show what was actually stored (clamped to 0–15, Max not below Stufe).
   $("#wlist").addEventListener("change", e => {
@@ -3497,7 +3592,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const w = card && state.workers.get(card.dataset.wid);
     if (!w || !e.target.dataset.f) return;
     const nw = normWorker(w.id, w);
-    if (!locked() && JSON.stringify(nw.stats) !== JSON.stringify(w.stats)) { saveWorker(nw); renderPlan(); }
+    if (!locked() && JSON.stringify(nw.stats) !== JSON.stringify(w.stats)) { saveWorker(nw); renderPlan(); refreshReview(); }
     fillCard(card, nw, true);
   });
   $("#wlist").addEventListener("focusin", e => { if (e.target.type === "number") { try { e.target.select(); } catch (x) { /* ignore */ } } });
@@ -3513,49 +3608,61 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   $("#opt-weak").addEventListener("change", e => setSettings(s => { s.disableWeak = e.target.checked; }));
   $("#opt-calm").addEventListener("change", e => setSettings(s => { s.calm = e.target.checked; }));
 
-  $("#toggle-import").addEventListener("click", e => {
+  function openImport() {
     const box = $("#import");
-    box.hidden = !box.hidden;
-    e.currentTarget.setAttribute("aria-expanded", String(!box.hidden));
-    if (!box.hidden) $("#import-text").focus();
+    box.hidden = false;
+    $("#toggle-import").setAttribute("aria-expanded", "true");
+    box.scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#import-text").focus({ preventScroll: true });
+  }
+  $("#toggle-import").addEventListener("click", e => {
+    if ($("#import").hidden) { openImport(); return; }
+    $("#import").hidden = true;
+    e.currentTarget.setAttribute("aria-expanded", "false");
   });
+  // "Prüfen": the lines it can read become review cards below (nothing is saved yet); the rest stays in the field.
+  // Cards already waiting there keep what you changed on them; the new ones are added after them.
   $("#do-import").addEventListener("click", () => {
     if (locked()) return;
     const msg = $("#import-msg");
     if (!aliasRe) { msg.textContent = "Text einlesen geht in diesem Browser leider nicht. Tragt die Werte bitte von Hand ein."; return; }
-    const { rows, skipped } = parseRoster($("#import-text").value);
-    let added = 0, updated = 0;
-    const left = [...skipped];
-    const all = sortedWorkers();
-    const byName = new Map(all.map(w => [w.name.trim().toLowerCase(), w]));
-    const unnamed = all.filter(w => !w.name.trim());
-    const touched = new Map();
-    rows.forEach((p, i) => {
-      let key = p.name.toLowerCase();
-      // The app exports unnamed workers as "?"; map that back if there is exactly one.
-      if ((key === "?" || key === "ohne namen") && unnamed.length === 1) key = "";
-      const ex = touched.get(key) || (key === "" ? unnamed[0] : byName.get(key));
-      if (p.traitsOnly && !ex) { left.push(`${p.name} – Traits: ${p.traits}`); return; }
-      if (!ex && (key === "?" || key === "ohne namen")) { left.push(p.name); return; }
-      const w = ex ? JSON.parse(JSON.stringify(ex)) : blankWorker(p.name);
-      if (!ex) w.order = Date.now() + i;
-      if (p.role) w.role = p.role;
-      if (p.traits) w.traits = p.traits.slice(0, 120);
-      for (const [a, v] of Object.entries(p.stats)) mergeStat(w, a, v.cur, v.max);
-      const nw = normWorker(w.id, w);
-      saveWorker(nw, 0);
-      if (!touched.has(key)) { ex ? updated++ : added++; }
-      touched.set(key, nw);
+    const ta = $("#import-text");
+    const { rows, skipped } = parseRoster(ta.value);
+    // The app exports unnamed workers as "?"; that maps back only if there is exactly one.
+    const unnamed = sortedWorkers().filter(w => !w.name.trim());
+    const left = [...skipped], items = [], byName = new Map();
+    for (const p of rows) {
+      const key = p.name.toLowerCase();
+      const q = key === "?" || key === "ohne namen";
+      if (q && unnamed.length !== 1) { left.push(p.line); continue; }
+      // Several lines for one name make one card (a later value wins), so no line overwrites another unseen.
+      let it = byName.get(key);
+      if (!it) {
+        it = { src: "text", name: q ? "" : p.name, known: null, image: null, role: null, traits: "", unsure: "", traitsOnly: true,
+          force: q ? unnamed[0].id : null, lines: [], stats: {} };
+        byName.set(key, it);
+        items.push(it);
+      }
+      it.lines.push(p.line);
+      if (p.role) it.role = p.role;
+      if (p.traits) it.traits = p.traits.slice(0, 120);
+      if (!p.traitsOnly) it.traitsOnly = false;
+      for (const [a, v] of Object.entries(p.stats)) it.stats[a] = { cur: v.cur, max: v.max, sure: true };
+    }
+    // Only traits: that helps someone already in the list; otherwise the line stays in the field.
+    const keep = items.filter(it => {
+      if (it.traitsOnly && !it.force && !autoTarget(it)) { left.push(...it.lines); return false; }
+      return true;
     });
-    if (!added && !updated) {
+    if (!keep.length) {
       msg.textContent = "Keine Zeile erkannt. Jede Zeile braucht einen Namen und mindestens einen Wert, z. B. „Anna: Kochen 5/8“.";
       return;
     }
-    const parts = [added ? `${added} neu angelegt` : "", updated ? `${updated} aktualisiert` : ""].filter(Boolean);
-    if (left.length) parts.push(`${left.length === 1 ? "1 Zeile" : left.length + " Zeilen"} ohne Werte nicht übernommen (steht noch im Feld)`);
-    msg.textContent = parts.join(", ") + ".";
-    $("#import-text").value = left.join("\n");
-    renderAll();
+    ta.value = left.join("\n");
+    addReviewCards("text", keep);
+    msg.textContent = `${keep.length === 1 ? "1 Arbeiter" : keep.length + " Arbeiter"} erkannt. Prüft die Werte unten und tippt dann auf „Ausgewählte übernehmen“.`
+      + (left.length ? ` ${left.length === 1 ? "1 Zeile ohne Werte bleibt" : left.length + " Zeilen ohne Werte bleiben"} im Feld.` : "");
+    focusReview();
   });
 
   $("#adopt-example").addEventListener("click", () => {
@@ -3574,7 +3681,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   window.addEventListener("hashchange", () => showTab(location.hash.slice(1), false));
 
   // ---------- Photo reading (Claude reads screenshots) ----------
-  const photo = { sample: null, limits: null, checked: false, offReason: "", files: [], ctl: null, busy: false, result: null };
+  const photo = { sample: null, limits: null, checked: false, offReason: "", files: [], ctl: null, busy: false, reading: [] };
+  const COST_KEY = "bellwright-kosten-info-v1";        // the cost note was confirmed on this device
+  let costSeen = lsGet(COST_KEY, false) === true;       // (in memory too, for a browser that blocks storage)
   const PHOTO_OFF = {
     not_granted: "Ihr habt Claude das Lesen von Bildern für diese Seite nicht erlaubt. Tragt die Werte bitte von Hand oder als Text ein.",
     sampling_disabled: "Claude ist für euer Konto gerade nicht verfügbar. Tragt die Werte bitte von Hand oder als Text ein.",
@@ -3583,13 +3692,33 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     capability_removed: "Bilder lesen geht in dieser Ansicht nicht.",
     images_unavailable: "Bilder lesen geht in dieser Ansicht nicht.",
   };
-  const PHOTO_PROMPT = `These images are screenshots or phone photos from the video game Bellwright (a medieval settlement builder), played on PC or on a console such as Xbox. Phone photos of a TV screen can be tilted, blurry or show glare and moiré stripes: read the numbers carefully and mention doubtful ones in "unsure". The game may be in English, German or another language. They show one or more villagers (settlers) and their attributes, for example a villager's info window or the population list.
+  // The review of what was read (photo or text import); see "The review" below.
+  // cards = [{k, it, ui}] in the order shown, files = the pictures the photo cards were read from.
+  const rv = { cards: [], files: [], seq: 0, sig: "" };
+
+  // The names already in the list (at most 80), so Claude can say which one a misspelt name means.
+  function rosterNames() {
+    const seen = new Set(), out = [];
+    for (const w of sortedWorkers()) {
+      const n = w.name.trim();
+      if (!n || seen.has(n.toLowerCase())) continue;
+      seen.add(n.toLowerCase());
+      out.push(n);
+      if (out.length >= 80) break;
+    }
+    return out;
+  }
+  function photoPrompt(names = rosterNames()) {
+    const known = names.length > 0;
+    return `These images are screenshots or phone photos from the video game Bellwright (a medieval settlement builder), played on PC or on a console such as Xbox. Phone photos of a TV screen can be tilted, blurry or show glare and moiré stripes: read the numbers carefully and mention doubtful ones in "unsure". The game may be in English, German or another language. They show one or more villagers (settlers) and their attributes, for example a villager's info window or the population list. The images are numbered from 0 in the order they are attached.
 
 For every villager whose name you can read, extract:
 - "name": exactly as shown.
+- "known": ${known ? "the exact name from the list of known villagers below if this villager is one of them, otherwise null." : "null."}
+- "image": the 0-based number of the image this villager was read from. If the villager appears in several images, the one that shows the work attributes best.
 - "role": "worker", "guard" or "companion" only if the image clearly shows it, otherwise null.
 - "traits": list of trait names as shown (for example Optimist, Slacker, Dullard). Empty list if none are visible.
-- "stats": the WORK attributes only, each as {"cur": current level, "max": maximum level or null}. Levels are whole numbers, usually 0 to 10; copy higher numbers exactly as shown. Use these keys:
+- "stats": the WORK attributes only, each as {"cur": current level, "max": maximum level or null, "sure": true or false}. Levels are whole numbers, usually 0 to 10; copy higher numbers exactly as shown. Use these keys:
   labourer (Labourer, Laborer; German "Arbeiter" – the skill row with the hammer icon, not the villager's role)
   harvesting (Harvesting; German "Ernte")
   farming (Farming; German for example Landwirtschaft, Ackerbau)
@@ -3598,13 +3727,18 @@ For every villager whose name you can read, extract:
   researching (Researching, Research; German "Forschen")
   hunting (Animal Handling; in older game versions Hunting; German "Tierpflege")
   The maximum may be shown as "3/6", as a second number, as the empty or lighter part of a bar, or as unfilled pips. If no maximum is visible, use null. Leave out an attribute that is not visible. Never guess a number you cannot read.
+  Set "sure" to false when a digit could be another one (3/8, 1/7, 5/6, 0/8), when it is partly hidden by glare or stripes, or when the maximum was estimated from a bar or pips. Otherwise set it to true.
 - "unsure": one short sentence in German about anything you could not read clearly, or "".
 Ignore combat attributes (Strength, Agility, weapon skills; German Stärke, Gewandtheit, Einhand, Zweihand, Stangenwaffen, Schilde, Bogenschießen), needs, health and equipment.
 If the same villager appears in several images, merge them into one entry.
-
+${known ? `
+Known villagers in this village (photos may misspell them): ${names.map(n => JSON.stringify(n)).join(", ")}.
+If a villager is one of them, set "known" to that exact name, otherwise null.
+` : ""}
 Reply with only this JSON:
-{"workers":[{"name":"Agnes","role":null,"traits":["Optimist"],"stats":{"labourer":{"cur":3,"max":5},"cooking":{"cur":1,"max":null}},"unsure":""}],"note":""}
+{"workers":[{"name":"Oswin","known":null,"image":0,"role":null,"traits":["Optimist"],"stats":{"labourer":{"cur":3,"max":5,"sure":true},"cooking":{"cur":1,"max":null,"sure":false}},"unsure":"Kochen: 1 oder 7?"}],"note":""}
 "note": if no villager attributes are visible at all, one short German sentence saying what the images show instead; otherwise "".`;
+  }
 
   const photoOk = () => !!(photo.sample && photo.limits && photo.limits.images);
   const photoUsable = () => photoOk() && !locked();
@@ -3620,16 +3754,19 @@ Reply with only this JSON:
     if (ok || !photo.checked) note.hidden = true;
     else {
       note.hidden = false;
+      // sample is there but limits() failed or has no images: this view cannot send pictures.
       note.textContent = state.readOnly ? "In der Ansicht „Nur ansehen“ könnt ihr keine Fotos einlesen."
-        : photo.offReason || (photo.sample && photo.limits
+        : photo.offReason || (photo.sample
           ? "Bilder lesen geht in dieser Ansicht nicht. Tragt die Werte bitte von Hand oder als Text ein."
           : "Fotos einlesen klappt nur, wenn ihr die Seite in Claude geöffnet habt und angemeldet seid. Hier könnt ihr die Werte von Hand oder als Text eintragen.");
     }
-    if (!ok && !$("#photo").hidden) { clearPhotos(); $("#photo").hidden = true; }
+    if (!ok && photo.busy && photo.ctl) photo.ctl.abort();
+    if (!ok && !$("#photo").hidden) { clearPhotos(); $("#photo").hidden = true; $("#toggle-photo").setAttribute("aria-expanded", "false"); }
     let coarse = true;
     try { coarse = matchMedia("(pointer: coarse)").matches; } catch (e) { /* keep */ }
     $("#photo-cam-btn").hidden = $("#photo-cam").hidden = !coarse;
     $("#photo-read").disabled = !photo.files.length || photo.busy || locked();
+    $("#cost-info").hidden = costSeen;
   }
   function openPhoto() {
     if (!photoUsable()) return;
@@ -3654,6 +3791,7 @@ Reply with only this JSON:
   async function addFiles(list) {
     if (!photoUsable()) return;
     const lim = photo.limits.images;
+    const types = Array.isArray(lim.mediaTypes) ? lim.mediaTypes : [];
     let bad = 0;
     for (const f of [...list]) {
       if (!f) continue;
@@ -3661,33 +3799,41 @@ Reply with only this JSON:
       if (type && !type.startsWith("image/")) { bad++; continue; }
       if (photo.files.length >= lim.maxCount) { setPhotoMsg(`Höchstens ${lim.maxCount} Bilder auf einmal.`); break; }
       let blob = f;
-      if (!lim.mediaTypes.includes(type) || f.size > lim.maxInputBytes) blob = await toJpeg(f).catch(() => null);
+      if (!types.includes(type) || f.size > lim.maxInputBytes) blob = await toJpeg(f).catch(() => null);
       if (!blob) { bad++; continue; }
       if (photo.files.length >= lim.maxCount) break;
       photo.files.push({ blob, url: URL.createObjectURL(blob) });
     }
     if (bad) setPhotoMsg(bad > 1 ? `${bad} Dateien konnten nicht geöffnet werden. Nehmt bitte PNG oder JPG.` : "Eine Datei konnte nicht geöffnet werden. Nehmt bitte PNG oder JPG.");
     $("#photo-goplan").hidden = true;
+    $("#photo-astext").hidden = true;
     renderThumbs();
   }
+  // A picture's object URL is freed once neither the photo strip nor the open review shows it, and no read that is
+  // still on its way will show it (saving a review while the same pictures are read again).
+  function releaseFiles(list) {
+    for (const f of list) if (f && !photo.files.includes(f) && !rv.files.includes(f) && !photo.reading.includes(f)) { try { URL.revokeObjectURL(f.url); } catch (e) { /* ignore */ } }
+  }
+  // Empties the photo strip. A review that is open keeps its own pictures and can still be saved.
   function clearPhotos() {
-    for (const f of photo.files) URL.revokeObjectURL(f.url);
-    photo.files = []; photo.result = null;
+    const old = photo.files;
+    photo.files = [];
+    releaseFiles(old);
     renderThumbs();
-    $("#review").hidden = true; $("#review").innerHTML = "";
   }
+  // One read value. "sure" is false only when Claude said so (or a "?" next to a number in text form).
   function statFrom(v) {
     if (v === null || v === undefined) return null;
-    if (typeof v === "number") { const c = toNum(v, null); return c === null ? null : { cur: c, max: null }; }
+    if (typeof v === "number") { const c = toNum(v, null); return c === null ? null : { cur: c, max: null, sure: true }; }
     if (typeof v === "string") {
       const m = v.match(/(\d{1,2})(?:\s*(?:\/|von|of)\s*(\d{1,2}))?/i);
       if (!m) return null;
-      return { cur: toNum(m[1], 0), max: m[2] !== undefined ? toNum(m[2], null) : null };
+      return { cur: toNum(m[1], 0), max: m[2] !== undefined ? toNum(m[2], null) : null, sure: !v.includes("?") };
     }
     if (typeof v === "object") {
       const cur = toNum(v.cur ?? v.current ?? v.level ?? v.value, null);
       if (cur === null) return null;
-      return { cur, max: toNum(v.max ?? v.maximum ?? v.cap, null) };
+      return { cur, max: toNum(v.max ?? v.maximum ?? v.cap, null), sure: !(v.sure === false || v.sure === "false") };
     }
     return null;
   }
@@ -3695,7 +3841,11 @@ Reply with only this JSON:
     const s = String(k).toLowerCase().trim().replace(/[_-]+/g, " ");
     return ATTR[s] ? s : (aliasMap[s] || aliasMap[s.replace(/\s+/g, "")] || null);
   }
-  function cleanPhotoResult(data) {
+  // Claude's answer, cleaned. known = the roster name Claude thinks it is (only a hint for the match), image = index of
+  // the picture (null if missing or out of range; with a single picture it can only be that one). A Stufe above Max
+  // stays as read: the review shows it as a doubt instead of hiding it (saving raises Max to the Stufe).
+  function cleanPhotoResult(data, nImages) {
+    const n = Number.isInteger(nImages) && nImages > 0 ? nImages : 0;
     const arr = Array.isArray(data) ? data : (data && Array.isArray(data.workers) ? data.workers : []);
     return arr.slice(0, 40).map(o => {
       o = o && typeof o === "object" ? o : {};
@@ -3704,12 +3854,14 @@ Reply with only this JSON:
       for (const [k, v] of Object.entries(src)) {
         const a = attrKey(k);
         const st = a && statFrom(v);
-        if (!st) continue;
-        if (st.max !== null && st.max < st.cur) st.max = st.cur;
-        stats[a] = st;
+        if (st) stats[a] = st;
       }
+      const known = typeof o.known === "string" ? o.known.trim().slice(0, 40) : "";
+      const iv = typeof o.image === "string" && /^\s*\d+\s*$/.test(o.image) ? +o.image : o.image;
       return {
         name: typeof o.name === "string" ? o.name.trim().slice(0, 40) : "",
+        known: known || null,
+        image: Number.isInteger(iv) && iv >= 0 && iv < n ? iv : n === 1 ? 0 : null,
         role: ROLE_LABEL[o.role] ? o.role : null,
         traits: (Array.isArray(o.traits) ? o.traits.map(String).join(", ") : typeof o.traits === "string" ? o.traits : "").slice(0, 120),
         stats,
@@ -3717,107 +3869,552 @@ Reply with only this JSON:
       };
     }).filter(w => w.name || Object.keys(w.stats).length);
   }
-  const findByName = name => name && sortedWorkers().find(w => w.name.trim().toLowerCase() === name.trim().toLowerCase());
-  function matchBadge(name, hasValues) {
-    if (!hasValues) return ["none", "keine Werte erkannt"];
-    const ex = findByName(name);
-    return ex ? ["upd", "aktualisiert " + ex.name] : ["new", "neu"];
+
+  // ---------- Which villager a read name means ----------
+  // Names are compared loosely (case, accents and the usual misreads 0/o, 1/l, rn/m), and the numbers help:
+  // equal Max values make a match likelier, a different Max or a lower Stufe than stored make it doubtful.
+  // A match only suggests the target; the players confirm it in the card ("Werte für"). Nothing is matched silently.
+  // Letters and the digits 2–9 count (0 and 1 are read as o and l first), so "Wache 2" and "Wache 3" stay two people.
+  let notLetters = /[^a-zß0-9]/g;
+  try { notLetters = new RegExp("[^\\p{L}\\p{Nd}]", "gu"); } catch (e) { /* older browsers: ASCII letters and digits only */ }
+  function normName(s) {
+    let t = String(s || "").toLowerCase();
+    try { t = t.normalize("NFD"); } catch (e) { /* keep */ }
+    return t.replace(/[\u0300-\u036f]/g, "").replace(/0/g, "o").replace(/[1|!]/g, "l").replace(/rn/g, "m").replace(notLetters, "");
   }
-  function renderReview() {
+  function lev(a, b) {
+    if (a === b) return 0;
+    if (!a.length || !b.length) return a.length || b.length;
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  // 1 = the same after normalising, 0 = nothing alike (or one of them has no letters).
+  function nameSim(a, b) {
+    const x = normName(a), y = normName(b);
+    return x && y ? 1 - lev(x, y) / Math.max(x.length, y.length) : 0;
+  }
+  const MATCH_OK = 0.85, MATCH_ASK = 0.6;
+  // read = {name, known, stats: {attr: {cur, max}}}; skip = attributes the players checked ("stimmt") or typed.
+  // null for a villager without a name: those never match (they can still be picked by hand).
+  function matchScore(read, w, skip) {
+    if (!normName(w.name)) return null;
+    let score = nameSim(read.name, w.name), conflict = false;
+    if (read.known && String(read.known).trim().toLowerCase() === w.name.trim().toLowerCase()) score += 0.3;
+    for (const a of ATTRS) {
+      const r = read.stats && read.stats[a.id], s = w.stats[a.id];
+      if (!r || (skip && skip.has(a.id))) continue;
+      if (r.max !== null && r.max !== undefined && s.max !== null) {
+        if (r.max === s.max) score += 0.02;
+        else { score -= 0.08; conflict = true; }
+      }
+      if (r.cur !== null && r.cur !== undefined && r.cur < s.cur) { score -= 0.08; conflict = true; }
+    }
+    return { score, conflict };
+  }
+  // Named villagers, best match first (equal scores keep the roster order).
+  function rankTargets(read, skip) {
+    return sortedWorkers().map((w, i) => ({ w, i, m: matchScore(read, w, skip) })).filter(x => x.m)
+      .sort((x, y) => y.m.score - x.m.score || x.i - y.i);
+  }
+  // "upd" = green "aktualisiert Agnes", "ask" = amber "Ist das Agnes?", "new" = "neu".
+  const matchLevel = m => !m ? "new" : m.score >= MATCH_OK && !m.conflict ? "upd" : m.score >= MATCH_ASK ? "ask" : "new";
+  // The villager a card points to before anyone picks: the best match from 0.6 on, else "Neu anlegen" ("").
+  function autoTarget(it, read, skip) {
+    if (it.force && state.workers.has(it.force)) return it.force;
+    const best = rankTargets(read || it, skip)[0];
+    return best && best.m.score >= MATCH_ASK ? best.w.id : "";
+  }
+  // Why a number deserves a second look. stored = the target's value now, null for a new villager.
+  function rowDoubts(sure, cur, max, stored) {
+    if (cur === null && max === null) return [];
+    const r = [];
+    if (sure === false) r.push("unsicher gelesen");
+    if (cur !== null && max !== null && cur > max) r.push("Stufe über Max");
+    if ((cur !== null && cur > 10) || (max !== null && max > 10)) r.push("ungewöhnlich hoch");
+    if (stored) {
+      if (cur !== null && cur < stored.cur) r.push("niedriger als gespeichert – Lesefehler?");
+      if (max !== null && stored.max !== null && max !== stored.max) {
+        // mergeStat never lowers a Max that still fits: say what will happen.
+        const keeps = max < stored.max && stored.max >= (cur === null ? stored.cur : cur);
+        r.push(keeps ? `Max anders als gespeichert (bleibt ${stored.max})` : "Max anders als gespeichert");
+      }
+    }
+    return r;
+  }
+  // Would saving this row leave the stored value as it is? (The same rule as saving: mergeStat.)
+  function sameAfter(s, cur, max) {
+    const t = { stats: { x: { cur: s.cur, max: s.max } } };
+    mergeStat(t, "x", cur, max);
+    return t.stats.x.cur === s.cur && t.stats.x.max === s.max;
+  }
+
+  // ---------- The review (photo or text import) ----------
+  // Nothing is saved before "Ausgewählte übernehmen". Per card: it = what was read (src "photo" or "text"), and
+  // ui = target (worker id, "" = Neu anlegen), touched (picked by hand), confirmed ("Ja, …"), gone (the villager it
+  // pointed to was deleted meanwhile; was = that pick, back when the villager is), ok (numbers checked with "stimmt"
+  // or typed), ask / n (open questions and
+  // doubts, for the "Trotzdem übernehmen" guard). The inputs on a card are the truth; cards are never redrawn,
+  // so new cards (another "Prüfen", a new photo read) never wipe what was corrected on the others.
+  const rosterSig = () => JSON.stringify(sortedWorkers().map(w => [w.id, w.name, w.role, w.stats]));
+  // How a card names a villager. Two with the same name (as the matching sees it) get their place in the list,
+  // "Hans (Nr. 9)", so the players can tell them apart; one without a name is "Ohne Namen (Nr. 3)".
+  // The select also names the role: "Kunibert (Wache)", "Hans (Nr. 9, Wache)".
+  function nameCounts(all) {
+    const m = new Map();
+    for (const w of all) { const k = normName(w.name); if (k) m.set(k, (m.get(k) || 0) + 1); }
+    return m;
+  }
+  function targetName(w, all, counts, withRole) {
+    const n = w.name.trim(), extra = [];
+    if (!n || (counts || nameCounts(all)).get(normName(n)) > 1) extra.push(`Nr. ${all.indexOf(w) + 1}`);
+    if (withRole && w.role !== "worker") extra.push(ROLE_LABEL[w.role]);
+    return (n || "Ohne Namen") + (extra.length ? ` (${extra.join(", ")})` : "");
+  }
+  const workerLabel = (w, all, counts) => targetName(w, all, counts, true);
+  const cardEl = c => document.querySelector(`#review .rcard[data-rk="${c.k}"]`);
+  const cardOf = node => { const r = node && node.closest && node.closest(".rcard"); return r ? rv.cards.find(c => String(c.k) === r.dataset.rk) || null : null; };
+  const setReviewMsg = (t, arm) => {
+    const m = $("#review-msg");
+    if (!m) return;
+    m.textContent = t || "";
+    if (arm) m.dataset.arm = "1"; else delete m.dataset.arm;
+  };
+  function focusReview() {
+    const h = $("#review-title");
+    if (!h || h.closest("[hidden]")) return;
+    h.scrollIntoView({ block: "start", behavior: scrollMode() });
+    h.focus({ preventScroll: true });
+  }
+  function reviewShell() {
     const box = $("#review");
-    const res = photo.result || [];
-    box.hidden = !res.length;
-    if (!res.length) { box.innerHTML = ""; return; }
-    box.innerHTML = `<h3>Erkannte Werte prüfen</h3><p class="muted small">Vergleicht kurz mit dem Bild und korrigiert, was nicht stimmt. Leere Felder bleiben bei vorhandenen Arbeitern unverändert.</p>`
-      + res.map((w, i) => {
-        const has = Object.keys(w.stats).length > 0;
-        const [cls, txt] = matchBadge(w.name, has);
-        const role = w.role || (findByName(w.name) || {}).role || "worker";
-        return `<div class="rcard${has ? "" : " skip"}" data-ri="${i}" data-prole="${w.role || ""}">
-          <div class="rc-head">
-            <label class="rc-take"><input type="checkbox" id="rv-${i}-on" data-r="on"${has ? " checked" : ""}> übernehmen</label>
-            <input type="text" id="rv-${i}-name" data-r="name" value="${esc(w.name)}" placeholder="Name" maxlength="40" aria-label="Name">
-            <select id="rv-${i}-role" data-r="role" aria-label="Rolle">${Object.entries(ROLE_LABEL).map(([k, l]) => `<option value="${k}"${k === role ? " selected" : ""}>${l}</option>`).join("")}</select>
-            <span class="badge ${cls}" data-badge>${esc(txt)}</span>
-          </div>
-          <div class="rc-stats">${ATTRS.map(a => {
-            const st = w.stats[a.id];
-            return `<div class="rc-stat"><label for="rv-${i}-cur-${a.id}">${esc(a.de)}<small>${esc(a.game)}</small></label>
-              <input type="number" min="0" max="${MAXV}" inputmode="numeric" id="rv-${i}-cur-${a.id}" data-r="cur:${a.id}" value="${st ? st.cur : ""}" placeholder="–" aria-label="${esc(a.de)} Stufe">
-              <span class="muted">/</span>
-              <input type="number" min="0" max="${MAXV}" inputmode="numeric" id="rv-${i}-max-${a.id}" data-r="max:${a.id}" value="${st && st.max !== null ? st.max : ""}" placeholder="?" aria-label="${esc(a.de)} Max"></div>`;
-          }).join("")}</div>
-          <input type="text" class="rc-traits" id="rv-${i}-traits" data-r="traits" value="${esc(w.traits)}" maxlength="120" placeholder="Eigenschaften" aria-label="Eigenschaften">
-          ${w.unsure ? `<p class="rc-unsure">Unsicher: ${esc(w.unsure)}</p>` : ""}
+    if (!box.querySelector(".rc-list")) {
+      box.innerHTML = `<h3 id="review-title" tabindex="-1">Erkannte Werte prüfen</h3>
+        <p class="muted small review-intro" id="review-intro"></p>
+        <div class="rc-list"></div>
+        <div class="review-act">
+          <span class="review-msg" id="review-msg" aria-live="polite"></span>
+          <button class="btn primary" type="button" id="review-apply">Ausgewählte übernehmen</button>
+          <button class="btn" type="button" id="review-discard">Verwerfen</button>
         </div>`;
-      }).join("")
-      + `<div class="row"><button class="btn primary" type="button" id="review-apply"${locked() ? " disabled" : ""}>Ausgewählte übernehmen</button><button class="btn" type="button" id="review-discard">Verwerfen</button></div>`;
+    }
+    box.hidden = false;
+    return box;
+  }
+  function rcardHtml(c, i) {
+    const { k, it } = c;
+    const has = Object.keys(it.stats).length > 0 || !!(it.traitsOnly && it.traits);
+    const f = it.src === "photo" && it.image !== null ? rv.files[it.image] : null;
+    const p = "rv-" + k;
+    const n = rv.files.length;
+    return `<div class="rcard rc-in${has ? "" : " skip"}${f ? " has-thumb" : ""}" data-rk="${k}" data-prole="${it.role || ""}" style="--i:${i}">
+      <div class="rc-head">
+        ${f ? `<button type="button" class="rc-thumb" data-zoom="${it.image}" aria-label="${n > 1 ? `Bild ${it.image + 1} von ${n}` : "Bild"} groß ansehen"><img src="${esc(f.url)}" alt=""></button>` : ""}
+        <div class="rc-top">
+          <label class="rc-take"><input type="checkbox" id="${p}-on" data-r="on"${has ? " checked" : ""}> übernehmen</label>
+          <span class="chip rc-chk" data-chk hidden></span>
+        </div>
+        <input type="text" class="rc-name" id="${p}-name" data-r="name" value="${esc(it.name)}" placeholder="Name" maxlength="40" aria-label="Name, wie gelesen">
+      </div>
+      <div class="rc-target">
+        <label class="rc-for" for="${p}-target">Werte für</label>
+        <select id="${p}-target" data-r="target" aria-describedby="${p}-match"></select>
+        <span class="badge" id="${p}-match" data-badge></span>
+        <button type="button" class="btn small" data-r="yes" hidden></button>
+      </div>
+      <div class="rc-stats">${ATTRS.map(a => {
+        const st = it.stats[a.id], id = `${p}-${a.id}`;
+        return `<div class="rc-stat" data-a="${a.id}"><label for="${p}-cur-${a.id}">${esc(a.de)}<small class="rc-was" id="${id}-was" hidden></small><small class="rc-en">${esc(a.game)}</small></label>
+          <input type="number" min="0" max="${MAXV}" inputmode="numeric" id="${p}-cur-${a.id}" data-r="cur:${a.id}" value="${st && st.cur !== null ? st.cur : ""}" placeholder="–" aria-label="${esc(a.de)} Stufe" aria-describedby="${id}-was ${id}-why">
+          <span class="muted" aria-hidden="true">/</span>
+          <input type="number" min="0" max="${MAXV}" inputmode="numeric" id="${p}-max-${a.id}" data-r="max:${a.id}" value="${st && st.max !== null ? st.max : ""}" placeholder="?" aria-label="${esc(a.de)} Max" aria-describedby="${id}-was ${id}-why">
+          <p class="rc-doubt" hidden><span class="rc-why" id="${id}-why"></span><button type="button" class="btn small" data-r="okd" data-a="${a.id}" aria-label="${esc(a.de)}: Wert stimmt">stimmt</button></p>
+        </div>`;
+      }).join("")}</div>
+      <div class="rc-more">
+        <select id="${p}-role" data-r="role" aria-label="Rolle">${Object.entries(ROLE_LABEL).map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+        <input type="text" class="rc-traits" id="${p}-traits" data-r="traits" value="${esc(it.traits)}" maxlength="120" placeholder="Eigenschaften" aria-label="Eigenschaften">
+      </div>
+      ${it.unsure ? `<p class="rc-unsure">Unsicher: ${esc(it.unsure)}</p>` : ""}
+    </div>`;
+  }
+  // New cards: photo cards replace the cards of the previous photo read (same pictures, read again) and go before
+  // the text cards; text cards are added at the end. Returns how many cards were added.
+  function addReviewCards(src, items, files) {
+    if (!items.length) return 0;
+    closeZoom();
+    disarmApply();
+    let replaced = 0;
+    if (src === "photo") {
+      const old = rv.cards.filter(c => c.it.src === "photo");
+      replaced = old.length;
+      for (const c of old) { const el = cardEl(c); if (el) el.remove(); }
+      rv.cards = rv.cards.filter(c => c.it.src !== "photo");
+      const oldFiles = rv.files;
+      rv.files = files || [];
+      releaseFiles(oldFiles);
+    }
+    const list = reviewShell().querySelector(".rc-list");
+    const fresh = items.map((it, j) => ({ k: rv.seq++, j, it: { ...it, src },
+      ui: { target: "", touched: false, confirmed: false, gone: "", was: null, ok: new Set(), ask: false, n: 0 } }));
+    for (const c of fresh) c.ui.target = autoTarget(c.it);
+    const html = fresh.map(c => rcardHtml(c, Math.min(c.j, 8))).join("");
+    const firstText = src === "photo" ? rv.cards.find(c => c.it.src === "text") : null;
+    const at = firstText && cardEl(firstText);
+    if (at) at.insertAdjacentHTML("beforebegin", html); else list.insertAdjacentHTML("beforeend", html);
+    if (firstText) rv.cards.splice(rv.cards.indexOf(firstText), 0, ...fresh); else rv.cards.push(...fresh);
+    rv.sig = rosterSig();
+    for (const c of fresh) { const el = cardEl(c); fillTargets(el, c); syncRole(el, c); }
+    $("#review-intro").textContent = (rv.cards.some(c => c.it.src === "photo")
+      ? "Vergleicht mit dem Bild (antippen vergrößert es) und korrigiert, was nicht stimmt."
+      : "Prüft, zu wem die Werte gehören, und korrigiert, was nicht stimmt.")
+      + " Gelb heißt: genauer ansehen. Bei vorhandenen Arbeitern bleiben Name und leere Felder, wie sie sind.";
+    paintAll();
+    setReviewMsg(replaced ? "Die Karten der vorigen Foto-Auswertung sind durch die neuen ersetzt." : "");
+    return fresh.length;
+  }
+  // Puts the original lines of these text cards back at the top of the import field. Returns how many.
+  function restoreLines(cards) {
+    const lines = cards.flatMap(c => c.it.lines || []);
+    if (!lines.length) return 0;
+    const ta = $("#import-text");
+    ta.value = [lines.join("\n"), ta.value].filter(t => t.trim()).join("\n");
+    return lines.length;
+  }
+  // restoreText: a dropped review puts its text lines back into the field, so nothing typed is lost.
+  function closeReview(restoreText) {
+    const n = restoreText ? restoreLines(rv.cards.filter(c => c.it.src === "text")) : 0;
+    const oldFiles = rv.files;
+    closeZoom();
+    disarmApply();
+    rv.cards = []; rv.files = []; rv.seq = 0; rv.sig = "";
+    releaseFiles(oldFiles);
+    const box = $("#review");
+    box.hidden = true;
+    box.innerHTML = "";
+    return n;
+  }
+  // What the card says right now (the players may have corrected it). The "known" hint counts only for the name as read.
+  function readCard(el, it) {
+    const name = el.querySelector('[data-r="name"]').value;
+    const stats = {};
+    for (const a of ATTRS) {
+      const cur = toNum(el.querySelector(`[data-r="cur:${a.id}"]`).value, null);
+      const max = toNum(el.querySelector(`[data-r="max:${a.id}"]`).value, null);
+      if (cur !== null || max !== null) stats[a.id] = { cur, max };
+    }
+    return { name, known: name.trim() === it.name.trim() ? it.known : null, stats };
+  }
+  // "Neu anlegen", then the best match, then everyone else in roster order.
+  function fillTargets(el, c) {
+    const sel = el.querySelector('[data-r="target"]');
+    const all = sortedWorkers();
+    const best = (rankTargets(readCard(el, c.it), c.ui.ok)[0] || {}).w || null;
+    const order = best ? [best, ...all.filter(w => w !== best)] : all;
+    const counts = nameCounts(all);
+    sel.innerHTML = `<option value="">Neu anlegen</option>` + order.map(w => `<option value="${esc(w.id)}">${esc(workerLabel(w, all, counts))}</option>`).join("");
+    sel.value = c.ui.target && state.workers.has(c.ui.target) ? c.ui.target : "";
+  }
+  // The role shown follows the target until someone picks one (a role read from the photo stays).
+  function syncRole(el, c) {
+    const sel = el.querySelector('[data-r="role"]');
+    if (sel.dataset.touched) return;
+    sel.value = c.it.role || (state.workers.get(c.ui.target) || {}).role || "worker";
+  }
+  // Everything on a card that follows from its inputs: the match status, "bisher 4/7", dimmed unchanged rows, doubts.
+  function paintCard(el, c, dup) {
+    const it = c.it, ui = c.ui;
+    const read = readCard(el, it);
+    const sel = el.querySelector('[data-r="target"]');
+    const w = sel.value ? state.workers.get(sel.value) : null;
+    const has = Object.keys(read.stats).length > 0 || !!(it.traitsOnly && el.querySelector('[data-r="traits"]').value.trim());
+    const all = sortedWorkers(), counts = w ? nameCounts(all) : null;
+    const nm = w ? targetName(w, all, counts) : "";
+    let cls = "new", txt = "neu", yes = "";
+    if (!has) { cls = "none"; txt = "keine Werte erkannt"; }
+    else if (ui.gone && !ui.touched && !ui.confirmed) { cls = "ask"; txt = `${ui.gone} gibt es nicht mehr`; yes = "Passt so"; }
+    else if (w && dup) { cls = "ask"; txt = `Zwei Karten zeigen auf ${nm}`; }
+    else if (w) {
+      // Picked by the players, or the one clear best match. Two villagers with this name: only the players can say which.
+      const sure = ui.touched || ui.confirmed || it.force === w.id
+        || (!(counts.get(normName(w.name)) > 1) && matchLevel(matchScore(read, w, ui.ok)) === "upd");
+      if (sure) { cls = "upd"; txt = "aktualisiert " + nm; } else { cls = "ask"; txt = `Ist das ${nm}?`; yes = `Ja, ${nm}`; }
+    } else if (!ui.touched && !ui.confirmed) {
+      // Not matched, but the very same name is already in the list: a second one only if you say so.
+      const rn = normName(read.name);
+      const twin = rn && all.find(x => normName(x.name) === rn);
+      if (twin) { cls = "ask"; txt = `neu – ${twin.name.trim()} gibt es schon`; yes = "Ja, neu anlegen"; }
+    }
+    ui.ask = cls === "ask" && !dup;   // two cards on one villager are stopped anyway
+    const badge = el.querySelector("[data-badge]");
+    badge.className = "badge " + cls;
+    badge.textContent = txt;
+    sel.classList.toggle("upd", cls === "upd");
+    sel.classList.toggle("ask", cls === "ask");
+    const yb = el.querySelector('[data-r="yes"]');
+    yb.hidden = !yes;
+    yb.textContent = yes;
+    let n = 0;
+    for (const a of ATTRS) {
+      const row = el.querySelector(`.rc-stat[data-a="${a.id}"]`);
+      const r = read.stats[a.id] || { cur: null, max: null };
+      const s = w ? w.stats[a.id] : null;
+      const was = row.querySelector(".rc-was");
+      was.hidden = !s;
+      was.textContent = s ? `bisher ${s.cur}/${s.max === null ? "?" : s.max}` : "";
+      row.classList.toggle("same", !!s && sameAfter(s, r.cur, r.max));
+      const d = ui.ok.has(a.id) ? [] : rowDoubts(it.stats[a.id] ? it.stats[a.id].sure : true, r.cur, r.max, s);
+      row.classList.toggle("doubt", d.length > 0);
+      row.querySelector(".rc-doubt").hidden = !d.length;
+      row.querySelector(".rc-why").textContent = d.join(" · ");
+      if (d.length) n++;
+    }
+    ui.n = n;
+    const chip = el.querySelector("[data-chk]");
+    chip.hidden = !n;
+    chip.textContent = n ? `${zahlen(n)} prüfen` : "";
+  }
+  function paintAll() {
+    const seen = new Set();
+    for (const c of rv.cards) {
+      const el = cardEl(c);
+      if (!el) continue;
+      const t = el.querySelector('[data-r="target"]').value;
+      const on = el.querySelector('[data-r="on"]').checked;
+      paintCard(el, c, on && !!t && seen.has(t));
+      if (on && t) seen.add(t);
+    }
+    const b = $("#review-apply");
+    if (b) b.disabled = locked();
+    updateArm();
+  }
+  // The list changed (another phone, an edit): new options, cards nobody picked for choose again, and a card whose
+  // villager was deleted says so. Drawing only, nothing is saved.
+  function refreshReview() {
+    if (!rv.cards.length) return;
+    const sig = rosterSig();
+    if (sig !== rv.sig) {
+      rv.sig = sig;
+      for (const c of rv.cards) {
+        const el = cardEl(c);
+        if (!el) continue;
+        // The villager is back (Rückgängig after Löschen) and nobody picked since: the card points to it as before.
+        const was = c.ui.was;
+        if (c.ui.gone && was && state.workers.has(was.id)) Object.assign(c.ui, { target: was.id, touched: was.touched, confirmed: was.confirmed, gone: "", was: null });
+        if (c.ui.target && !state.workers.has(c.ui.target)) {
+          const o = el.querySelector(`[data-r="target"] option[value="${CSS.escape(c.ui.target)}"]`);
+          c.ui.gone = (o && o.textContent) || "Der gewählte Arbeiter";
+          c.ui.was = c.ui.was || { id: c.ui.target, touched: c.ui.touched, confirmed: c.ui.confirmed };
+          c.ui.target = ""; c.ui.touched = false; c.ui.confirmed = false;
+        }
+        // A pick confirmed with "Ja, …" stays, like one made in the select: a change on another phone never moves it.
+        if (!c.ui.touched && !c.ui.confirmed) {
+          const t = autoTarget(c.it, readCard(el, c.it), c.ui.ok);
+          if (t !== c.ui.target) c.ui.target = t;
+        }
+        fillTargets(el, c);
+        syncRole(el, c);
+      }
+    }
+    paintAll();
+  }
+  const checkedCards = () => rv.cards.filter(c => { const el = cardEl(c); return el && el.querySelector('[data-r="on"]').checked; });
+  // Numbers nobody checked yet plus "Ist das …?" questions, on the cards that will be saved.
+  const openDoubts = (only) => checkedCards().filter(c => !only || c.it.src === only).reduce((n, c) => n + c.ui.n + (c.ui.ask ? 1 : 0), 0);
+  let applyT = null;
+  const APPLY_TEXT = "Ausgewählte übernehmen";
+  function disarmApply() {
+    clearTimeout(applyT); applyT = null;
+    const b = $("#review-apply");
+    if (b && b.dataset.armed) { delete b.dataset.armed; b.classList.remove("armed"); b.textContent = APPLY_TEXT; }
+    const m = $("#review-msg");
+    if (m && m.dataset.arm) setReviewMsg("");   // the "tippt noch einmal" hint is over too
+  }
+  function updateArm() {
+    const b = $("#review-apply");
+    if (!b || !b.dataset.armed) return;
+    const n = openDoubts();
+    if (!n) disarmApply();
+    else b.textContent = `Trotzdem übernehmen (${n} ungeprüft)`;
   }
   function applyReview() {
-    if (locked()) return;
-    const chosen = $$("#review .rcard").filter(card => card.querySelector('[data-r="on"]').checked);
-    if (!chosen.length) { setPhotoMsg("Nichts ausgewählt."); return; }
-    const noName = chosen.map(card => card.querySelector('[data-r="name"]')).filter(el => !el.value.trim());
-    for (const el of $$('#review [data-r="name"]')) el.removeAttribute("aria-invalid");
-    if (noName.length) {
-      for (const el of noName) el.setAttribute("aria-invalid", "true");
-      noName[0].focus();
-      setPhotoMsg("Bitte bei jedem ausgewählten Eintrag einen Namen eintragen.");
+    if (locked() || !rv.cards.length) return;
+    const all = rv.cards.map(c => ({ c, el: cardEl(c) })).filter(x => x.el);
+    const on = all.filter(x => x.el.querySelector('[data-r="on"]').checked);
+    for (const el of $$("#review [aria-invalid]")) el.removeAttribute("aria-invalid");
+    const fail = (el, text) => { el.setAttribute("aria-invalid", "true"); el.focus(); setReviewMsg(text); disarmApply(); };
+    if (!on.length) { disarmApply(); setReviewMsg("Nichts ausgewählt. Setzt bei mindestens einer Karte den Haken bei „übernehmen“."); return; }
+    const tgt = x => x.el.querySelector('[data-r="target"]');
+    const nameEl = x => x.el.querySelector('[data-r="name"]');
+    // A villager someone deleted in the meantime (usually the card has already picked again and says so).
+    const gone = on.find(x => tgt(x).value && !state.workers.has(tgt(x).value));
+    if (gone) {
+      rv.sig = "";
+      refreshReview();
+      fail(tgt(gone), "Den gewählten Arbeiter gibt es nicht mehr. Wählt bitte „Neu anlegen“ oder einen anderen Namen.");
       return;
     }
-    let added = 0, updated = 0;
-    const done = new Map();
-    chosen.forEach((card, i) => {
-      const name = card.querySelector('[data-r="name"]').value.trim().slice(0, 40);
-      const key = name.toLowerCase();
-      const ex = done.get(key) || findByName(name);
-      const w = ex ? JSON.parse(JSON.stringify(ex)) : blankWorker(name);
-      if (!ex) w.order = Date.now() + i;
-      const sel = card.querySelector('[data-r="role"]');
-      if (!(ex && !card.dataset.prole && !sel.dataset.touched)) w.role = sel.value;
-      const traits = card.querySelector('[data-r="traits"]').value.trim();
-      if (traits) w.traits = traits.slice(0, 120);
-      for (const a of ATTRS) {
-        const cur = toNum(card.querySelector(`[data-r="cur:${a.id}"]`).value, null);
-        const max = toNum(card.querySelector(`[data-r="max:${a.id}"]`).value, null);
-        if (cur === null && max === null) continue;
-        mergeStat(w, a.id, cur, max);
+    const noName = on.filter(x => !tgt(x).value && !nameEl(x).value.trim());
+    if (noName.length) {
+      for (const x of noName) nameEl(x).setAttribute("aria-invalid", "true");
+      fail(nameEl(noName[0]), "Bitte bei jedem ausgewählten Eintrag einen Namen eintragen.");
+      return;
+    }
+    // Two cards, one villager: the second would silently overwrite the first. The same for two new ones.
+    const seen = new Set(), fresh = new Set();
+    for (const x of on) {
+      const t = tgt(x).value;
+      if (t) {
+        if (seen.has(t)) {
+          const w = state.workers.get(t);
+          fail(tgt(x), `Zwei Karten zeigen auf ${targetName(w, sortedWorkers())}. Bitte bei einer „Neu anlegen“ oder einen anderen Namen wählen.`);
+          return;
+        }
+        seen.add(t);
+      } else {
+        const nm = nameEl(x).value.trim(), key = normName(nm) || nm.toLowerCase();
+        if (fresh.has(key)) {
+          fail(nameEl(x), `Zwei Karten legen „${nm}“ neu an. Tragt bei einer einen anderen Namen ein oder nehmt dort den Haken bei „übernehmen“ weg.`);
+          return;
+        }
+        fresh.add(key);
       }
-      const nw = normWorker(w.id, w);
-      saveWorker(nw, 0);
-      if (!done.has(key)) { ex ? updated++ : added++; }
-      done.set(key, nw);
+    }
+    // Doubts left: the first tap asks again for 4 s (the same two taps as Löschen).
+    const open = openDoubts();
+    const b = $("#review-apply");
+    if (open && !b.dataset.armed) {
+      b.dataset.armed = String(Date.now());
+      b.classList.add("armed");
+      b.textContent = `Trotzdem übernehmen (${open} ungeprüft)`;
+      clearTimeout(applyT);
+      applyT = setTimeout(disarmApply, 4000);
+      setReviewMsg(`${open === 1 ? "Eine Stelle ist" : open + " Stellen sind"} noch ungeprüft (gelb markiert). Prüft sie oder tippt noch einmal auf „Trotzdem übernehmen“.`, true);
+      return;
+    }
+    if (open && Date.now() - +b.dataset.armed < 450) return;   // a double tap is not a second decision
+    disarmApply();
+    let added = 0, updated = 0;
+    const base = Date.now();
+    on.forEach((x, i) => {
+      const tid = tgt(x).value;
+      const ex = tid ? state.workers.get(tid) : null;
+      const name = nameEl(x).value.trim().slice(0, 40);
+      const w = ex ? JSON.parse(JSON.stringify(ex)) : blankWorker(name);
+      if (!ex) w.order = base + i;
+      else if (!w.name.trim() && name) w.name = name;   // an existing villager keeps the name it has
+      const sel = x.el.querySelector('[data-r="role"]');
+      if (!ex || x.el.dataset.prole || sel.dataset.touched) w.role = ROLE_LABEL[sel.value] ? sel.value : "worker";
+      const traits = x.el.querySelector('[data-r="traits"]').value.trim();
+      if (traits) w.traits = traits.slice(0, 120);
+      for (const [a, v] of Object.entries(readCard(x.el, x.c.it).stats)) mergeStat(w, a, v.cur, v.max);
+      saveWorker(normWorker(w.id, w), 0);
+      if (ex) updated++; else added++;
     });
-    clearPhotos();
+    const hadPhoto = all.some(x => x.c.it.src === "photo"), hadText = all.some(x => x.c.it.src === "text");
+    // Unticked text cards go back into the field, so no typed line is lost.
+    const back = restoreLines(all.filter(x => x.c.it.src === "text" && !x.el.querySelector('[data-r="on"]').checked).map(x => x.c));
+    const readFiles = rv.files.slice();
+    closeReview(false);
+    if (hadPhoto) { photo.files = photo.files.filter(f => !readFiles.includes(f)); releaseFiles(readFiles); renderThumbs(); }
     renderAll();
     const msg = [added ? `${added} neu angelegt` : "", updated ? `${updated} aktualisiert` : ""].filter(Boolean).join(", ") + ". Der Plan ist neu gerechnet.";
-    setPhotoMsg(msg);
     toast(msg);
-    $("#photo-goplan").hidden = false;
     ring();
-    $("#photo").scrollIntoView({ block: "start", behavior: scrollMode() });
+    if (hadText) $("#import-msg").textContent = msg + (back ? ` ${back === 1 ? "1 abgewählte Zeile steht" : back + " abgewählte Zeilen stehen"} wieder im Feld.` : "");
+    if (hadPhoto) { setPhotoMsg(msg); $("#photo-goplan").hidden = false; }
+    // Focus goes where the work goes on (never into a text field: no keyboard popping up on a phone).
+    if (hadPhoto && !$("#photo").hidden) {
+      $("#photo").scrollIntoView({ block: "start", behavior: scrollMode() });
+      $("#photo-goplan").focus({ preventScroll: true });
+    } else if (!$("#import").hidden) {
+      $("#import").scrollIntoView({ block: "start", behavior: scrollMode() });
+      $("#do-import").focus({ preventScroll: true });
+    } else $("#add-worker").focus();
   }
+  function discardReview() {
+    const hadPhoto = rv.cards.some(c => c.it.src === "photo");
+    const n = closeReview(true);
+    if (hadPhoto) setPhotoMsg("Verworfen.");
+    if (n) {
+      $("#import-msg").textContent = `Verworfen. ${n === 1 ? "Die Zeile steht" : "Die Zeilen stehen"} wieder im Feld.`;
+      if ($("#import").hidden) { $("#import").hidden = false; $("#toggle-import").setAttribute("aria-expanded", "true"); }
+    }
+    if (hadPhoto && !$("#photo").hidden) {
+      const r = $("#photo-read");
+      (r.disabled ? $("#toggle-photo") : r).focus();
+    } else if (!$("#import").hidden) $("#do-import").focus();
+    else $("#add-worker").focus();
+  }
+
+  // ---------- Zoom on a photo ----------
+  let zoomFrom = null;
+  function openZoom(idx, from) {
+    const f = rv.files[idx], d = $("#zoom");
+    if (!f) return;
+    const label = rv.files.length > 1 ? `Bild ${idx + 1} von ${rv.files.length}` : "Bild";
+    const img = $("#zoom-img");
+    img.src = f.url;
+    img.alt = label;
+    $("#zoom-title").textContent = label;
+    d.classList.remove("big");
+    $("#zoom-big").setAttribute("aria-pressed", "false");
+    zoomFrom = from || null;
+    try { d.showModal(); } catch (e) { d.setAttribute("open", ""); }
+    $("#zoom-box").scrollTop = 0;
+    $("#zoom-box").scrollLeft = 0;
+    $("#zoom-close").focus();
+  }
+  function zoomClosed() {
+    $("#zoom-img").removeAttribute("src");
+    const from = zoomFrom;
+    zoomFrom = null;
+    if (from && from.isConnected) from.focus();
+  }
+  function closeZoom() {
+    const d = $("#zoom");
+    if (!d.open && !d.hasAttribute("open")) return;
+    if (typeof d.close === "function") d.close();   // fires "close"
+    else { d.removeAttribute("open"); zoomClosed(); }
+  }
+  $("#zoom").addEventListener("close", zoomClosed);
+  $("#zoom-close").addEventListener("click", closeZoom);
+  $("#zoom-big").addEventListener("click", e => {
+    const big = $("#zoom").classList.toggle("big");
+    e.currentTarget.setAttribute("aria-pressed", String(big));
+  });
+  $("#zoom").addEventListener("click", e => { if (e.target === e.currentTarget) closeZoom(); });   // a tap on the dark backdrop
+
   async function readPhotos() {
     if (!photoUsable() || !photo.files.length || photo.busy) return;
     photo.busy = true;
     const ctl = photo.ctl = new AbortController();
     $("#photo-stop").hidden = false;
     $("#photo-goplan").hidden = true;
+    $("#photo-astext").hidden = true;
     renderThumbs();
     setPhotoMsg("Claude liest die Bilder. Das dauert meist 10 bis 60 Sekunden.", true);
     try {
-      const data = await photo.sample.json(PHOTO_PROMPT, { images: photo.files.map(f => f.blob), signal: ctl.signal, cache: false });
-      const ws = cleanPhotoResult(data);
-      photo.result = ws;
-      renderReview();
+      if (typeof photo.sample.json !== "function") throw { code: "capability_removed" };
+      const files = photo.reading = photo.files.slice();
+      const data = await photo.sample.json(photoPrompt(), { images: files.map(f => f.blob), signal: ctl.signal, cache: false });
+      const ws = cleanPhotoResult(data, files.length);
+      const added = addReviewCards("photo", ws, files);
       const withValues = ws.filter(w => Object.keys(w.stats).length).length;
-      if (withValues) setPhotoMsg(`${withValues === 1 ? "1 Dorfbewohner" : withValues + " Dorfbewohner"} mit Werten erkannt. Prüft die Werte unten.`);
+      const open = openDoubts("photo");
+      if (withValues) setPhotoMsg(`${withValues === 1 ? "1 Dorfbewohner" : withValues + " Dorfbewohner"} mit Werten erkannt. Prüft die Werte unten.`
+        + (open ? ` ${open === 1 ? "Eine Stelle ist" : open + " Stellen sind"} gelb markiert.` : ""));
       else setPhotoMsg((data && typeof data.note === "string" && data.note) || "Auf den Bildern waren keine Werte zu erkennen. Versucht ein schärferes Bild, auf dem die Fertigkeiten zu sehen sind.");
+      if (added) { const a = document.activeElement; if (!a || a === document.body || $("#photo").contains(a)) focusReview(); }
     } catch (e) {
       const code = e && e.code;
       const msgs = {
         cancelled: "Abgebrochen.",
-        rate_limited: "Gerade zu viele Anfragen oder euer Claude-Limit ist erreicht. Versucht es später noch einmal.",
+        rate_limited: "Euer Claude-Limit ist gerade erreicht. Tragt die Werte von Hand oder als Text ein oder versucht es später.",
         image_rejected: "Ein Bild konnte nicht verarbeitet werden. Nehmt einen Screenshot als PNG oder JPG.",
         invalid_json: "Die Antwort war nicht lesbar. Versucht es noch einmal, am besten mit einem schärferen Bild.",
         empty_completion: "Es kam keine Antwort. Versucht es mit weniger oder schärferen Bildern.",
@@ -3830,9 +4427,16 @@ Reply with only this JSON:
         photo.limits = null;
         renderPhotoAvail();
         toast(PHOTO_OFF[code]);
-      } else setPhotoMsg(msgs[code] || "Die Verbindung wurde unterbrochen. Versucht es noch einmal.");
+      } else {
+        setPhotoMsg(msgs[code] || "Die Verbindung wurde unterbrochen. Versucht es noch einmal.");
+        // Never tried again by itself: the players decide, and typing the values in always works.
+        if (code === "rate_limited") $("#photo-astext").hidden = false;
+      }
     } finally {
       photo.busy = false;
+      const sent = photo.reading;
+      photo.reading = [];
+      releaseFiles(sent);
       $("#photo-stop").hidden = true;
       renderThumbs();
     }
@@ -3850,29 +4454,85 @@ Reply with only this JSON:
     const b = e.target.closest("[data-rm]");
     if (!b || photo.busy) return;
     const [f] = photo.files.splice(+b.dataset.rm, 1);
-    if (f) URL.revokeObjectURL(f.url);
+    if (f) releaseFiles([f]);   // still shown in the review until that is closed
     renderThumbs();
   });
   $("#photo-read").addEventListener("click", readPhotos);
   $("#photo-stop").addEventListener("click", () => { if (photo.ctl) photo.ctl.abort(); });
-  $("#review").addEventListener("click", e => {
-    if (e.target.closest("#review-apply")) applyReview();
-    else if (e.target.closest("#review-discard")) { photo.result = null; renderReview(); setPhotoMsg("Verworfen."); }
+  $("#photo-astext").addEventListener("click", () => { $("#photo-astext").hidden = true; openImport(); });
+  $("#cost-ok").addEventListener("click", () => {
+    costSeen = true;
+    lsSet(COST_KEY, true);
+    $("#cost-info").hidden = true;
+    const r = $("#photo-read");
+    (r.disabled ? $("#photo-file") : r).focus();
   });
-  $("#review").addEventListener("input", e => {
-    const card = e.target.closest(".rcard");
-    if (!card) return;
-    if (e.target.dataset.r === "on") card.classList.toggle("skip", !e.target.checked);
-    else if (e.target.dataset.r === "role") e.target.dataset.touched = "1";
-    else if (e.target.dataset.r === "name") {
-      e.target.removeAttribute("aria-invalid");
-      const has = [...card.querySelectorAll('[data-r^="cur:"],[data-r^="max:"]')].some(i => i.value !== "");
-      const [cls, txt] = matchBadge(e.target.value, has);
-      const b = card.querySelector("[data-badge]");
-      b.className = "badge " + cls; b.textContent = txt;
-      const sel = card.querySelector('[data-r="role"]');
-      if (!card.dataset.prole && !sel.dataset.touched) sel.value = (findByName(e.target.value) || {}).role || "worker";
+  $("#review").addEventListener("click", e => {
+    if (e.target.closest("#review-apply")) { applyReview(); return; }
+    if (e.target.closest("#review-discard")) { discardReview(); return; }
+    const z = e.target.closest("[data-zoom]");
+    if (z) { openZoom(+z.dataset.zoom, z); return; }
+    const c = cardOf(e.target);
+    if (!c) return;
+    const el = cardEl(c);
+    const ok = e.target.closest('[data-r="okd"]');
+    if (ok) {
+      const a = ok.dataset.a;
+      c.ui.ok.add(a);
+      paintAll();
+      const row = el.querySelector(`.rc-stat[data-a="${a}"]`);
+      row.classList.remove("cleared"); void row.offsetWidth; row.classList.add("cleared");
+      // The button is gone: on to the next doubt on this card, else back to its target.
+      const next = el.querySelector('.rc-doubt:not([hidden]) [data-r="okd"]');
+      if (next) next.focus(); else el.querySelector('[data-r="target"]').focus({ preventScroll: true });
+      return;
     }
+    if (e.target.closest('[data-r="yes"]')) {
+      c.ui.confirmed = true;
+      c.ui.gone = ""; c.ui.was = null;
+      paintAll();
+      el.querySelector('[data-r="target"]').focus({ preventScroll: true });
+    }
+  });
+  // Selects and ticks on "change", typing on "input" (one handler, never both for one edit).
+  function onReviewEdit(e) {
+    const t = e.target, r = (t.dataset && t.dataset.r) || "";
+    const c = r && cardOf(t);
+    if (!c) return;
+    const el = cardEl(c), ui = c.ui;
+    if (r === "on") el.classList.toggle("skip", !t.checked);
+    else if (r === "role") t.dataset.touched = "1";
+    else if (r === "target") {
+      ui.touched = true; ui.confirmed = false; ui.gone = ""; ui.was = null;
+      ui.target = t.value;
+      t.removeAttribute("aria-invalid");
+      syncRole(el, c);
+    } else if (r === "name") {
+      t.removeAttribute("aria-invalid");
+      if (!ui.touched) {
+        const nt = autoTarget(c.it, readCard(el, c.it), ui.ok);
+        if (nt !== ui.target) { ui.target = nt; ui.confirmed = false; }
+      }
+      fillTargets(el, c);
+      syncRole(el, c);
+    } else if (r.startsWith("cur:") || r.startsWith("max:")) ui.ok.add(r.slice(4));   // typing a value is checking it
+    else if (r !== "traits") return;
+    paintAll();
+  }
+  $("#review").addEventListener("input", e => { if (e.target.tagName !== "SELECT" && e.target.type !== "checkbox") onReviewEdit(e); });
+  $("#review").addEventListener("change", e => { if (e.target.tagName === "SELECT" || e.target.type === "checkbox") onReviewEdit(e); });
+  $("#review").addEventListener("animationend", e => { if (e.target.classList) e.target.classList.remove("rc-in", "cleared"); });
+  // A field that gets focus (Tab, the phone keyboard's arrow to the next field, "stimmt") never hides behind the
+  // action bar that sticks to the bottom of the screen.
+  $("#review").addEventListener("focusin", e => {
+    const t = e.target;
+    if (!t.closest || t.closest(".review-act")) return;
+    requestAnimationFrame(() => {
+      const bar = $("#review .review-act");
+      if (!bar || document.activeElement !== t) return;
+      const b = t.getBoundingClientRect(), top = bar.getBoundingClientRect().top;
+      if (b.bottom > top - 8 && b.top < innerHeight) window.scrollBy(0, b.bottom - top + 16);
+    });
   });
   // Accept dropped files anywhere on the page, so a missed drop never navigates away.
   const photoBox = $("#photo");
@@ -3970,6 +4630,7 @@ Reply with only this JSON:
       for (const el of $$(".reveal")) el.classList.remove("reveal");
       for (const el of $$(".panel.enter")) el.classList.remove("enter");
       for (const el of $$(".bump, .wrap .stamp")) el.classList.remove("bump", "stamp");
+      for (const el of $$(".rc-in, .cleared")) el.classList.remove("rc-in", "cleared");
       if (bellEl) bellEl.classList.remove("ring");
       if (entry.open) entryTurnEnd();
     }
@@ -4012,7 +4673,8 @@ Reply with only this JSON:
   (async () => {
     try {
       const s = await use("sample");
-      if (s) { photo.sample = s; photo.limits = await s.limits().catch(() => null); }
+      // limits() may be missing, throw or reject: then photos stay off and the note says so.
+      if (s) { photo.sample = s; photo.limits = await Promise.resolve().then(() => s.limits()).catch(() => null); }
     } catch (e) { /* no photo reading in this view */ }
     photo.checked = true;
     renderPhotoAvail();
