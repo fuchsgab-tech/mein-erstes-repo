@@ -615,7 +615,8 @@ async function sharedFlow(browser) {
     const D = await phone(browser, srv, { name: 'D', inClaude: true, writable: true, ingameDelay: 1500, user: { id: 'u_owner', owner: true, can: true } });
     const early = await D.page.evaluate(() => ({ view: document.getElementById('plan-view').textContent, cards: document.querySelectorAll('.wp-card').length }));
     check('loading: "Lädt …" until the tick-off is there', early.cards === 0 && /Lädt/.test(early.view), early);
-    await D.page.evaluate(() => { window.__bumps = 0; new MutationObserver(ms => { for (const m of ms) if (m.target.classList && m.target.classList.contains('bump')) window.__bumps++; }).observe(document.getElementById('plan-view'), { subtree: true, attributes: true, attributeFilter: ['class'] }); });
+    // BUILD 10: in "Animationen: voll" a changed number rolls (an inserted .odo) instead of the .bump flash; both count.
+    await D.page.evaluate(() => { window.__bumps = 0; new MutationObserver(ms => { for (const m of ms) { if (m.type === 'attributes' && m.target.classList && m.target.classList.contains('bump')) window.__bumps++; for (const n of m.addedNodes || []) if (n.classList && n.classList.contains('odo')) window.__bumps++; } }).observe(document.getElementById('plan-view'), { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }); });
     await until(async () => (await D.page.evaluate(() => document.querySelectorAll('.wp-card').length)) > 0, 3000);
     await D.page.waitForTimeout(200);
     const late = await D.page.evaluate(() => ({ cards: document.querySelectorAll('.wp-card').length, bumps: window.__bumps }));
