@@ -1,8 +1,4 @@
-Zwischenstände (nicht veröffentlicht). Live ist arbeitsplan.html (Version 14, mit Festlegen und Animationen).
+Keine unfertigen Zwischenstände. Live ist arbeitsplan.html (Version 15: Festlegen, Animationen, Fotos richtig zuordnen).
 
-- fotos-v14-unfertig.html : Fotos richtig zuordnen (BUILD 5) auf Basis von Version 14, am 15.10. beim Bauen
-  angehalten (Nutzungslimit 97 %). Unfertig, ungeprüft. Nächstes Mal: weiterbauen, gegenprüfen, veröffentlichen.
-- photo-unfertig.html : ältere Teilversion desselben Punkts auf Basis von Version 9 (nur als Vorlage).
-
-Noch offen: Foto zuschneiden (BUILD 6), Karte-Menü mit Animation (BUILD 9), „wer trägt gerade ein“.
-Außenposten (BUILD 8) ist gestrichen.
+Noch offen (nur auf Wunsch): Foto zuschneiden (BUILD 6), Karte-Menü mit Animation (BUILD 9), „wer trägt gerade ein“.
+Außenposten (BUILD 8) ist gestrichen. Specs: planung/roadmap.txt und planung/batch2-notes.txt.
