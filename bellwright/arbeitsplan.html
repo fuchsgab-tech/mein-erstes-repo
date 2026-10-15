@@ -495,6 +495,28 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   .entry-bar { padding-top: 8px; padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
 }
 
+/* Festlegen: players fix a main job or single numbers. The controls sit inside an opened row (cards) and in the
+   table's reason box, only for people who can change the plan; a fixed number carries a small "fest" tag. */
+.fix { display: grid; gap: 6px; justify-items: start; min-width: 0; padding: 0 0 12px; }
+.reason-fix .fix { margin-top: 10px; padding: 10px 0 0; border-top: 1px solid var(--line); }
+.fix-lbl { font-size: var(--step--1); color: var(--muted); font-weight: 500; }
+.fix-seg { display: flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--field); box-shadow: var(--edge); }
+.fix-seg button { appearance: none; border: 0; border-right: 1px solid var(--line); background: none; color: var(--fg); font: inherit; font-weight: 700; min-width: 40px; min-height: 36px; padding: 0 10px; cursor: pointer; font-variant-numeric: lining-nums tabular-nums; }
+.fix-seg button:last-child { border-right: 0; }
+.fix-seg button:hover:not([aria-pressed="true"]) { background: rgb(217 164 65 / 0.1); color: var(--accent-hi); }
+.fix-seg button[aria-pressed="true"] { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--on-accent); }
+.fix-seg button[data-fix="0"] { color: var(--bad); }
+.fix-seg button[data-fix="0"][aria-pressed="true"] { background: var(--crimson); color: var(--on-crimson); }
+.fix-seg button:focus-visible { outline-offset: -3px; }
+.fix-more { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fix-sel, .fix .btn.small { min-height: 36px; }
+.fix-sel { padding-block: 4px; }
+.fix-sel.on { border-color: var(--accent); color: var(--accent-hi); font-weight: 700; }
+@media (pointer: coarse) { .fix-seg button { min-width: 44px; min-height: 44px; } .fix-sel, .fix .btn.small { min-height: 44px; } }
+.pbadge.fixed::before, .cell.fixed::before { content: "fest"; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); padding: 0 4px; border-radius: 999px; background: var(--bg); border: 1px solid var(--accent); color: var(--accent-hi); font-size: 0.625rem; font-weight: 700; line-height: 1.3; letter-spacing: 0.02em; pointer-events: none; }
+.wp-unfix { display: flex; justify-content: flex-start; }
+.er-fest { color: var(--accent-hi); }
+
 /* Motion: all of it is decoration and stays off for people who ask for less motion. */
 @media (prefers-reduced-motion: no-preference) {
   .reveal { animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 80ms); }
@@ -605,7 +627,10 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       <p class="muted small" id="card-hint" hidden>Tippt auf eine Zeile, dann seht ihr den Grund für die Zahl.</p>
       <div class="chips" id="chips" hidden></div>
       <div id="plan-view"></div>
-      <div class="reason" id="reason" aria-live="polite" hidden>Tippt oder klickt auf eine Zahl, dann steht hier, warum sie so eingestellt ist.</div>
+      <div class="reason" id="reason" hidden>
+        <div id="reason-text" aria-live="polite">Tippt oder klickt auf eine Zahl, dann steht hier, warum sie so eingestellt ist.</div>
+        <div class="reason-fix" id="reason-fix" hidden></div>
+      </div>
       <p class="others" id="others" hidden></p>
       <div class="row">
         <button class="btn" type="button" id="mark-all" hidden>Alles als im Spiel eingetragen markieren</button>
@@ -1003,6 +1028,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     notConnected: false,    // opened in Claude, but no shared data (signed out or private window): local mode
     ingameReady: false,     // the "im Spiel eingetragen" state has arrived (db: first ingame snapshot; local: at boot)
     ingameDenied: false,    // db: refused before the first ingame snapshot, so it never comes (the plan then shows without it)
+    prefsReady: false,      // db: the first 'prefs' snapshot (Festlegungen) has arrived; the plan waits for it
+    prefsDenied: false,     // db: the prefs never come (refused or connection lost): the plan shows without them
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -1028,6 +1055,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   let applied = lsGet(AP_KEY, {});
   if (!applied || typeof applied !== "object") applied = {};
   let appliedMeta = {};
+  // Festlegungen: {wid: {lockMain, pins}} (cleaned by cleanPrefs). db: the 'prefs' collection; local: inside LS_KEY.
+  let prefs = {};
   // Display names for the "eingetragen von" line: memory only, never stored ("" = unknown).
   const names = new Map();
   const namesAsked = new Set();
@@ -1037,6 +1066,18 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const vals = {};
     for (const [k, v] of Object.entries(d.vals)) if (k.length <= 40 && Number.isInteger(v) && v >= 0 && v <= 9) vals[k] = v;
     return { vals, by: typeof d.by === "string" ? d.by.slice(0, 200) : "", at: typeof d.at === "number" && isFinite(d.at) ? d.at : 0 };
+  }
+  // Festlegungen per villager: {lockMain: jobId|null, pins: {jobId: 0|2..9}} (0 = X). 1 is never a pin ("Als Hauptjob" sets it).
+  // Shared mode: the 'prefs' collection (doc id = worker id); local mode: 'prefs' inside the LS_KEY payload.
+  // Cleaned: unknown keys and values are dropped, a pin on the locked job goes (the lock wins), nothing left = null.
+  const PREF_ID = /^[a-z][a-z0-9_-]{0,39}$/;
+  function cleanPrefs(d) {
+    if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+    const lockMain = typeof d.lockMain === "string" && PREF_ID.test(d.lockMain) ? d.lockMain : null;
+    const pins = {};
+    if (d.pins && typeof d.pins === "object" && !Array.isArray(d.pins))
+      for (const [k, v] of Object.entries(d.pins)) if (PREF_ID.test(k) && k !== lockMain && Number.isInteger(v) && (v === 0 || (v >= 2 && v <= 9))) pins[k] = v;
+    return lockMain || Object.keys(pins).length ? { lockMain, pins } : null;
   }
 
   // ---------- The planner ----------
@@ -1068,7 +1109,10 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   const STICK = 1.2;
   // opts.calm: keep the plan close to what is entered in the game (opts.anchor = {wid: {jobId: 0..9}},
   // the shared tick-off). Without opts, or with calm off, the result is exactly the plain plan.
-  // opts.explain === false skips the extra plain run that only adds the "Bleibt Hauptjob" text (numbers stay the same).
+  // opts.explain === false skips the extra plain runs that only add texts and notes (numbers stay the same).
+  // opts.prefs: the Festlegungen {wid: {lockMain, pins}}. Without them the plan is exactly the plain plan.
+  // A locked main skips the assignment (and counts as the anchor), a pinned cell keeps its number (c.fixed, c.auto =
+  // what the app would say); out.objective = Σ score of the main jobs, to tell what the Festlegungen cost.
   function compute(workers, settings, opts = {}) {
     const calm = !!(opts && opts.calm);
     const anchor = calm && opts.anchor && typeof opts.anchor === "object" ? opts.anchor : {};
@@ -1078,16 +1122,27 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const team = workers.filter(w => w.role === "worker");
     const others = workers.filter(w => w.role !== "worker");
     const N = team.length;
-    const out = { jobs: JOBS_SHOWN.filter(j => jobs.includes(j)), team, others, cells: {}, main: {}, notes: [], coverage: {} };
+    const out = { jobs: JOBS_SHOWN.filter(j => jobs.includes(j)), team, others, cells: {}, main: {}, notes: [], coverage: {}, objective: 0 };
     if (!N || !jobs.length) return out;
+    // Festlegungen of the team (guards and companions keep theirs, but they rest).
+    const prefIn = opts && opts.prefs && typeof opts.prefs === "object" ? opts.prefs : null;
+    const prefOf = {};
+    if (prefIn) for (const w of team) { const p = Object.prototype.hasOwnProperty.call(prefIn, w.id) ? cleanPrefs(prefIn[w.id]) : null; if (p) prefOf[w.id] = p; }
+    const hasPrefs = Object.keys(prefOf).length > 0;
+    // The locked main job, only while that job is switched on (otherwise the lock rests).
+    const lockOf = w => { const p = prefOf[w.id]; return p && p.lockMain && JOB[p.lockMain] && settings.jobs[p.lockMain].on ? p.lockMain : null; };
+    const pinOf = (w, id) => { const p = prefOf[w.id]; return p && id !== lockOf(w) ? p.pins[id] : undefined; };
+    const pinned = (w, id) => pinOf(w, id) !== undefined;
     // What is entered in the game for w (null = never entered).
     const snapOf = w => { const s = anchor[w.id]; return s && typeof s === "object" && !Array.isArray(s) ? s : null; };
     // (a) The anchored main job: the single switched-on job on 1 in the game. None for 0 or 2+ such jobs.
+    //     A locked main counts as the anchor; a pinned job never is one (a pin is never 1).
     const anchorMain = {};
     if (calm) for (const w of team) {
+      if (lockOf(w)) { anchorMain[w.id] = lockOf(w); continue; }
       const s = snapOf(w);
       const ones = s ? jobs.filter(j => s[j.id] === 1) : [];
-      if (ones.length === 1) anchorMain[w.id] = ones[0].id;
+      if (ones.length === 1 && !pinned(w, ones[0].id)) anchorMain[w.id] = ones[0].id;
     }
 
     const tr = new Map(team.map(w => [w.id, traitInfo(w)]));
@@ -1154,27 +1209,46 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (N >= 5 && imp("delivery") >= 3 && cand.some(j => j.id === "delivery")) { ensure("delivery"); must.add("delivery"); }
     }
 
-    // 2) Exact assignment: every worker gets the main job that is best for the whole team.
-    const byId = new Map(team.map(w => [w.id, w]));
+    // Festlegungen: a locked main job takes one of its places (and is no longer a must, someone holds it now).
     const main = {};
+    for (const w of team) {
+      const lk = lockOf(w);
+      if (!lk) continue;
+      main[w.id] = lk;
+      if (slots[lk] > 0) slots[lk]--;
+      must.delete(lk);
+    }
+    const free = hasPrefs ? team.filter(w => !lockOf(w)) : team;
+
+    // 2) Exact assignment: every worker gets the main job that is best for the whole team.
+    //    Only the workers without a locked main; a pinned job can never become someone's main (+1e6).
+    const byId = new Map(team.map(w => [w.id, w]));
     const cols = [];
     for (const j of jobs) for (let k = 0; k < slots[j.id]; k++) cols.push(j);
-    if (cols.length >= N) {
+    if (free.length && cols.length >= free.length) {
       // (b) calm: the main job that is already entered in the game gets a small head start (STICK).
       const cost = calm
-        ? team.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0) + (j.id === anchorMain[w.id] ? STICK : 0))))
-        : team.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0))));
+        ? free.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0) + (j.id === anchorMain[w.id] ? STICK : 0))))
+        : free.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0))));
+      if (hasPrefs) free.forEach((w, i) => cols.forEach((j, k) => { if (pinned(w, j.id)) cost[i][k] += 1e6; }));
       const asg = hungarian(cost);
-      team.forEach((w, i) => { main[w.id] = cols[asg[i]].id; });
+      free.forEach((w, i) => { main[w.id] = cols[asg[i]].id; });
+      // Pinned everywhere there was a place: then the best job without a pin (none at all: no main job).
+      if (hasPrefs) for (const w of free) if (pinned(w, main[w.id])) delete main[w.id];
     }
-    for (const w of team) if (!main[w.id]) main[w.id] = jobs.reduce((a, j) => score(w, j) > score(w, a) ? j : a, jobs[0]).id;
+    for (const w of team) if (!main[w.id]) {
+      const ok = hasPrefs ? jobs.filter(j => !pinned(w, j.id)) : jobs;
+      if (ok.length) main[w.id] = ok.reduce((a, j) => score(w, j) > score(w, a) ? j : a, ok[0]).id;
+    }
     // Jobs that share a skill (Handwerk/Schmelzen, Ernten/Holzfällen, Jagd/Tierhaltung) score alike,
     // so the assignment above can swap them at random: give the more important one the better worker.
     // (c) calm: whoever keeps the main job entered in the game stays out of this re-sort, or it would undo (b).
     //     If more of them have the same job of the group entered than it has places, the assignment above is a tie
     //     between them: the better worker keeps it, so the result never flips when someone else gets ticked off.
+    // Festlegungen: a locked main, or a pin on a job of the group, keeps that worker out of the re-sort.
+    const frozen = (w, grp) => hasPrefs && (!!lockOf(w) || grp.some(id => pinned(w, id)));
     for (const grp of [["crafting", "smelting"], ["harvesting", "woodcutting"], ["animals", "hunting"]]) {
-      let ws = team.filter(w => grp.includes(main[w.id]));
+      let ws = team.filter(w => grp.includes(main[w.id]) && !frozen(w, grp));
       const cnt = Object.fromEntries(grp.map(id => [id, ws.filter(w => main[w.id] === id).length]));
       if (calm) {
         ws.sort((a, b) => raw(b, JOB[grp[0]]) - raw(a, JOB[grp[0]]));
@@ -1213,6 +1287,12 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         cells[w.id][j.id] = c;
         if (main[w.id] === j.id) {
           c.p = 1; c.main = true;
+          if (lockOf(w) === j.id) {
+            c.locked = true;
+            const trait = j.attr && PROD_JOBS.has(j.id) && tr.get(w.id).pf !== 1 ? ` ${pfTraits(w)}.` : "";
+            c.why = `Hauptjob von euch festgelegt. ${j.attr ? `${attrName(j.attr)} ${fmt(w, j.attr)}.${trait}` : `${j.label} hat keine Arbeits-Fertigkeit.`}`;
+            continue;
+          }
           if (!j.attr) {
             const h = haulParts(w);
             const fast = tr.get(w.id).found.filter(k => TRAITS[k].haul).map(k => TRAITS[k].text).join(", ");
@@ -1284,11 +1364,21 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         c.p = clamp(p, 2, 9);
         c.why = why.join(" ");
       }
-      // Side job: the best remaining strength (weighted by importance) goes to 2.
+      // Festlegungen: a pinned number stays as it is (c.fixed); c.auto keeps what the app would say.
+      let pinnedTwo = false;
+      if (prefOf[w.id]) for (const j of jobs) {
+        const v = pinOf(w, j.id), c = cells[w.id][j.id];
+        if (v === undefined || c.main) continue;
+        c.auto = { p: c.off ? 0 : c.p, off: !!c.off, why: c.why };
+        c.p = v; c.off = v === 0; c.weak = false; c.fixed = true;
+        c.why = fixedWhy(c.auto);
+        if (v === 2) pinnedTwo = true;
+      }
+      // Side job: the best remaining strength (weighted by importance) goes to 2. Not with a pinned 2.
       let side = null;
-      for (const j of skilled) {
+      if (!pinnedTwo) for (const j of skilled) {
         const c = cells[w.id][j.id];
-        if (c.main || c.off || c.weak || imp(j.id) <= 1) continue;
+        if (c.main || c.off || c.weak || c.fixed || imp(j.id) <= 1) continue;
         const s = jobSkill(w, j);
         if (s < 3) continue;
         const v = s + 0.7 * (s - wInfo.avg) + 0.25 * imp(j.id);
@@ -1299,10 +1389,10 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         c.side = true;
         if (c.p > 2) { c.p = 2; c.why = `Nebenjob: die beste noch freie Stärke (${attrName(side.j.attr)} ${fmt(w, side.j.attr)}).${PROD_JOBS.has(side.j.id) && tr.get(w.id).pf !== 1 ? " " + pfTraits(w) + "." : ""} Wenn beim Hauptjob nichts zu tun ist, geht es hier weiter.`; }
       }
-      // Keep focus: at most two jobs on 2 per worker.
+      // Keep focus: at most two jobs on 2 per worker. A pinned 2 counts first and is never moved.
       const twos = jobs.filter(j => cells[w.id][j.id].p === 2)
-        .sort((a, b) => (cells[w.id][b.id].side ? 1 : 0) - (cells[w.id][a.id].side ? 1 : 0) || imp(b.id) - imp(a.id) || jobSkill(w, b) - jobSkill(w, a));
-      for (const j of twos.slice(2)) { cells[w.id][j.id].p = 3; cells[w.id][j.id].why += " Auf 3 statt 2, damit die Person nicht zu viele Jobs gleichzeitig vorne hat."; }
+        .sort((a, b) => (cells[w.id][b.id].fixed ? 1 : 0) - (cells[w.id][a.id].fixed ? 1 : 0) || (cells[w.id][b.id].side ? 1 : 0) - (cells[w.id][a.id].side ? 1 : 0) || imp(b.id) - imp(a.id) || jobSkill(w, b) - jobSkill(w, a));
+      for (const j of twos.slice(2)) { if (cells[w.id][j.id].fixed) continue; cells[w.id][j.id].p = 3; cells[w.id][j.id].why += " Auf 3 statt 2, damit die Person nicht zu viele Jobs gleichzeitig vorne hat."; }
       // (d) calm: a shift by one is not worth a trip to the game. Keep what is entered there (new villagers: 5).
       //     Main, side, off, weak and fixed cells are never held, nor are 0/1/2 or a job that is newer than the entry.
       if (calm) {
@@ -1322,13 +1412,15 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 
     // 4) Coverage: from 3 workers on, every job that matters needs someone near the front:
     //    on 1–2 for important jobs and research, on 1–3 for the rest (so small teams don't pile up 2s).
+    //    Coverage counts pinned numbers but never changes one, and never adds a third 2 to two pinned 2s.
     const twoCount = w => jobs.filter(x => cells[w.id][x.id].p === 2).length;
+    const pinnedTwos = w => jobs.filter(x => cells[w.id][x.id].fixed && cells[w.id][x.id].p === 2).length;
     const byImp = [...jobs].sort((a, b) => imp(b.id) - imp(a.id));
     for (const j of byImp) {
       if (N < 3 || imp(j.id) < 2 || (j.id === "delivery" && N < 5)) continue;
       const need = (imp(j.id) >= 4 || j.id === "research") ? 2 : 3;
       if (team.some(w => { const c = cells[w.id][j.id]; return !c.off && c.p <= need; })) continue;
-      const cands = ranked[j.id].map(id => byId.get(id)).filter(w => !cells[w.id][j.id].main);
+      const cands = ranked[j.id].map(id => byId.get(id)).filter(w => !cells[w.id][j.id].main && !cells[w.id][j.id].fixed && !(need === 2 && pinnedTwos(w) >= 2));
       if (!cands.length) continue;
       const top = jobSkill(cands[0], j);
       const pick = cands.filter(w => jobSkill(w, j) >= top - 1).sort((a, b) => twoCount(a) - twoCount(b))[0] || cands[0];
@@ -1343,13 +1435,16 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     out.cells = cells;
 
     // (e) calm: say so where only the head start kept a main job (one plain run to compare; numbers stay the same).
-    if (calm && opts.explain !== false && team.some(w => main[w.id] === anchorMain[w.id])) {
-      const plain = compute(workers, settings, { ...opts, calm: false });
+    //     A locked main has its own text ("von euch festgelegt").
+    if (calm && opts.explain !== false && team.some(w => main[w.id] && main[w.id] === anchorMain[w.id])) {
+      const plain = compute(workers, settings, { ...opts, calm: false, explain: false });
       for (const w of team) {
         const m = main[w.id];
-        if (m === anchorMain[w.id] && plain.main[w.id] !== m) cells[w.id][m].why += " Bleibt Hauptjob, weil es schon so im Spiel steht und ein Wechsel kaum etwas bringt.";
+        if (m && m === anchorMain[w.id] && plain.main[w.id] !== m && !cells[w.id][m].locked) cells[w.id][m].why += " Bleibt Hauptjob, weil es schon so im Spiel steht und ein Wechsel kaum etwas bringt.";
       }
     }
+    // The plan's worth: Σ score of the main jobs, without the must bonus.
+    out.objective = team.reduce((a, w) => a + (main[w.id] ? score(w, JOB[main[w.id]]) : 0), 0);
 
     for (const j of jobs) {
       const ps = team.map(w => cells[w.id][j.id]);
@@ -1384,8 +1479,28 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       const held = team.reduce((n, w) => n + jobs.filter(j => cells[w.id][j.id].held).length, 0);
       if (held) out.notes.push({ sev: "info", text: `Ruhig gehalten: ${held} ${held === 1 ? "Zahl bleibt" : "Zahlen bleiben"} wie im Spiel, weil sich kaum etwas ändern würde.` });
     }
+    // Festlegungen: a lock on a switched-off job rests; what the app would say and what the Festlegungen cost
+    // (one run without them, skipped for explain:false, which only needs the numbers).
+    for (const w of team) {
+      const p = prefOf[w.id];
+      if (p && p.lockMain && JOB[p.lockMain] && !settings.jobs[p.lockMain].on)
+        out.notes.push({ sev: "info", text: `Festlegung für ${nm(w)} ruht – ${JOB[p.lockMain].label} ist abgeschaltet.` });
+    }
+    if (hasPrefs && opts.explain !== false) {
+      const auto = compute(workers, settings, { ...opts, prefs: null, explain: false });
+      for (const w of team) for (const j of jobs) {
+        const c = cells[w.id][j.id], a = auto.cells[w.id] && auto.cells[w.id][j.id];
+        if (c.fixed && a) { c.auto = { p: a.off ? 0 : a.p, off: !!a.off, why: a.why }; c.why = fixedWhy(c.auto); }
+      }
+      const r = Math.round((auto.objective - out.objective) * 2) / 2;   // "etwa": to half a level
+      if (r >= 1) {
+        out.notes.push({ sev: "info", text: `Eure Festlegungen kosten das Team etwa ${String(r).replace(".", ",")} ${r === 1 ? "Stufe" : "Stufen"}.` });
+      }
+    }
     return out;
   }
+  // The why of a pinned number: {auto} = what the app would set there without it.
+  const fixedWhy = a => `Von euch festgelegt. Die App würde ${a.off ? "„aus“" : a.p} vorschlagen: ${a.why}`;
 
   // ---------- Rendering: Plan ----------
   let lastPlan = null;
@@ -1472,10 +1587,13 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   }
 
   // The plan's options. The tick-off is the anchor only while it is tracked, so the example team never gets one.
-  const planOpts = settings => ({ calm: !!settings.calm, anchor: tracking() ? applied : undefined });
+  // The Festlegungen belong to the real team only (the example team never has any).
+  const planOpts = settings => ({ calm: !!settings.calm, anchor: tracking() ? applied : undefined, prefs: isExample() ? undefined : prefs });
   // With "Plan ruhig halten" the numbers depend on what is entered in the game: in shared mode the plan waits for
   // the first tick-off snapshot instead of showing numbers that change a moment later.
   const anchorWait = () => !!state.settings.calm && state.mode === "db" && !state.ingameReady && !state.ingameDenied && state.workers.size > 0;
+  // The Festlegungen change the numbers too: in shared mode the plan also waits for the first prefs snapshot.
+  const prefsWait = () => state.mode === "db" && !state.prefsReady && !state.prefsDenied && state.workers.size > 0;
 
   // What switching would cost in the game: {phaseId: numbers to change}, counted like the Eintragen-Modus does
   // (against the tick-off, new villagers from 5). One plan per phase, only while the Plan tab is in view;
@@ -1486,7 +1604,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     if ($("#panel-plan").hidden || entry.open) return null;
     const s0 = state.settings;
     const key = JSON.stringify([activeWorkers().map(w => [w.id, w.role, w.traits, w.stats]), s0.phase, s0.growth, s0.disableWeak, !!s0.calm,
-      JOBS.map(j => s0.jobs[j.id].on), plan.team.map(w => applied[w.id] || 0)]);
+      JOBS.map(j => s0.jobs[j.id].on), plan.team.map(w => applied[w.id] || 0), isExample() ? 0 : plan.team.map(w => prefs[w.id] || 0)]);
     if (key === phaseMemo.key) return phaseMemo.costs;
     const costs = {};
     for (const p of PHASES) {
@@ -1562,7 +1680,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       $("#notes").hidden = true; $("#reason").hidden = true; $("#others").hidden = true;
       $("#mark-all").hidden = true; $("#legend-chg").hidden = true; $("#chips").hidden = true; $("#card-hint").hidden = true;
     };
-    if (!state.ready || state.loadFailed || anchorWait()) {
+    if (!state.ready || state.loadFailed || anchorWait() || prefsWait()) {
       lastPlan = null;
       renderPhaseControls(null);
       swapPlanHtml(view, state.loadFailed
@@ -1599,6 +1717,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     $("#legend-chg").hidden = !changed.length;
     // Viewers who cannot save see the ticks of the others, but get no tick buttons.
     const canTick = track && !locked();
+    // Festlegen: only for people who can change the plan, and never on the example team.
+    const canFix = !locked() && !isExample();
     $("#mark-all").hidden = !canTick;
     $("#mark-all").disabled = !canTick;
     if (track) wantNames(plan.team.map(w => appliedMeta[w.id] && appliedMeta[w.id].by).filter(Boolean));
@@ -1608,13 +1728,15 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     let html;
     if (!plan.jobs.length) html = `<div class="empty"><p class="muted">Alle Jobs sind abgeschaltet. Schaltet unter „Einstellungen“ mindestens einen ein.</p></div>`;
     else if (!plan.team.length) html = `<div class="empty"><p class="muted">Es ist niemand als Arbeiter eingeteilt. Wachen und Begleiter bekommen keine Jobs.</p></div>`;
-    else if (state.view === "cards") html = `<div class="wplan">${plan.team.map(w => cardPlanHtml(plan, w, track, canTick)).join("")}</div>`;
+    else if (state.view === "cards") html = `<div class="wplan">${plan.team.map(w => cardPlanHtml(plan, w, track, canTick, canFix)).join("")}</div>`;
     else html = tableHtml(plan, track, canTick);
     swapPlanHtml(view, html);
     if (hasGrid) afterRender(plan);
 
     const cards = hasGrid && state.view === "cards";
     $("#card-hint").hidden = !cards;
+    const hint = canFix ? "Tippt auf eine Zeile, dann seht ihr den Grund für die Zahl und könnt sie festlegen." : "Tippt auf eine Zeile, dann seht ihr den Grund für die Zahl.";
+    if ($("#card-hint").textContent !== hint) $("#card-hint").textContent = hint;
     const chips = $("#chips");
     if (cards && plan.team.length > 1) {
       const ch = plan.team.map(w => {
@@ -1651,8 +1773,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         const c = plan.cells[w.id][j.id];
         const key = `${w.id}|${j.id}`;
         const was = d && d[j.id];
-        const cls = `cell p${c.off ? 0 : c.p}${c.main ? " main" : ""}${was ? " chg" : ""}${state.selected === key ? " sel" : ""}`;
-        const label = `${w.name || "Arbeiter"}, ${j.label}: ${c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${was ? `, ${wasText(was)}` : ""}`;
+        const fx = c.fixed || c.locked;
+        const cls = `cell p${c.off ? 0 : c.p}${c.main ? " main" : ""}${fx ? " fixed" : ""}${was ? " chg" : ""}${state.selected === key ? " sel" : ""}`;
+        const label = `${w.name || "Arbeiter"}, ${j.label}: ${c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}${was ? `, ${wasText(was)}` : ""}`;
         return `<td><button type="button" class="${cls}" data-cell="${esc(key)}" data-focus="c:${esc(key)}" aria-label="${esc(label)}">${c.off ? "aus" : c.p}</button></td>`;
       }).join("");
       return `<tr><th class="wcol" scope="row"><span class="wname" tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}</span><span class="wsub">Hauptjob: ${esc(mj ? mj.label : "–")}</span>${tick}</th>${cells}</tr>`;
@@ -1666,7 +1789,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     return `<div class="matrix-wrap"><table class="matrix">${head}<tbody>${body}</tbody>${foot}</table></div>`;
   }
 
-  function cardPlanHtml(plan, w, track, canTick) {
+  function cardPlanHtml(plan, w, track, canTick, canFix) {
     const mj = JOB[plan.main[w.id]];
     const d = track ? changesFor(plan, w) : null;
     const hasSnap = track && !!applied[w.id];
@@ -1676,9 +1799,10 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       const c = plan.cells[w.id][j.id];
       const was = d && d[j.id];
       const key = `${w.id}|${j.id}`;
+      const fx = c.fixed || c.locked;
       return `<details class="wp-row" data-key="${esc(key)}"><summary data-focus="r:${esc(key)}"><span class="wp-job">${esc(j.label)}<small>${esc(j.game)}${was ? ` · <span class="was">${esc(wasText(was))}</span>` : ""}</small></span>`
-        + `<span class="pbadge p${c.off ? 0 : c.p}${c.main ? " main" : ""}${was ? " chg" : ""}" data-k="${esc(key)}" aria-label="${esc(`${c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${was ? ", " + wasText(was) : ""}`)}">${c.off ? "aus" : c.p}</span></summary>`
-        + `<p class="wp-why">${esc(c.why)}</p></details>`;
+        + `<span class="pbadge p${c.off ? 0 : c.p}${c.main ? " main" : ""}${fx ? " fixed" : ""}${was ? " chg" : ""}" data-k="${esc(key)}" aria-label="${esc(`${c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}${was ? ", " + wasText(was) : ""}`)}">${c.off ? "aus" : c.p}</span></summary>`
+        + `<p class="wp-why">${esc(c.why)}</p>${canFix ? fixHtml(w, j, c) : ""}</details>`;
     }).join("");
     const body = done
       ? `<details class="wp-more" data-key="more|${esc(w.id)}"><summary data-focus="m:${esc(w.id)}">Zahlen zeigen</summary><div class="wp-rows">${rows}</div></details>`
@@ -1687,21 +1811,60 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       : `<div><button type="button" class="btn small" data-applied="${esc(w.id)}" data-focus="ap:${esc(w.id)}">${hasSnap ? `${zahlen(nChg)} geändert – abhaken, wenn nachgezogen` : "Im Spiel eingetragen? Abhaken"}</button></div>`;
     const who = done ? whoWhen(w.id) : "";
     const seal = done ? `<div class="applied-box"><span class="applied-ok${justApplied.has(w.id) ? " stamp" : ""}">im Spiel eingetragen</span>${who ? `<small class="applied-who">${esc(who)}</small>` : ""}</div>` : "";
-    return `<article class="wp-card" id="wp-${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${seal}</div>${body}${foot}</article>`;
+    const unfix = canFix && prefs[w.id]
+      ? `<div class="wp-unfix"><button type="button" class="linkbtn" data-fix="clear" data-fix-k="${esc(w.id)}|" data-focus="fx:${esc(w.id)}|:clear">Alle Festlegungen lösen</button></div>` : "";
+    return `<article class="wp-card" id="wp-${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${seal}</div>${body}${unfix}${foot}</article>`;
   }
 
+  // "Festlegen:" inside an opened row (cards) and in the table's reason box. Only for people who can change the plan.
+  // A pin is Auto (none), 2/3/5/9, X (0) or one of 4/6/7/8 from the select; 1 comes only with "Als Hauptjob".
+  const FIX_VALS = [["auto", "Auto"], ["2", "2"], ["3", "3"], ["5", "5"], ["9", "9"], ["0", "X"]];
+  const FIX_OTHER = [4, 6, 7, 8];
+  function fixHtml(w, j, c) {
+    const k = esc(`${w.id}|${j.id}`);
+    const group = `role="group" aria-label="${esc(`Festlegen: ${j.label} für ${w.name || "diese Person"}`)}"`;
+    if (c.locked) return `<div class="fix" ${group}><span class="fix-lbl">Hauptjob von euch festgelegt.</span>`
+      + `<div class="fix-more"><button type="button" class="btn small" data-fix="unlock" data-fix-k="${k}" data-focus="fx:${k}:unlock">Hauptjob lösen</button></div></div>`;
+    const pf = prefs[w.id];
+    const pin = pf && pf.pins[j.id] !== undefined ? pf.pins[j.id] : null;
+    const cur = pin === null ? "auto" : String(pin);
+    const seg = FIX_VALS.map(([v, t]) => `<button type="button" data-fix="${v}" data-fix-k="${k}" data-focus="fx:${k}:${v}" aria-pressed="${cur === v}"`
+      + `${v === "0" ? ` aria-label="X (aus)"` : v === "auto" ? ` aria-label="Auto (die App entscheidet)"` : ""}>${t}</button>`).join("");
+    const sel = `<select class="fix-sel${FIX_OTHER.includes(pin) ? " on" : ""}" data-fix-sel data-fix-k="${k}" data-focus="fx:${k}:sel" aria-label="Andere Zahl festlegen">`
+      + `<option value="">andere</option>${FIX_OTHER.map(v => `<option value="${v}"${pin === v ? " selected" : ""}>${v}</option>`).join("")}</select>`;
+    const mainBtn = `<button type="button" class="btn small" data-fix="main" data-fix-k="${k}" data-focus="fx:${k}:main">${c.main ? "Hauptjob festhalten" : "Als Hauptjob"}</button>`;
+    return `<div class="fix" ${group}><span class="fix-lbl" aria-hidden="true">Festlegen:</span><div class="fix-seg">${seg}</div><div class="fix-more">${sel}${mainBtn}</div></div>`;
+  }
+
+  let lastReasonHtml = "";
   function renderReason() {
-    const box = $("#reason");
+    const text = $("#reason-text"), fix = $("#reason-fix");
     const plan = lastPlan;
-    if (!state.selected || !plan || state.view !== "table") { box.textContent = "Tippt oder klickt auf eine Zahl, dann steht hier, warum sie so eingestellt ist."; return; }
-    const [wid, jid] = state.selected.split("|");
-    const w = plan.team.find(x => x.id === wid);
-    const c = plan.cells[wid] && plan.cells[wid][jid];
-    if (!w || !c) { state.selected = null; return renderReason(); }
-    const d = tracking() ? changesFor(plan, w) : null;
-    const was = d && d[jid];
-    const wasLine = was ? `<br><span class="muted">Im Spiel bisher: ${esc(was === "neu" ? "noch nicht eingetragen (neu im Plan)" : was)}</span>` : "";
-    box.innerHTML = `<strong>${esc(w.name || "Ohne Namen")} · ${esc(JOB[jid].label)}: ${c.off ? "aus" : "Priorität " + c.p}</strong><br>${esc(c.why)}${wasLine}`;
+    let html = "", fixH = "";
+    if (!state.selected || !plan || state.view !== "table") html = `Tippt oder klickt auf eine Zahl, dann steht hier, warum sie so eingestellt ist${!locked() && !isExample() ? ", und ihr könnt sie festlegen" : ""}.`;
+    else {
+      const [wid, jid] = state.selected.split("|");
+      const w = plan.team.find(x => x.id === wid);
+      const c = plan.cells[wid] && plan.cells[wid][jid];
+      if (!w || !c) { state.selected = null; return renderReason(); }
+      const d = tracking() ? changesFor(plan, w) : null;
+      const was = d && d[jid];
+      const wasLine = was ? `<br><span class="muted">Im Spiel bisher: ${esc(was === "neu" ? "noch nicht eingetragen (neu im Plan)" : was)}</span>` : "";
+      html = `<strong>${esc(w.name || "Ohne Namen")} · ${esc(JOB[jid].label)}: ${c.off ? "aus" : "Priorität " + c.p}${c.fixed || c.locked ? " (fest)" : ""}</strong><br>${esc(c.why)}${wasLine}`;
+      if (!locked() && !isExample()) fixH = fixHtml(w, JOB[jid], c);
+    }
+    // Only when it changed: the text is a live region, and the controls keep focus.
+    if (html + "\u0000" + fixH === lastReasonHtml) return;
+    lastReasonHtml = html + "\u0000" + fixH;
+    const act = document.activeElement;
+    const fk = act && fix.contains(act) ? act.dataset.focus : null;
+    text.innerHTML = html;
+    fix.innerHTML = fixH;
+    fix.hidden = !fixH;
+    if (fk) {
+      const el = fix.querySelector(`[data-focus="${CSS.escape(fk)}"]`) || fix.querySelector("[data-focus]");
+      if (el) el.focus({ preventScroll: true });
+    }
   }
 
   function reloadApplied() {
@@ -1750,6 +1913,55 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       renderPlan();
       toast("Rückgängig gemacht.");
       return ids && ids.length === 1 ? document.querySelector(`[data-focus="ap:${CSS.escape(ids[0])}"]`) : $("#mark-all");
+    } });
+  }
+
+  // ---------- Festlegen: a main job or single numbers fixed by the players ----------
+  // The one place that changes a villager's Festlegungen: memory first (the plan follows at once), then the backend.
+  // p = {lockMain, pins} or null to remove them.
+  function putPrefs(wid, p, delay) {
+    const c = cleanPrefs(p);
+    if (c) prefs[wid] = c; else delete prefs[wid];
+    backend.setPrefs(wid, delay);
+  }
+  const prefsCopy = wid => prefs[wid] ? JSON.parse(JSON.stringify(prefs[wid])) : null;
+  // k = "wid|jobId" (job empty for "clear"); v = auto | 0 | 2..9 | main | unlock | clear.
+  function fixAction(k, v) {
+    if (locked() || isExample() || !lastPlan) return;
+    const i = k.indexOf("|"), wid = k.slice(0, i), jid = k.slice(i + 1);
+    const w = lastPlan.team.find(x => x.id === wid);
+    if (!w || !state.workers.has(wid) || (v !== "clear" && !JOB[jid])) return;
+    const prev = prefsCopy(wid);
+    const next = prev ? JSON.parse(JSON.stringify(prev)) : { lockMain: null, pins: {} };
+    const name = w.name || "Ohne Namen";
+    let msg = "";
+    if (v === "auto") delete next.pins[jid];
+    else if (v === "main") { next.lockMain = jid; delete next.pins[jid]; msg = `${name}: Hauptjob ${JOB[jid].label} festgelegt.`; }
+    else if (v === "unlock") { if (next.lockMain === jid) next.lockMain = null; msg = `${name}: Hauptjob wieder automatisch.`; }
+    else if (v === "clear") { next.lockMain = null; next.pins = {}; msg = `Alle Festlegungen für ${name} gelöst.`; }
+    else {
+      const n = Number(v);
+      if (!(n === 0 || (Number.isInteger(n) && n >= 2 && n <= 9))) return;
+      next.pins[jid] = n;
+    }
+    if (JSON.stringify(cleanPrefs(next)) === JSON.stringify(cleanPrefs(prev))) return;
+    putPrefs(wid, next);
+    renderPlan();
+    // The button that was pressed may be gone (main <-> unlock, clear): focus its counterpart in the same place.
+    const act = document.activeElement;
+    if (!act || act === document.body) {
+      const want = v === "main" ? `fx:${k}:unlock` : v === "unlock" ? `fx:${k}:main` : v === "clear" ? `h:${wid}` : `fx:${k}:${v}`;
+      const el = document.querySelector(`#plan-view [data-focus="${CSS.escape(want)}"], #reason-fix [data-focus="${CSS.escape(want)}"]`)
+        || document.querySelector(`#plan-view [data-focus="${CSS.escape("r:" + k)}"], #plan-view [data-focus="${CSS.escape("c:" + k)}"]`);
+      if (el) el.focus({ preventScroll: true });
+    }
+    if (msg) toast(msg, { label: "Rückgängig", fn: () => {
+      if (locked() || !state.workers.has(wid)) { toast("Rückgängig geht gerade nicht."); return null; }
+      putPrefs(wid, prev);
+      renderPlan();
+      toast("Rückgängig gemacht.");
+      return document.querySelector(`[data-focus="${CSS.escape(v === "clear" ? `fx:${wid}|:clear` : `fx:${k}:${v}`)}"]`)
+        || document.querySelector(`[data-focus="${CSS.escape("h:" + wid)}"]`);
     } });
   }
 
@@ -1821,12 +2033,13 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       + `</div>`;
     const body = rows.map(r => {
       const job = `<span class="er-job">${esc(r.j.label)}<small>${esc(r.j.game)}</small></span>`;
-      if (!r.chg) return `<div class="er-row same"><span class="er-check" aria-hidden="true"></span>${job}<span class="er-keep">bleibt ${r.to === 0 ? `X<span class="vh"> (aus)</span>` : r.to}</span></div>`;
+      const fx = r.c.fixed || r.c.locked;
+      if (!r.chg) return `<div class="er-row same"><span class="er-check" aria-hidden="true"></span>${job}<span class="er-keep">bleibt ${r.to === 0 ? `X<span class="vh"> (aus)</span>` : r.to}${fx ? `<span class="er-fest"> · fest</span>` : ""}</span></div>`;
       const on = !!(checks && checks.get(r.j.id) === r.to);
-      const label = `${r.j.label}: von ${xAria(r.from)} auf ${xAria(r.to)}${r.c.main ? ", Hauptjob" : ""}`;
+      const label = `${r.j.label}: von ${xAria(r.from)} auf ${xAria(r.to)}${r.c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}`;
       return `<button type="button" class="er-row diff" data-e="row" data-job="${esc(r.j.id)}" data-focus="row:${esc(r.j.id)}" aria-pressed="${on}" aria-label="${esc(label)}">`
         + `<span class="er-check" aria-hidden="true"></span>${job}<span class="er-from" aria-hidden="true">von ${xText(r.from)}<span class="er-arrow">→</span></span>`
-        + `<span class="pbadge er-to p${r.to}${r.c.main ? " main" : ""}" data-k="${esc(r.j.id)}" aria-hidden="true">${xText(r.to)}</span></button>`;
+        + `<span class="pbadge er-to p${r.to}${r.c.main ? " main" : ""}${fx ? " fixed" : ""}" data-k="${esc(r.j.id)}" aria-hidden="true">${xText(r.to)}</span></button>`;
     }).join("");
     const why = `<details class="ep-why" data-key="why"><summary data-focus="why">Warum diese Zahlen?</summary><ul>`
       + rows.map(r => `<li><b>${esc(r.j.label)} ${r.to === 0 ? "X (aus)" : r.to}:</b> ${esc(r.c.why)}</li>`).join("") + `</ul></details>`;
@@ -2288,14 +2501,18 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (!d || typeof d !== "object") return;
       state.settings = normSettings(d.settings);
       state.workers = new Map((Array.isArray(d.workers) ? d.workers : []).filter(w => w && w.id).map(w => [w.id, normWorker(w.id, w)]));
+      prefs = {};   // older versions save without 'prefs' and ignore it
+      if (d.prefs && typeof d.prefs === "object" && !Array.isArray(d.prefs))
+        for (const [wid, v] of Object.entries(d.prefs)) { const p = cleanPrefs(v); if (p && wid.length <= 80) prefs[wid] = p; }
     },
     save() {
       if (!state.ready) return;
-      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()] }) && !state.noStore) { state.noStore = true; renderStatus(); }
+      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()], prefs }) && !state.noStore) { state.noStore = true; renderStatus(); }
     },
     setWorker() { this.save(); },
     deleteWorker() { this.save(); },
     setSettings() { this.save(); },
+    setPrefs() { this.save(); },
     // Tick-off per browser, as before: putIngame already merged the change into `applied`.
     setIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
     deleteIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
@@ -2307,8 +2524,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const timers = {};
     let unsubs = [];
     let retries = 0, retryT = null;
-    let gotW = false, gotS = false, gotI = false;          // first delivery of each listener ever
-    let sinceW = false, sinceS = false, sinceI = false;    // delivered since the last subscribe()
+    let gotW = false, gotS = false, gotI = false, gotP = false;          // first delivery of each listener ever
+    let sinceW = false, sinceS = false, sinceI = false, sinceP = false;  // delivered since the last subscribe()
+    let srvPrefs = {};                                     // the last Festlegungen the server sent, to undo a refused write
     let srvWorkers = new Map();                            // the last workers the server sent, to undo a refused delete
     let srvIngame = { ids: new Set(), vals: {}, meta: {} }; // the last tick-offs the server sent, to undo a refused write
     let liveW = false, liveI = false;                      // a snapshot from the server itself arrived (not a cached page)
@@ -2316,7 +2534,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     function settle() {
       if (gotW && gotS) state.ready = true;
       if (gotI) state.ingameReady = true;
-      if (sinceW && sinceS && sinceI) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
+      if (gotP) state.prefsReady = true;
+      if (sinceW && sinceS && sinceI && sinceP) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
     }
 
     // Resolves true when the write went through (after one retry for a transient error).
@@ -2405,6 +2624,27 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       renderAll();
       migrate();
     }
+    function onPrefs(snap) {
+      gotP = sinceP = true;
+      const srv = {};
+      for (const d of snap.docs) { const p = cleanPrefs(d.data && d.data()); if (p) srv[d.id] = p; }
+      srvPrefs = srv;
+      const m = { ...srv };
+      // A Festlegung that is not saved yet keeps the local copy.
+      for (const key of pending) if (key.startsWith("p:")) {
+        const wid = key.slice(2);
+        if (prefs[wid]) m[wid] = prefs[wid]; else delete m[wid];
+      }
+      prefs = m;
+      settle();
+      renderAll();
+    }
+    // A refused Festlegung: show what the server has again, unless a newer write is on its way.
+    function restorePrefs(wid) {
+      if (pending.has("p:" + wid)) return;
+      if (srvPrefs[wid]) prefs[wid] = srvPrefs[wid]; else delete prefs[wid];
+      renderPlan();
+    }
     // A refused tick-off write: show what the server has again, unless a newer write is on its way.
     function restoreIngame(wid) {
       if (pending.has("i:" + wid)) return;
@@ -2443,6 +2683,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         state.readOnly = true;
         if (!gotW) state.loadFailed = true;
         if (!gotI) state.ingameDenied = true;
+        if (!gotP) state.prefsDenied = true;
         state.ready = true; renderAll(); return;
       }
       for (const u of unsubs) { try { u(); } catch (x) { /* ignore */ } }
@@ -2455,15 +2696,17 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       } else {
         state.mode = "lost";
         if (!gotW) state.loadFailed = true;
+        if (!gotP) state.prefsDenied = true;   // the plan shows without them rather than waiting forever
         state.ready = true; renderAll();
       }
     }
     function subscribe() {
-      sinceW = sinceS = sinceI = false;
+      sinceW = sinceS = sinceI = sinceP = false;
       unsubs = [
         db.collection("workers").onSnapshot(onWorkers, onListenError),
         db.doc("settings/main").onSnapshot(onSettings, onListenError),
         db.collection("ingame").onSnapshot(onIngame, onListenError),
+        db.collection("prefs").onSnapshot(onPrefs, onListenError),
       ];
     }
     return {
@@ -2494,6 +2737,13 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         schedule("settings", 400, () => db.doc("settings/main").set(JSON.parse(JSON.stringify(state.settings))));
       },
       setIngame(wid, doc) { return writeIngame(wid, () => db.collection("ingame").doc(wid).set(doc)); },
+      // Festlegungen: set() of the whole doc a moment after the last tap (several taps, one write); none left = delete.
+      setPrefs(wid, delay = 300) {
+        schedule("p:" + wid, delay, () => {
+          const p = prefs[wid], ref = db.collection("prefs").doc(wid);
+          return p ? ref.set({ lockMain: p.lockMain, pins: { ...p.pins } }) : ref.delete();
+        }, ok => { if (!ok) restorePrefs(wid); });
+      },
       deleteIngame(wid) { return writeIngame(wid, () => db.collection("ingame").doc(wid).delete()); },
     };
   }
@@ -2640,7 +2890,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     else for (const w of p.team) {
       const mj = JOB[p.main[w.id]];
       lines.push(`${w.name || "Ohne Namen"} – Hauptjob ${mj ? mj.label : "–"}`);
-      lines.push("  " + p.jobs.map(j => { const c = p.cells[w.id][j.id]; return `${j.label} ${c.off ? "aus" : c.p}`; }).join(" · "));
+      lines.push("  " + p.jobs.map(j => { const c = p.cells[w.id][j.id]; return `${j.label} ${c.off ? "aus" : c.p}${c.fixed || c.locked ? " (fest)" : ""}`; }).join(" · "));
     }
     if (p && p.others.length) lines.push("", `Nicht eingeteilt: ${p.others.map(w => `${w.name || "Ohne Namen"} (${ROLE_LABEL[w.role]})`).join(", ")}`);
     return lines.join("\n");
@@ -2748,6 +2998,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     }
     const ap = e.target.closest("[data-applied]");
     if (ap) { tickOff([ap.dataset.applied]); return; }
+    const fx = e.target.closest("[data-fix]");
+    if (fx) { fixAction(fx.dataset.fixK, fx.dataset.fix); return; }
     const cell = e.target.closest("[data-cell]");
     if (cell) {
       state.selected = state.selected === cell.dataset.cell ? null : cell.dataset.cell;
@@ -2776,18 +3028,21 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         const id = card.dataset.wid;
         const w = state.workers.get(id);
         if (!w) return;
-        // Kept in memory for Rückgängig: the same villager (same id) and the same tick-off.
+        // Kept in memory for Rückgängig: the same villager (same id), the same tick-off and the same Festlegungen.
         if (state.mode === "local") reloadApplied();
         const ing = ingameDoc(id);
+        const pf = prefsCopy(id);
         state.workers.delete(id);
         backend.deleteWorker(id);
         putIngame(id, null);
+        if (pf) putPrefs(id, null, 0);
         renderAll();
         toast(`${w.name || "Arbeiter"} gelöscht.`, { label: "Rückgängig", fn: () => {
           if (locked()) { toast("Rückgängig geht gerade nicht."); return null; }
           if (!state.workers.has(id)) {
             saveWorker(w, 0);
             if (ing) putIngame(id, ing);
+            if (pf) putPrefs(id, pf, 0);
             renderAll();
           }
           toast(`${w.name || "Arbeiter"} ist wieder da.`);
@@ -2798,6 +3053,15 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.classList.remove("armed"); del.textContent = "Löschen"; } }, 3000);
       }
     }
+  });
+
+  // "andere" (4/6/7/8) in the Festlegen controls.
+  document.addEventListener("change", e => {
+    const sel = e.target.closest && e.target.closest("[data-fix-sel]");
+    if (!sel) return;
+    if (sel.value !== "") fixAction(sel.dataset.fixK, sel.value);
+    // A select that was not redrawn ("andere" alone, or nothing changed) shows the saved pin again.
+    if (sel.isConnected) for (const o of sel.options) o.selected = o.defaultSelected;
   });
 
   $("#add-worker").addEventListener("click", () => {
