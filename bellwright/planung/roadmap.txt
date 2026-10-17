@@ -497,3 +497,41 @@ with reduced motion no animations run (document.getAnimations() empty after inte
 animations; in "ruhig" no infinite/long animations; entry flow works in all three modes (Fertig ticks via the shared tick-off,
 advances, Zurück, double taps ignored, finale reached); timing: next villager within ~1.2 s; rolling numbers end on the right
 value; phase switch sweep ends and leaves no stuck classes; no console errors; 360/390/1280 no overflow.
+
+====================================================================================================
+BUILD: 11. Animationen an den Skill "bellwright-animations" anpassen | effort M
+WHY: The user installed the skill /root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/bellwright-animations/SKILL.md (READ IT FULLY – it is the authority for this
+build) and asked to run it over the app. The lead's quick audit of Version 15 found these deviations (verify each, find
+any others the skill implies, fix them all):
+1. Rule 2 (only transform/opacity): @keyframes seal (box-shadow, INFINITE on .pbadge.main/.cell.main), torchText
+   (text-shadow, infinite on h1), okflash (box-shadow), bump (filter). Rebuild them with opacity/transform only, e.g. a
+   pre-drawn glow on a pseudo-element whose opacity animates. The skill also says avoid permanent pulsing ("Dauer-Pulsieren"):
+   the main-seal glow should not pulse forever (a one-time stamp/glow is fine); the header torch flicker may stay in voll
+   only if it animates opacity/transform of a glow layer.
+2. Canvas embers: tick() builds createRadialGradient per particle per frame -> pre-render ONE sprite on an offscreen canvas
+   and drawImage with globalAlpha (skill code sample). DPR cap 2 and halving under 600 px already exist – keep.
+3. sparks(): seal burst uses 24 particles, finale fountain 40 -> at most 20 particles each, lifetime < 800 ms, then done.
+4. "Ruhig" level: only opacity fades <= 150 ms, no movement over 8 px, no particles (some ruhig rules use 0.16-0.2 s).
+5. prefers-reduced-motion: the skill says reduce counts as "Aus" UNLESS the user deliberately chose a level in the
+   settings. Today every animation is wrapped in @media (prefers-reduced-motion: no-preference), so an explicit choice is
+   ignored. Make html[data-anim] the single switch: JS anim() = explicit stored choice if the user picked one, else
+   (reduce ? "aus" : "voll"); CSS keys only on [data-anim]. Keep the note under the control, reworded: it now says the
+   device asks for less motion, so the default is "Aus", and that an explicit choice overrides it.
+6. Interaction timing (rule 3, max 400 ms for interactions, never block a click): the entry-mode page turn is ~460 ms ->
+   <= 400 ms; after "Fertig" the next villager comes after 750 ms and a second tap is ignored -> keep the shared write
+   immediate, keep protection against a double TICK, but a second tap during the stamp must finish the animation at once
+   and advance (no waiting). Entrance animations <= 700 ms (finale banner etc.).
+7. Style table: tab switch = 12 px slide + fade 260 ms cubic-bezier(.2,.7,.2,1); a changed priority "stamps"
+   scale 1.25 -> 0.95 -> 1 in 320 ms cubic-bezier(.3,1.6,.5,1) (today: bump/odometer – keep the odometer roll in voll if it
+   fits, but the landing should be the stamp); list load: rows staggered 30 ms, at most 10 staggered, 220 ms each (today
+   .reveal uses 80 ms per --i without a cap); toast in 16 px + fade 240 ms ease-out, out fade 160 ms; error = shake +-4 px
+   3x in 240 ms (add where the app shows an error state, e.g. a refused write / read-only switch or an invalid import).
+8. Rules 4/5 (pause when hidden, one frame loop): verify; only the embers loop should be a continuous rAF loop.
+NOT part of this build: loading GSAP/Lottie/Three.js ("das volle Paket" is optional; keep the app dependency-free).
+Process skills to follow (read them): /root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/test-driven-development/SKILL.md (write/adjust the failing check first in
+t2/feat-anim.js, then fix), /root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/verification-before-completion/SKILL.md (no success claims without running the commands),
+/root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/systematic-debugging/SKILL.md (if a test fails unexpectedly).
+TEST: extend t2/feat-anim.js: no keyframe animates anything but transform/opacity; ember tick uses drawImage of one sprite
+(no createRadialGradient in the loop); sparks <= 20 and gone after 800 ms; ruhig animations <= 150 ms and <= 8 px;
+reduced motion: no stored choice -> aus, stored voll -> voll; page turn <= 400 ms; a second tap during the stamp advances at
+once without a second write; reveal stagger 30 ms capped at 10; toast/shake timings; all three levels + 360 px.
