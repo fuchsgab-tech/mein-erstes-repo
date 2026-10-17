@@ -1,0 +1,341 @@
+====================================================================================================
+LENS js-bugs
+SUMMARY The JavaScript is mostly solid. The localStorage fallback saves edits, deletions and settings across a reload, I found no focus loss while typing, and tabs, hash handling and the copy fallback work. Two real bugs lose data: in shared (db) mode an edit made while an earlier save of the same worker or settings is still running gets overwritten by the next snapshot and then written back as the old value (reproduced: a name typed right after "+ Arbeiter" ends up empty on the server). Applying photo results also clears existing Max values, even though the screen says empty fields are left unchanged. Other issues: edits made while the page is still loading are lost, imports turn guards into workers and keep Markdown bullets in names, and "Plan als Text kopieren" throws an error when all jobs are switched off.
+-- CONFIRMED 13
+
+[bug] Shared mode: an edit made while the previous save is running is lost and the old value is written back
+  WHERE: makeDbBackend → schedule(): `finally { s.busy = false; if (s.again) {...} else pending.delete(key); }` together with the snapshot merge in start() and `if (pending.has("settings")) return;`
+  FIX: Keep the key pending while a timer is armed OR a write is in flight:
+```js
+const s = timers[key] || (timers[key] = {t:null,busy:false,again:false,armed:false,p:null});
+pending.add(key); clearTimeout(s.t); s.armed = true; s.t = setTimeout(go, delay);
+async function go(){ s.armed = false; if (s.busy){ s.again = true; return; }
+  s.busy = true; try { await (s.p = run()); } catch(e){...} finally { s.busy = false; s.p = null;
+    if (s.again){ s.again = false; go(); } else if (!s.armed) pending.delete(key); } }
+```
+This also fixes the settings path, which uses the same schedule(). In deleteWorker: `clearTimeout(s.t); s.armed = false;` then `await s.p?.catch(()=>{})` before calling delete(), and only then `pending.delete`.
+
+
+[bug] Applying photo results clears existing Max values, although the screen says empty fields stay unchanged
+  WHERE: applyReview(): `w.stats[a.id] = { cur: c, max: max === null ? (cur === null ? w.stats[a.id].max : null) : Math.max(c, max) };`
+  FIX: In applyReview: `const old = w.stats[a.id].max; const keep = old !== null && old >= c ? old : null; w.stats[a.id] = { cur: c, max: max === null ? keep : Math.max(c, max) };`. In the do-import loop: `for (const [a, v] of Object.entries(p.stats)) { const old = w.stats[a].max; w.stats[a] = { cur: v.cur, max: v.max !== null ? v.max : (old !== null && old >= v.cur ? old : null) }; }`.
+
+
+[important] Edits made while the page is still loading are lost; in local mode they overwrite the saved roster
+  WHERE: Boot: `let backend = local;` plus the async block that awaits use("db"), then use("user") + can(), then backend.start(); inputs are not locked while state.mode === "loading"
+  FIX: Treat loading as locked. Add `const locked = () => state.readOnly || !state.ready` and use it wherever `state.readOnly` gates inputs or actions (fillCard, renderEditor, renderJobs, renderPhaseControls, addWorker, setSettings, the import, adopt and paste handlers). In local mode set `state.ready = true` right after local.load(). In db mode set it in the first workers onSnapshot callback. Call backend.start() right after use("db") resolves, and run the user/can() check in parallel. Hide #example-banner and #w-empty, or show "Lädt …", until ready.
+
+
+[important] Text import and photo import turn guards and companions into workers
+  WHERE: do-import handler: `w.role = p.role;` (parseRoster defaults role to "worker"); applyReview: `w.role = card.querySelector('[data-r="role"]').value` (the prompt says to use "worker" when the role is not visible)
+  FIX: In parseRoster, default `role = null` and set it only when a role word is found. In the importer, use `if (p.role) w.role = p.role; else if (!ex) w.role = "worker";`. In PHOTO_PROMPT, ask for `"role": null` when it is not visible. Make cleanPhotoResult keep null. In renderReview, preselect the matched existing worker's role, or "worker" for new entries, when the photo role is null.
+
+
+[important] Text import keeps list markers and Markdown in names, so it creates duplicates instead of updating
+  WHERE: parseRoster(): `head = head.replace(/\[.*?\]|\(.*?\)/g, "").replace(/[\s:;,–—\-]+$/g, "").trim();`
+  FIX: Before matching, clean the head: `head = head.replace(/^\s*(?:[-*•+>]|\d+[.)])\s+/, "").replace(/[*_`|#]/g, " ").replace(/\s+/g, " ").trim()`. Skip lines that are only a code fence (```), or a table separator like `|---|`.
+
+
+[minor] "Plan als Text kopieren" throws and does nothing when all jobs are switched off
+  WHERE: planText(): `lines.push(`${w.name || "Ohne Namen"} – Hauptjob ${JOB[p.main[w.id]].label}`)`
+  FIX: In planText: `else if (!p.jobs.length) lines.push("Alle Jobs sind abgeschaltet."); else for (...) { const mj = JOB[p.main[w.id]]; lines.push(`${w.name || "Ohne Namen"} – Hauptjob ${mj ? mj.label : "–"}`); ... }`. In the others line, use `w.name || "Ohne Namen"`.
+
+
+[minor] Stat fields keep showing values that are not what was saved (12, -3, 50)
+  WHERE: #wlist input handler (toNum clamps) + fillCard() skipping `document.activeElement`; no change/blur re-render
+  FIX: Add `$("#wlist").addEventListener("change", e => { const card = e.target.closest("[data-wid]"); const w = card && state.workers.get(card.dataset.wid); if (w) { const el = e.target; el.blur?.call; el.value = ...; fillCard(card, w); } })`. Simplest version: on change, set `el.value` from the stored value. Add `focusin` → `if (e.target.type === "number") e.target.select()` so typing replaces the 0.
+
+
+[minor] Double-clicking or double-tapping "Löschen" deletes without a real confirmation
+  WHERE: document click handler, `[data-act="del"]` branch (arm on first click, delete on second)
+  FIX: On arming, store `del.dataset.armedAt = Date.now()`. On the confirming click, ignore it if `Date.now() - del.dataset.armedAt < 400`. Optionally add "Rückgängig" to the toast by keeping the deleted worker for a few seconds before calling backend.deleteWorker.
+
+
+[minor] Failed db listeners are not handled: syncing stops silently while the status still says "Gemeinsam gespeichert"
+  WHERE: onListenError() (only handles `revoked`); onWriteError() fallback branch
+  FIX: In start(), keep the unsubscribe handles. In onListenError: for `unavailable` (and unknown codes, as the contract says to treat them), resubscribe that listener after 1–3 s with a small retry cap. For other codes, set a warning status such as "Verbindung verloren – Seite neu laden". In onWriteError, handle capability_disabled, capability_removed and transform_error like not_granted (read-only).
+
+
+[minor] Read-only viewers can still read photos (using their Claude quota) but cannot apply the results
+  WHERE: renderPhotoAvail(): `el.hidden = !ok` ignores state.readOnly; the paste handler checks readOnly but the buttons do not
+  FIX: In renderPhotoAvail, use `const ok = photoOk() && !state.readOnly;` and call renderPhotoAvail() from renderAll(), so it updates when readOnly changes after a can() check or a refused write. Guard readPhotos() with `if (state.readOnly) return;`.
+
+
+[minor] Regex lookbehind stops the whole app on older iPhones (Safari before 16.4)
+  WHERE: `const aliasRe = new RegExp(`(?<![\\p{L}])(...)`, "giu")` at module top level
+  FIX: Build the regex lazily inside parseRoster in a try/catch, so a failure only disables text import. Better, drop the lookbehind: `(?:^|[^\p{L}])(alias…)(?![\p{L}])\s*[:=]?\s*(\d{1,2})…` and take the alias start as `m.index + m[0].length - m[0].replace(/^[^\p{L}]/u, "").length`, or simply `m.index + m[0].indexOf(m[1])`.
+
+
+[minor] Smaller text-parser gaps (role from name, traits before stats, "7 von 9", duplicates in one paste)
+  WHERE: parseRoster() and the do-import handler
+  FIX: Detect the role only from [..]/(..) text or a standalone word: `/(^|[^\p{L}])(wache|guard|begleiter|companion)([^\p{L}]|$)/iu`. Parse stats over the whole line first, then take traits as the text after the traits keyword up to the next alias match. Accept `(\d{1,2})\s*(?:\/|von|of|\(\s*max\.?)\s*(\d{1,2})`. In do-import, after creating a worker, add it with `byName.set(p.name.toLowerCase(), w)` and merge later lines into it.
+
+
+[minor] Local mode: two open tabs overwrite each other's roster
+  WHERE: local.save() writes the full state; there is no `storage` event listener
+  FIX: When entering local mode, add `window.addEventListener("storage", e => { if (e.key === LS_KEY && backend === local) { local.load(); renderAll(); } });`. fillCard already skips the focused field, so typing in the other tab is not disturbed.
+
+-- REJECTED 0
+====================================================================================================
+LENS planner
+SUMMARY The basic rules always hold. I ran about 11,900 synthetic teams (N=0–20, all phases, growth 0/0.35/1, disableWeak on/off, research off, hunting off, only delivery, all jobs off, null max values, ties, superstar). In every run each worker had exactly one priority 1, no value fell outside 1–9 or "aus", nothing crashed, and from N≥3 every job with importance ≥2 had someone on 1–2. The algorithm itself has real weaknesses, though, and they hit the most common case: teams under 8 workers. Main jobs are assigned suboptimally (greedy plus pair swaps). Importance and the phase presets barely affect which jobs get a main worker. The coverage pass stacks priority 2s on one person. Several reason texts and one note say false or useless things. All runnable scripts, including a patched prototype that fixes points 1–6 and leaves the example team's plan unchanged, are in /tmp/claude-0/-home-user-mein-erstes-repo/463ad377-28a1-5da9-b964-5a5b652dc408/scratchpad/review/algorithm/ (planner.js = code extracted 1:1, harness.js, opt.js, compare.js, mkfixed.js -> planner_fixed.js / planner_mult.js).
+-- CONFIRMED 11
+
+[bug] Main-job assignment is often suboptimal: the swap pass cannot move a worker to an unfilled job
+  WHERE: compute() step 2: greedy loop `while (free.size)` plus the pairwise-swap loop `for (let iter = 0; iter < 25; iter++)`
+  FIX: Replace greedy plus swaps with an exact assignment. Expand each job into one column per slot (cols = jobs.flatMap(j => Array(slots[j.id]).fill(j))), use cost = -score(w, col), and solve with the Hungarian algorithm. The matrix is at most about 30×30, so this is trivial in cost. Keep the safety net for leftover workers. A cheaper partial fix is to add 'move a worker into a job with a free slot' to the improvement loop. That fixes the superstar-hauler case, but not chain cases like the 5-worker example, so the exact assignment is the right fix.
+
+
+[important] Importance and phase have almost no effect in small teams: presets like 'Start: Essen & Bau' don't decide which jobs get a main worker
+  WHERE: compute(): `score = s + 0.7*rel + 0.25*imp(j.id)` together with the branch `if (N < keyJobs) { for (const j of jobs) slots[j.id] = weight(j) > 0 ? 1 : 0; }`
+  FIX: In the N < keyJobs branch, let importance pick which jobs get a main worker and skill pick who fills them. Sort the enabled jobs by imp. The cut is the imp of the N-th job. Give slots only to jobs with imp >= cut, and mark jobs with imp > cut as 'must'. Add a large bonus (e.g. +1000) to score() for must jobs. This works with the exact assignment, and also with the current greedy, which then fills must jobs first. Leave the additive 0.25*imp term as it is, or raise it modestly. Skip the multiplicative variant.
+
+
+[important] The coverage pass stacks priority 2s on one worker and breaks the 'max two jobs on 2' rule
+  WHERE: compute() step 4: `const pick = ranked[j.id].map(id => byId.get(id)).find(w => !cells[w.id][j.id].main);` runs after `// Keep focus: at most two jobs on 2 per worker`
+  FIX: In step 4, pick among the near-best candidates the one with the fewest 2s: const twoCount = w => jobs.filter(x => cells[w.id][x.id].p === 2).length; const cands = ranked[j.id].map(id => byId.get(id)).filter(w => !cells[w.id][j.id].main); const top = cands.length ? jobSkill(cands[0], j) : 0; const pick = cands.filter(w => jobSkill(w, j) >= top - 1).sort((a, b) => twoCount(a) - twoCount(b))[0]; Use a different name than the existing `twos` const in the per-worker loop. Optionally raise the coverage threshold to imp >= 3, the same as the notes. For exact ties in `ranked`, don't award 'Bester im Team (−1)' to whoever happens to be first in the list.
+
+
+[important] Nebenjob selection and the 2-trim ignore importance; ties fall to the JOBS order (Bauen first)
+  WHERE: compute(): side job `const v = s + 0.7 * (s - avg);` and trim `.sort((a, b) => (side…) || jobSkill(w, b) - jobSkill(w, a))`
+  FIX: Side job: if (s < 3 || imp(j.id) <= 1) continue; const v = s + 0.7*(s - avg) + 0.25*imp(j.id); Trim: sort by side first, then imp(b.id) - imp(a.id), then jobSkill, so 2s on more important jobs survive.
+
+
+[bug] The note 'Setzt Liefern auf „wichtig“' gives useless advice: Liefern is already 'wichtig' and raising it does nothing
+  WHERE: compute() step 5: `if (N >= 5 && !Object.values(main).includes("delivery") …) … "Setzt Liefern unter „Jobs & Gewichtung“ auf „wichtig“."`
+  FIX: At N >= 5, with Liefern on and imp >= 3, treat delivery as a must job: one slot always filled, using the must bonus from the small-team fix. If the note is kept as a fallback, never recommend an importance that is already set. Name the most suitable hauler instead (the top of ranked.delivery), e.g. 'Vorschlag: X als festen Träger einteilen'.
+
+
+[bug] 'best' counts skills of disabled jobs, which skews the hauler choice and assigns pointless main jobs
+  WHERE: compute(): `best: Math.max(0, ...ATTRS.map(a => sk(w, a.id)))` (used by jobSkill for delivery)
+  FIX: best: Math.max(0, ...skilledJobs.map(j => sk(w, j.attr)))
+
+
+[minor] 'Schwache abschalten' ignores potential and contradicts the 'Potenzial einrechnen' setting
+  WHERE: compute() step 3: `if (j.yieldJob && settings.disableWeak && cv <= 2 && better >= 2)` uses only cur
+  FIX: Compare by the same growth-adjusted value the ranking uses: const s = sk(w, j.attr); const better = team.filter(o => o !== w && sk(o, j.attr) >= s + 3).length; keep cv <= 2. Optionally also require mx(w, j.attr) <= 5. Update the checkbox description to mention that high Max values protect from 'aus'.
+
+
+[important] Reason texts for main and Nebenjob are often wrong ('passt am besten zu den Stärken', 'zweitbeste Stärke', 'bester Wert im Team')
+  WHERE: compute(): `c.why = `Hauptjob. … ${top ? ", bester Wert im Team" : ", passt am besten zu den Stärken dieses Arbeiters"}`` and `Nebenjob: die zweitbeste Stärke (…)`
+  FIX: (a) If the main skill isn't within ~1 of the worker's best enabled skill, say e.g. 'Hauptjob. Farming 1/2. Die stärkeren Fertigkeiten (Hunting 9/10) sind schon besetzt oder abgeschaltet.' (b) Use 'beste noch freie Stärke', or choose 'beste'/'zweitbeste' by comparing with the main-job value. (c) If w is first by sk but not by cur, write 'bestes Potenzial im Team (Max X)'.
+
+
+[minor] Hauler texts don't match how the choice is made ('Keine Fertigkeit sticht heraus', 'Hat die schwächsten Werte')
+  WHERE: compute(): main text for delivery and the coverage text `"Hat die schwächsten Werte, darum passt Tragen am besten."`
+  FIX: Build the text from the dominant term: if 0.4*sk(Labourer) >= 0.6*(10−best), write 'Labourer x/y hilft beim Tragen'; otherwise write 'Seine Fertigkeiten werden anderswo am wenigsten gebraucht'. In coverage, state the hauler's Labourer value instead of claiming 'schwächste Werte'.
+
+
+[minor] Notes are noisy for small teams; the list grammar is 'A und B und C'
+  WHERE: compute(): `Niemand hat ${j.label} als Hauptjob. ${helpers.join(" und ")} …`
+  FIX: Skip Liefern when N < 5. Combine the no-main notes into one line ('Ohne Hauptjob: Liefern, Handwerk, Jagd – laufen nebenher auf 2 bei …'), or only emit notes for imp >= 4. Join lists with a.length > 1 ? a.slice(0, -1).join(", ") + " und " + a.at(-1) : a[0].
+
+
+[minor] A missing max value systematically disadvantages the worker against workers with max entered
+  WHERE: compute(): `mx = … max === null ? cur(w, a) : …`
+  FIX: Reword the note, e.g. 'Max-Werte fehlen bei X. Sie werden dadurch eher unterschätzt – Max nachtragen, dann wird der Plan genauer.' Optionally, for a missing max, assume the team's median headroom for that attribute (cur + median(max−cur) over workers with a known max), capped at 10.
+
+-- REJECTED 1
+  x Adding a single weak recruit often reshuffles the main jobs of established workers :: The churn exists (f10.js, f10b.js): 0.5–2.4 changed mains per added 1/2 recruit. But a large share is intended and good for the player. The recruit almost always becomes the hauler (283–300 of 300), which frees the previous hauler for a skilled job. Excluding that freed hauler, the change drops to 0.1–1.35 per recruit, partly due to slot redistribution and partly to the assignment bug in finding 1
+====================================================================================================
+LENS capabilities-photo
+SUMMARY Die Capability-Grundlagen stimmen: db-Pfade passen zur Grammatik, use() liefert bei null sauber den Fallback, can('data.write') wird nach Spezifikation ausgewertet, sample.json hat die richtige Form mit images, signal und limits(), und PHOTO_OFF passt zu den Codes der Spezifikation. In Playwright mit einem nachgebauten window.claude ließen sich aber drei echte Fehler reproduzieren. (1) Eine Änderung, die während eines laufenden db-Schreibvorgangs gemacht wird, geht verloren, sobald ein Snapshot dazwischenkommt. (2) Lehnt jemand die Einwilligung ab, verschwindet die zugehörige Meldung, und stattdessen erscheint ein falscher Hinweis. (3) Beim Übernehmen aus der Prüfansicht werden Rolle und Max-Werte bestehender Arbeiter überschrieben, obwohl die Ansicht verspricht, dass leere Felder unverändert bleiben. Außerdem ist das Auslesen der Modellantwort zu streng: übliche Varianten wie großgeschriebene oder deutsche Schlüssel, „3/5“-Strings oder Arrays werfen still alle Werte weg. Wer ein Bild neben die Ablagefläche zieht, verlässt die Seite. Und große Vollbild-Screenshots werden von der Plattform auf etwa 1,2 Megapixel verkleinert, ohne dass die Seite das ausgleicht. Test-Skripte liegen unter /tmp/claude-0/-home-user-mein-erstes-repo/463ad377-28a1-5da9-b964-5a5b652dc408/scratchpad/review/capabilities/ (harness.js, t1–t6).
+-- CONFIRMED 11
+
+[bug] Edit made while a write to the same doc is in flight is lost (worker and settings)
+  WHERE: makeDbBackend → schedule(): `finally { s.busy = false; if (s.again) {...} else pending.delete(key); }`
+  FIX: In makeDbBackend.schedule, remember the latest run on the timer state, clear the handle when the timer fires, and remove the key from pending only when no timer is waiting:
+```js
+const s = timers[key] || (timers[key] = { t: null, busy: false, again: false });
+s.run = run; pending.add(key); clearTimeout(s.t); s.t = setTimeout(go, delay);
+async function go() {
+  s.t = null;
+  if (s.busy) { s.again = true; return; }
+  s.busy = true;
+  try { await s.run(); }
+  catch (e) { if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 600 + Math.random() * 900)); try { await s.run(); } catch (e2) { onWriteError(e2); } } else onWriteError(e); }
+  finally { s.busy = false; if (s.again) { s.again = false; go(); } else if (!s.t) pending.delete(key); }
+}
+```
+In deleteWorker, also set the timer handle to null after clearTimeout. The extra „deleteWorker waits for an in-flight set“ part is optional: the retry path already returns early once the worker is gone from state.
+
+
+[important] Declined consent: the panel hides its own error message and shows a wrong reason instead
+  WHERE: readPhotos catch: `if (PHOTO_OFF.has(code)) { setPhotoMsg(...); photo.limits = null; renderPhotoAvail(); }` with renderPhotoAvail → `if (!ok) $("#photo").hidden = true;`
+  FIX: Keep a reason when disabling: in the readPhotos catch, set photo.offReason by code. not_granted → „Ihr habt Claude das Lesen von Bildern für diese Seite nicht erlaubt. Werte bitte von Hand oder als Text eintragen.“ sampling_disabled → „Claude ist für euer Konto gerade nicht verfügbar.“ images_unavailable / capability_* → „Bilder lesen geht in dieser Ansicht nicht.“ In renderPhotoAvail, set #photo-note.textContent to photo.offReason, or to the current „angemeldet“ text only when use('sample') or limits() gave nothing. Call clearPhotos() before hiding the panel.
+
+
+[bug] Applying a photo result overwrites an existing worker's role and erases known Max values
+  WHERE: applyReview(): `w.role = card.querySelector('[data-r="role"]').value;` and `max: max === null ? (cur === null ? w.stats[a.id].max : null) : Math.max(c, max)`; prompt: `"role": ... otherwise "worker"`
+  FIX: Prompt: `"role": "worker", "guard" or "companion" if shown, otherwise null`. In cleanPhotoResult, keep null (role: ROLE_LABEL[o.role] ? o.role : null). In renderReview, preselect the matched worker's existing role when the role is null, and "worker" for new names. In applyReview, keep the old Max when the Max field is blank: `const old = w.stats[a.id]; w.stats[a.id] = { cur: c, max: max !== null ? Math.max(c, max) : (old.max !== null && old.max >= c ? old.max : null) };`
+
+
+[minor] cleanPhotoResult drops all values for common model output variants but still reports success
+  WHERE: cleanPhotoResult(): `const v = src[a.id]` (exact lowercase key only), `toNum(...)` on "3/5", `Array.isArray(data) ? data : data.workers`
+  FIX: In cleanPhotoResult, build a normalised stats map first: for each [k, v] of Object.entries(src), look up `aliasMap[String(k).toLowerCase().trim()]`, and if v is a string matching /^(\d{1,2})\s*\/\s*(\d{1,2})$/, turn it into {cur, max}. Accept the name only if it is a string. In renderReview, leave cards without any value unchecked and mark them „keine Werte erkannt“. Count only cards with values in the „… erkannt“ message. Skip the wrapper and array heuristics; they add code for very unlikely shapes.
+
+
+[minor] Dropping a screenshot anywhere outside the dashed box navigates away from the app
+  WHERE: photoBox dragover/drop listeners only; no document-level handler
+  FIX: Add document-level handlers so every file drag is accepted and sent into the photo flow:
+```js
+const hasFiles = e => [...(e.dataTransfer?.types || [])].includes("Files");
+document.addEventListener("dragover", e => { if (hasFiles(e)) e.preventDefault(); });
+document.addEventListener("drop", e => { if (!hasFiles(e)) return; e.preventDefault(); if (photoOk() && !state.readOnly) { openPhoto(); addFiles(e.dataTransfer.files); } });
+```
+Keep the #photo handlers only for the highlight, and remove their preventDefault/addFiles calls so a drop is not added twice.
+
+
+[minor] Full-screen screenshots are downsized to about 1.2 MP by the platform, so small numbers become hard to read
+  WHERE: Hint text „Screenshot am PC: F12 in Steam …“; toJpeg() (scales only to 2400 px); readPhotos sends whole images
+  FIX: Change the hint to recommend cropping first, for example: „Am PC am besten Win+Umschalt+S und nur das Fenster des Dorfbewohners markieren, dann Strg+V hier. Mit dem Handy nah ran, sodass das Fenster das Bild ausfüllt.“ Mention F12 only second („geht auch, ist aber unschärfer“). Tiling or a crop step is optional later work.
+
+
+[minor] Lifecycle and terminal db errors are not handled: sync silently stops while the status still says „Gemeinsam gespeichert“
+  WHERE: onListenError (handles only 'revoked'); onWriteError (generic toast for everything except invalid_argument/not_granted/revoked/quota_exceeded)
+  FIX: In start(), keep the Unsubscribe handles. In onListenError, on 'unavailable' or an unknown code, unsubscribe and re-subscribe both listeners once after a 1–3 s random delay. If that fails too, set a status such as „Verbindung verloren – Seite neu laden“. On not_granted, capability_disabled or capability_removed (listener or write), set state.readOnly = true with that status instead of repeating toasts. On resource_exhausted, toast „Zu viele Änderungen auf einmal. Kurz warten und dann neu übernehmen.“
+
+
+[minor] Re-reading the same photos within 5 minutes replays the identical answer and wipes manual corrections
+  WHERE: readPhotos: `photo.sample.json(PHOTO_PROMPT, { images, signal })` (no cache option); photos are kept after „Verwerfen“
+  FIX: Pass `cache: false` in photo.sample.json(PHOTO_PROMPT, { images, signal, cache: false }). The spec recommends this when a repeat must produce a new answer, and a repeat read here is always meant as „try again“.
+
+
+[minor] Read-only viewers are still offered photo reading, which spends their Claude usage on a result they cannot apply
+  WHERE: renderPhotoAvail() ignores state.readOnly; review-apply is disabled only at render time
+  FIX: In renderPhotoAvail, use `const ok = photoOk() && !state.readOnly;` and call renderPhotoAvail() from renderAll() so it follows changes to readOnly, for example after a write is rejected.
+
+
+[minor] Edits made before the db backend is ready are silently lost (and written to localStorage)
+  WHERE: Boot: backend = local until `await use("db")` and `await use("user")` resolve; inputs enabled while status shows „Lädt …“
+  FIX: Treat loading as read-only: make edit controls follow `state.readOnly || state.mode === "loading" || (state.mode === "db" && !state.loaded)`, and set state.loaded = true in the first workers onSnapshot callback. Until then, hide #example-banner, #w-empty and „Beispielteam übernehmen“. Do not let local.save() run before local.load() has run.
+
+
+[minor] Files with an empty MIME type are skipped with no message
+  WHERE: addFiles(): `if (!f || !String(f.type).startsWith("image/")) continue;`
+  FIX: For files with an empty type, try toJpeg(f) anyway (createImageBitmap sniffs the content). If that fails, show the existing „Nehmt bitte PNG oder JPG“ message instead of skipping silently. Optionally check photo.files.length against maxCount again after the await, before the push.
+
+-- REJECTED 2
+  x Bulk saves fire all writes at once; failed creates vanish without explanation :: Speculative. db.d.ts lists „too many concurrent writes“ under resource_exhausted, but gives no threshold. There is no evidence that 8 (example team) or a typical 10–30 (photo or text import) small document writes at once would hit it. That the creates „vanish“ only happens after a write has failed, and that case is covered by the lifecycle/error finding above. Serialising every bulk save adds late
+  x Prompt example uses realistic data identical to the built-in example team :: Speculative. The prompt already gives the model a way out („note“ when no villager attributes are visible) and says „Never guess a number you cannot read“. Claude-class models in JSON mode return workers:[] with a note for unreadable images, rather than copying the format example. Even an echoed answer would go through the review step, where the values and the „ersetzt Werte von Agnes“ badge are v
+====================================================================================================
+LENS ux-mobile
+SUMMARY Solid, careful app: no horizontal page overflow at 360/390/1280 px in either theme, text contrast of every priority cell passes AA in light and dark, the copy uses "ihr" throughout, and the desktop grid reads well. The weak spot is the phone, which is exactly where a player sits next to the PC typing numbers into the game. The plan only shows up after scrolling. Only 3 of 8 job columns are visible, and the column headers scroll away when there are many villagers. The explanation for a tapped cell and the photo-import confirmation both land off-screen. Nothing marks which in-game values changed after a re-calculation. A per-worker transfer view with change markers would be the biggest real-world improvement, followed by German-first skill labels and an in-game how-to on the Plan tab.
+-- CONFIRMED 22
+
+[important] Phone priority grid: only 3 of 8 jobs visible, column headers scroll away, nothing hints at sideways scrolling
+  WHERE: renderPlan() matrix; CSS `.matrix .wcol { min-width:150px }`, `table.matrix { min-width:640px }`, `.matrix-wrap { overflow-x:auto }`
+  FIX: Below ~720 px, render one card per worker: name and Hauptjob as the heading, then each job as a row with a large priority number, in the in-game column order. Tapping a row shows the reason inline. Add worker chips or a 'Nächster Arbeiter' button. Keep the matrix on desktop. Cheaper interim fix: on phones, narrow .wcol to ~100 px (drop .wsub) and give the matrix a max-height with overflow:auto plus `thead th{position:sticky;top:0;z-index:2}`, so job names stay visible.
+
+
+[important] No way to see which numbers changed since the player last copied them into the game
+  WHERE: compute() / renderPlan(): every recalculation replaces the grid with no diff
+  FIX: Keep a per-viewer 'im Spiel eingetragen' snapshot of each worker's priorities in localStorage (wrapped in try/catch). Mark cells that differ from it (ring or dot, title/aria 'war 2'). Add a summary note ('3 Änderungen bei 2 Arbeitern seit dem letzten Übertragen') and an 'Eingetragen ✓' button per worker plus one for all. Cheaper first step: after each recompute, diff against the previous plan and briefly highlight the changed cells, with a toast listing the affected workers.
+
+
+[important] Explanation for a tapped cell appears off-screen once the team is larger than ~8
+  WHERE: click handler for [data-cell] -> renderReason(); `#reason` sits below the whole table
+  FIX: Minimum: after renderReason() on a click, call `$('#reason').scrollIntoView({block:'nearest',behavior:'smooth'})` when the box is outside the viewport. Better: show the reason in an inserted row directly under the tapped worker's row (desktop), or inline in the per-worker card or a bottom sheet (phone).
+
+
+[minor] On a phone the first screen shows no plan; the grid starts below the fold
+  WHERE: header .mast (eyebrow, 2-line h1 at 2.125rem, subtitle, status pill), phase .seg (3 rows incl. disabled 'Eigene'), example banner, notes
+  FIX: Under ~560 px: hide .eyebrow, reduce h1 to ~1.6rem, hide .mast-sub once workers exist, and drop the 'Eigene' row from the phase picker (see that finding) or use a compact 2x2 grid. That saves roughly 150–200 px and brings the first worker rows above the fold.
+
+
+[minor] Plan tab doesn't say where in the game the numbers go; that help is in the 4th tab, which is cut off on phones
+  WHERE: panel-plan (no how-to); panel-wissen first <ul>: 'Unter Bevölkerung (Population) einen Dorfbewohner als Arbeiter … Reiter Job-Prioritäten öffnen'
+  FIX: Put one short line above or below the grid, e.g. 'Im Spiel: Bevölkerung → Dorfbewohner → Reiter Job-Prioritäten, Zahlen aus seiner Zeile übernehmen; „aus“ = Job abschalten.' Optionally make it dismissible via localStorage (in try/catch).
+
+
+[important] After 'Ausgewählte übernehmen' on a phone the confirmation is off-screen and there is no route to the plan
+  WHERE: applyReview() -> clearPhotos(); renderAll(); setPhotoMsg('… Der Plan ist neu gerechnet.')
+  FIX: In applyReview(), after renderAll(), call toast() with the result text (the #toast role=status already exists), and scroll #photo into view with block:'start'. Add a primary 'Zum Plan' button (data-goto="plan") next to #photo-msg, or switch to the Plan tab automatically after a successful apply.
+
+
+[minor] That the worker list is shared with everyone who can open the page is only said in a hover tooltip
+  WHERE: renderStatus(): `el.title = map[m][1]` ('Alle mit Zugriff auf diese Seite sehen und bearbeiten dieselbe Arbeiterliste.')
+  FIX: Show the explanation as visible text: make the status pill a button that toggles a short line under it. For 'db': 'Diese Liste sehen alle, mit denen ihr die Seite teilt.' For 'ro': 'Nur ansehen – für ein eigenes Dorf braucht ihr eine eigene Kopie der Seite.' Keep title only as a fallback.
+
+
+[minor] Skills are labelled in English first while jobs are German; photo-review cards and reasons are English only
+  WHERE: cardHtml() `${a.game}<small>${a.de}</small>`; renderReview() `<label>${esc(a.game)}</label>` (no German); reason strings like `${ATTR[j.attr].game} ${fmt(...)}`
+  FIX: For consistency, add the German sublabel to review cards (`${a.game}<small>${a.de}</small>` in .rc-stat label) and use 'Deutsch (Englisch)' in reasons, e.g. 'Feldarbeit (Farming) 2/4'. Keep 'Bauen & Tragen'. Only switch primary labels to German in-game terms once those are verified in a German game client.
+
+
+[minor] Review-card number inputs are 14 px, so iOS Safari zooms in when they are focused
+  WHERE: CSS `.rc-stat { font-size:0.875rem }` + global `input { font: inherit }`
+  FIX: `.rc-stat input[type=number]{font-size:16px;width:3em;min-height:40px}`. Keep the 0.875rem size on the label only.
+
+
+[minor] Explanation texts are hard for non-technical players: 'Grundwert', '(−1)', English skill names
+  WHERE: compute(): `ergibt Grundwert ${p}.`, `Job ist gerade dringend (−1).`, `Bester im Team für diesen Job, springt ein (−1).`, `(+1)`
+  FIX: Use plain wording without arithmetic, e.g. 'Feldarbeit 2/4 ist eher schwach, darum weiter hinten (7).', 'Der Job ist gerade dringend, darum eine Stufe weiter vorne.', 'Beste(r) im Team dafür, darum weiter vorne.' When clamped, add 'Höher als 2 geht nur der Hauptjob.'
+
+
+[minor] Alegreya Sans old-style numerals make the digits harder to read
+  WHERE: body font; inputs/.cell/.legend only set `font-variant-numeric: tabular-nums`
+  FIX: `body{font-variant-numeric:lining-nums}`, and change the existing `tabular-nums` declarations on inputs, .cell, .legend and table.matrix to `lining-nums tabular-nums` so they don't reset it.
+
+
+[minor] 'Eigene / von Hand' phase button looks clickable but does nothing and takes a full row on phones
+  WHERE: renderPhaseControls(): `<button … data-phase="eigene" disabled>`; `.btn[disabled]` styling doesn't apply to .seg buttons
+  FIX: Render the 'Eigene' button only while state.settings.phase==='eigene', as a pressed non-interactive indicator. Otherwise show 4 buttons, which gives a clean 2x2 grid. Or add `.seg button:disabled{cursor:default;color:var(--muted)}`.
+
+
+[minor] Tab bar: 4th tab cut off on phones and two labels start with 'Jobs'
+  WHERE: nav.tabs ('Plan', 'Arbeiter', 'Jobs & Gewichtung', 'Jobs erklärt'); `.tabs { scrollbar-width:none }`
+  FIX: Use shorter, distinct labels that fit at 360 px, e.g. 'Plan · Arbeiter · Einstellungen · Hilfe', or let .tabs wrap on narrow screens.
+
+
+[minor] Name field too narrow on phones; longer names are cut off
+  WHERE: `.wc-head { grid-template-columns: 1fr auto auto }` (name + role select + Löschen in one row)
+  FIX: Under ~420 px, give .wc-head two rows: name full width (grid-column:1/-1), then the role select and Löschen below.
+
+
+[minor] Stat inputs show values the app doesn't use: 15 stays visible while 10 is saved, and Max below Stufe is accepted
+  WHERE: #wlist input handler -> toNum() clamp; fillCard() skips document.activeElement; normWorker() has no max>=cur check
+  FIX: Add a 'change' listener on #wlist that writes the clamped stored value back into el.value. For max<cur, either raise Max to Stufe on change, as the text import and applyReview already do, or show a small inline hint ('Max ist kleiner als Stufe – stimmt das?').
+
+
+[minor] Small tap targets in the photo flow and settings
+  WHERE: .thumb button (×), review checkbox `data-r="on"`, .btn, input[type=range]
+  FIX: Make the thumb × at least 32x32 (padding 6px 10px). Wrap the review checkbox in a visible `<label>` with the text 'übernehmen' and ≥40 px height. Add `@media (pointer:coarse){.btn{min-height:44px}}`. Keep the sliders.
+
+
+[minor] Low contrast for the ochre main-job text and the 'Unsicher' note in light mode
+  WHERE: `.wc-main b { color: var(--ochre) }` (13px bold); `.rc-unsure { color: var(--warn) }` on .rcard (var(--bg))
+  FIX: In light mode use a darker ochre for text only, e.g. #8A5C12 (5.49:1 on surface), via a separate --ochre-text token so the ring colour stays. Darken --warn slightly (e.g. #8C560A).
+
+
+[minor] Screen-reader and keyboard details
+  WHERE: phase buttons `${label}<small>${sub}</small>`; tab `Arbeiter<span class=count>`; nav role=tablist; .legend aria-label; data-goto handler
+  FIX: Make the count read well, e.g. `<span class=count aria-hidden=true>` plus a visually hidden ', 8 eingetragen'. Move role=tablist to an inner div inside <nav>. Remove the aria-label from .legend. After showTab() from data-goto, focus the new panel (tabindex=-1) or its first control. Arrow-key roving tabindex is optional.
+
+
+[minor] Jobs tab repeats English names ('Crafting · Crafting') with no explanation
+  WHERE: renderJobs(): `${j.game}${j.attr ? ' · ' + ATTR[j.attr].game : …}`
+  FIX: In renderJobs(), add the skill only when it differs from j.game, labelled as such: `${j.game}${j.attr && ATTR[j.attr].game !== j.game ? ' · Fertigkeit: ' + ATTR[j.attr].game : (!j.attr ? ' · keine Fertigkeit' : '')}`.
+
+
+[minor] 'Jobs erklärt' table needs sideways scrolling on phones; the tips column is off-screen
+  WHERE: `table.ktable { min-width:640px }`
+  FIX: Under ~620 px, show each row as a block: `.ktable, .ktable tbody, .ktable tr, .ktable td {display:block}`, hide the thead, and put a small caption before the 3rd and 4th cells (e.g. via data-label and ::before). Or render cards per job.
+
+
+[minor] 'Abdeckung' footer row is cryptic and wraps badly
+  WHERE: renderPlan() tfoot: `${c.main}× auf 1<br>${c.near}× auf 2–3`
+  FIX: Wrap '2–3' in `<span style="white-space:nowrap">`, and rename the row (e.g. 'Wer macht's?') with plainer text ('1 vorne, 2 dahinter'). Or hide the tfoot on phones and rely on the notes.
+
+
+[minor] German copy fixes
+  WHERE: various strings
+  FIX: Apply (1)–(6) and (8) as proposed: '…höchstens 2 hat, während mindestens zwei andere deutlich besser sind…'; 'Arbeiter mit der Eigenschaft Dullard lernen langsamer.'; 'in dem'; 'Fotos einlesen klappt nur, wenn ihr die Seite in Claude geöffnet habt und angemeldet seid.'; join as 'A, B und C'; 'Tippt oder klickt auf eine Zahl…'; leave out zero counts in the result messages. Drop (7), (9) and (10).
+
+-- REJECTED 1
+  x Priority colour ramp: text passes contrast, but 4–9 look the same :: The measurements are plausible, but this is not worth changing. Every cell prints its number in bold 18px, so colour is only a secondary cue. The current ramp already separates what matters when scanning (1 solid, 2 strong, 3 medium, everything else pale), which is essentially the proposed banding. Re-tuning the ramp and legend buys little for a player who copies the printed numbers anyway.
+====================================================================================================
+LENS game-domain
+SUMMARY The basic mechanics on the page match the game: the 1–9 scale with 1 done first and a job that can be switched off, job priority being separate from building priority, Farming XP going to whoever planted, Cooking XP going to whoever loads the station, Delivery having no skill of its own, Dullard learning slower, and books plus food that boost XP. The job and attribute data is out of date, though. It matches the 2024 game: the Anniversary Update in April 2025 replaced the Hunting attribute with Animal Handling, and today's Job Priorities tab has more rows than the app's 8 (Animal Handling and Smelting, very likely Woodcutting too). Players therefore cannot copy the plan into the game one-to-one, and screenshots or text from the current game lose a whole attribute (I reproduced this). The planner also ignores traits that halve or raise productivity by 50% and ignores outposts. Bellwright is still in Early Access as of Oct 2026 (console Early Access launched 2026-06-09, developers estimate 1.0 before April 2027), so nothing changed with a 1.0 release. I could not confirm the exact format the game uses for current/max values on screen; the prompt's flexible wording ("3/6", bar, pips) is a sensible hedge. All sources are search-result snippets from the community wiki and Steam (fetching pages directly was blocked), and confidence for each point is stated in its finding.
+-- CONFIRMED 0
+-- REJECTED 0

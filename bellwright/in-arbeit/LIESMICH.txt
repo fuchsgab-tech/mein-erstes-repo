@@ -1,0 +1,4 @@
+Keine unfertigen Zwischenstände. Live ist arbeitsplan.html (Version 15: Festlegen, Animationen, Fotos richtig zuordnen).
+
+Noch offen (nur auf Wunsch): Foto zuschneiden (BUILD 6), Karte-Menü mit Animation (BUILD 9), „wer trägt gerade ein“.
+Außenposten (BUILD 8) ist gestrichen. Specs: planung/roadmap.txt und planung/batch2-notes.txt.
