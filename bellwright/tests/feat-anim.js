@@ -1,5 +1,5 @@
 // BUILD 10 "Animationen": the per-device setting voll / ruhig / aus (html[data-anim], localStorage 'bellwright-anim-v1'),
-// reduced motion = aus with a note, the Eintragen-Modus effects (page turn, wax seal + sparks, rolling numbers, finale
+// reduced motion = aus with a note (BUILD 11: unless a level was chosen on this device), the Eintragen-Modus effects (page turn, wax seal + sparks, rolling numbers, finale
 // banner + fountain), rolling plan numbers, the phase-switch light sweep, the title torch, pausing while hidden,
 // the entry flow in all three modes against a shared fake server, timing, cleanup and overflow at 360/390/1280.
 const { chromium } = require('playwright');
@@ -189,7 +189,8 @@ const stuck = page => page.evaluate(() => ({
   for (const mode of ['voll', 'ruhig', 'aus', 'reduced']) {
     const srv = makeServer({ workers: SEED_W });
     const reduced = mode === 'reduced';
-    const P = (await phone(browser, srv, { name: 'E-' + mode, inClaude: true, writable: true, anim: reduced ? 'voll' : mode, user: { id: 'u_owner', owner: true, can: true } }, { reduced })).page;
+    // BUILD 11: reduced motion counts as "aus" only while nobody chose a level here, so nothing is stored for it.
+    const P = (await phone(browser, srv, { name: 'E-' + mode, inClaude: true, writable: true, anim: reduced ? undefined : mode, user: { id: 'u_owner', owner: true, can: true } }, { reduced })).page;
     const T = `[${mode}] `;
     const sampleOff = async () => (reduced || mode === 'aus') ? animCount(P) : 0;
     let off = 0;
@@ -197,7 +198,7 @@ const stuck = page => page.evaluate(() => ({
     if (reduced) {
       await P.click('#tab-jobs');
       const note = await P.evaluate(() => { const n = document.getElementById('anim-rm'); return { hidden: n.hidden, text: n.textContent, anim: document.documentElement.dataset.anim }; });
-      check(T + 'note "Euer Gerät wünscht weniger Bewegung – Animationen sind aus." (setting stays "voll")', !note.hidden && note.text === 'Euer Gerät wünscht weniger Bewegung – Animationen sind aus.' && note.anim === 'voll', note);
+      check(T + 'note "Euer Gerät wünscht weniger Bewegung, darum sind die Animationen von selbst aus. …" (nothing chosen: "aus")', !note.hidden && note.text === 'Euer Gerät wünscht weniger Bewegung, darum sind die Animationen von selbst aus. Wählt ihr hier eine Stufe, gilt eure Wahl.' && note.anim === 'aus', note);
       off += await sampleOff();
       await P.click('#tab-plan');
     }
@@ -224,16 +225,16 @@ const stuck = page => page.evaluate(() => ({
       check(T + 'card appears: the changed numbers roll from "von 5" to the target (text stays the target)', rolling.length > 0 && rolling.every(x => x.v === x.text && (x.roll.split('\n').includes('5') || x.roll === '5') && (x.roll.split('\n').includes(x.text) || x.text === 'X')), r);
     }
     // Fertig: ticks through the shared tick-off, seal, then the next villager in time. A double tap counts once.
+    // BUILD 11: the second tap no longer waits for the seal: it moves on at once (checked below, one write).
     const t0 = Date.now();
     await P.click('#entry-next');
-    await P.click('#entry-next', { delay: 0 }).catch(() => {});
-    await P.waitForTimeout(40);
+    await P.waitForTimeout(mode === 'voll' ? 200 : 40);   // voll: the sparks fly when the seal lands (~160 ms)
     off += await sampleOff();
     await P.evaluate(() => window.__sample());
     const seal = await P.evaluate(() => { const s = document.querySelector('.entry-card .entry-seal'); return { shown: !!s && !s.hidden, landing: !!s && s.classList.contains('landing'), sparks: document.querySelectorAll('#entry-fx .spark').length, thump: document.querySelector('.entry-card').classList.contains('thump') }; });
-    if (mode === 'voll') check(T + 'Fertig: the seal lands, the card thumps, 1–24 sparks', seal.shown && seal.landing && seal.thump && seal.sparks >= 1 && seal.sparks <= 24, seal);
+    if (mode === 'voll') check(T + 'Fertig: the seal lands, the card thumps, 1–20 sparks', seal.shown && seal.landing && seal.thump && seal.sparks >= 1 && seal.sparks <= 20, seal);
     else check(T + 'Fertig: the seal shows, no sparks, no thump', seal.shown && seal.sparks === 0 && !seal.thump, seal);
-    if (mode === 'voll') { const ov = await overflow(P); await P.waitForTimeout(260); const ov2 = await overflow(P); check(T + '390: no overflow while the seal lands and sparks fly', ov.doc <= 0 && ov.entry <= 0 && ov2.doc <= 0 && ov2.entry <= 0, { ov, ov2 }); }
+    if (mode === 'voll') { const ov = await overflow(P); await P.waitForTimeout(120); const ov2 = await overflow(P); check(T + '390: no overflow while the seal lands and sparks fly', ov.doc <= 0 && ov.entry <= 0 && ov2.doc <= 0 && ov2.entry <= 0, { ov, ov2 }); }
     const moved = await until(async () => (await nameOf(P)) === 'Bertram', 2000, 10);
     const dt = Date.now() - t0;
     check(T + 'next villager within ~1.2 s', moved >= 0 && dt <= 1200, dt);
@@ -250,7 +251,7 @@ const stuck = page => page.evaluate(() => ({
       check(T + 'no ghost page, no rolling, no sparks', s.ghost === 0 && s.odo === 0 && s.spark === 0, s);
     }
     await P.waitForTimeout(300);
-    check(T + 'double tap on Fertig counted once (2 / 4, one write)', (await countOf(P)) === '2 / 4' && srv.log.filter(l => l.c === 'ingame').length === 1, { count: await countOf(P), log: srv.log });
+    check(T + 'Fertig counted once (2 / 4, one write)', (await countOf(P)) === '2 / 4' && srv.log.filter(l => l.c === 'ingame').length === 1, { count: await countOf(P), log: srv.log });
     // Zurück (page comes back), then on again with the arrow key.
     await P.click('#entry-back'); await P.waitForTimeout(30);
     off += await sampleOff();
@@ -267,7 +268,7 @@ const stuck = page => page.evaluate(() => ({
     if (mode === 'voll') {
       await P.waitForTimeout(700);
       const f1 = await P.evaluate(() => { const f = document.getElementById('entry-finale'); const bell = f.querySelector('.fin-bell'); return { sparks: f.querySelectorAll('.spark').length, cloth: f.querySelector('.fin-cloth').getAnimations().map(a => a.animationName), bell: bell.getAnimations().map(a => a.animationName) }; });
-      check(T + 'finale: the banner unfurls, the bell rings, an ember fountain (<= 40 sparks)', f1.sparks > 0 && f1.sparks <= 40 && f1.cloth.includes('unfurl') && f1.bell.includes('swing'), f1);
+      check(T + 'finale: the banner unfurls, the bell rings, an ember fountain (<= 20 sparks since BUILD 11)', f1.sparks > 0 && f1.sparks <= 20 && f1.cloth.includes('unfurl') && f1.bell.includes('swing'), f1);
       const ov = await overflow(P);
       check(T + '390: no overflow during the finale', ov.doc <= 0 && ov.entry <= 0, ov);
       await P.screenshot({ path: 'anim-390-finale.png' });
@@ -297,8 +298,8 @@ const stuck = page => page.evaluate(() => ({
     const em = await canvasSig(P); await P.waitForTimeout(300); const em2 = await canvasSig(P);
     if (mode === 'voll') check(T + 'embers drift on the page', em.n > 0 && em.h !== em2.h, { em, em2 });
     else check(T + 'no embers (canvas empty)', em.n === 0 && em2.n === 0, { em, em2 });
-    const torch = await P.evaluate(() => document.querySelector('h1').getAnimations().map(a => a.animationName));
-    if (mode === 'voll') check(T + 'title torch flickers (two loops)', torch.includes('torchText'), torch);
+    const torch = await P.evaluate(() => document.querySelector('h1').getAnimations({ subtree: true }).map(a => a.animationName));
+    if (mode === 'voll') check(T + 'title torch flickers (two loops on its glow layers)', torch.includes('torch') && torch.includes('torchCore'), torch);
     else check(T + 'no title flicker', torch.length === 0, torch);
     check(T + 'nothing stuck behind', JSON.stringify(await stuck(P)) === JSON.stringify({ sweep: 0, odo: 0, spark: 0, ghost: 0, leaf: 0 }), await stuck(P));
     await P.context().close();
@@ -339,7 +340,7 @@ const stuck = page => page.evaluate(() => ({
     await P.click('#tab-jobs'); await P.click('[data-anim-set="ruhig"]'); await P.click('#tab-plan'); await P.waitForTimeout(300);
     await P.click('#panel-plan [data-phase="krieg"]'); await P.waitForTimeout(20);
     const calm = await P.evaluate(() => ({ sweep: document.querySelectorAll('.sweep').length, odo: document.querySelectorAll('.odo').length, bump: [...document.querySelectorAll('#plan-view .bump')].map(b => b.getAnimations().map(a => a.animationName + ':' + a.effect.getComputedTiming().endTime).join()) }));
-    check(`plan ${view} ruhig: no sweep, no rolling, changed numbers fade (<= 200 ms)`, calm.sweep === 0 && calm.odo === 0 && calm.bump.length > 0 && calm.bump.every(x => /^calmBlink:200$/.test(x)), calm);
+    check(`plan ${view} ruhig: no sweep, no rolling, changed numbers fade (<= 150 ms since BUILD 11)`, calm.sweep === 0 && calm.odo === 0 && calm.bump.length > 0 && calm.bump.every(x => /^calmBlink:150$/.test(x)), calm);
     await L.ctx.close();
   }
 
@@ -349,11 +350,11 @@ const stuck = page => page.evaluate(() => ({
     const P = L.page;
     await P.click('#adopt-example'); await P.click('#tab-plan'); await P.waitForTimeout(700);
     await P.evaluate(() => window.__setHidden(true));
-    const h = await P.evaluate(() => ({ cls: document.documentElement.classList.contains('motion-paused'), torch: document.querySelector('h1').getAnimations().map(a => a.playState) }));
+    const h = await P.evaluate(() => ({ cls: document.documentElement.classList.contains('motion-paused'), torch: document.querySelector('h1').getAnimations({ subtree: true }).map(a => a.playState) }));
     const c1 = await canvasSig(P); await P.waitForTimeout(250); const c2 = await canvasSig(P);
     check('hidden: html.motion-paused, the torch paused, embers stand still', h.cls && h.torch.length > 0 && h.torch.every(s => s === 'paused') && c1.h === c2.h, { h, c1, c2 });
     await P.evaluate(() => window.__setHidden(false));
-    const v = await P.evaluate(() => ({ cls: document.documentElement.classList.contains('motion-paused'), torch: document.querySelector('h1').getAnimations().map(a => a.playState) }));
+    const v = await P.evaluate(() => ({ cls: document.documentElement.classList.contains('motion-paused'), torch: document.querySelector('h1').getAnimations({ subtree: true }).map(a => a.playState) }));
     const c3 = await canvasSig(P); await P.waitForTimeout(250); const c4 = await canvasSig(P);
     check('visible again: everything runs', !v.cls && v.torch.every(s => s === 'running') && c3.h !== c4.h, { v });
     // Entry open, Fertig, and switch to "aus" (another tab) while the seal lands: effects stop, flow goes on.
@@ -403,12 +404,12 @@ const stuck = page => page.evaluate(() => ({
     await P.click('#panel-plan [data-phase="ausbau"]'); await P.waitForTimeout(200);
     const left = await P.evaluate(() => ({ bump: document.querySelectorAll('.bump').length, ring: document.getElementById('bell').classList.contains('ring') }));
     await P.click('#tab-jobs'); await P.click('[data-anim-set="voll"]'); await P.click('#tab-plan'); await P.waitForTimeout(20);
-    const fired = (await named()).filter(x => /^(bump|swing|stamp)/.test(x));
+    const fired = (await named()).filter(x => /^(bump|swing|stamp|toastin)/.test(x));
     check('"aus" -> "voll": the old flashes and the bell do not go off', left.bump > 0 && fired.length === 0 && (await P.evaluate(() => document.querySelectorAll('.bump').length)) === 0, { left, fired });
     await P.click('#panel-plan [data-phase="start"]'); await P.waitForTimeout(1300);
     // The page behind the mode: its loops wait while the mode covers it.
     await P.click('#entry-open'); await P.waitForTimeout(100);
-    const behind = await P.evaluate(() => document.querySelector('h1').getAnimations().map(a => a.playState));
+    const behind = await P.evaluate(() => document.querySelector('h1').getAnimations({ subtree: true }).map(a => a.playState));
     check('mode open: the title torch behind it is paused', behind.length > 0 && behind.every(s => s === 'paused'), behind);
     // Partial finale -> "Noch offene ansehen": the copy of the finale stays as it is under the page coming back.
     await P.click('#entry-next'); await P.waitForTimeout(1300);
@@ -419,12 +420,13 @@ const stuck = page => page.evaluate(() => ({
     check('partial finale -> back: its copy does not fade in again under the turning page', /fin-part/.test(part) && gh.length === 1 && gh[0] === 0, { part, gh });
     await P.waitForTimeout(600);
     await P.keyboard.press('Escape'); await P.waitForTimeout(100);
-    const after = await P.evaluate(() => document.querySelector('h1').getAnimations().map(a => a.playState));
+    const after = await P.evaluate(() => document.querySelector('h1').getAnimations({ subtree: true }).map(a => a.playState));
     check('mode closed: the title torch runs again', after.length > 0 && after.every(s => s === 'running'), after);
     await L.ctx.close();
     // Reduced motion (and ruhig/aus): scrolling to a card jumps instead of gliding.
+    // BUILD 11: with reduced motion and nothing chosen on this device the level is "aus" (nothing stored for that case).
     for (const [mode, reduced] of [['voll', true], ['ruhig', false], ['voll', false]]) {
-      const M = await phone(browser, null, { name: 'S-' + mode, inClaude: false, anim: mode, seedLs: { ...seedLs, 'bellwright-arbeitsplan-view': 'cards' } }, { width: 1280, height: 700, reduced });
+      const M = await phone(browser, null, { name: 'S-' + mode, inClaude: false, anim: reduced ? undefined : mode, seedLs: { ...seedLs, 'bellwright-arbeitsplan-view': 'cards' } }, { width: 1280, height: 700, reduced });
       await M.page.evaluate(() => { const o = Element.prototype.scrollIntoView; window.__sv = []; Element.prototype.scrollIntoView = function (a) { window.__sv.push(a && a.behavior); return o.call(this, a); }; });
       await M.page.click('#chips .chip'); await M.page.waitForTimeout(100);
       const sv = await M.page.evaluate(() => window.__sv);

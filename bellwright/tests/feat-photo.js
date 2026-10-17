@@ -715,7 +715,8 @@ async function layout(browser, imgs) {
 
 async function motion(browser, imgs) {
   // Every review effect follows "Animationen" and the device's reduced-motion wish.
-  for (const [label, anim, reduced] of [['voll', 'voll'], ['ruhig', 'ruhig'], ['aus', 'aus'], ['reduced', 'voll', 'reduce']]) {
+  // BUILD 11: reduced motion means "aus" only while nobody chose a level on this device, so nothing is stored for it.
+  for (const [label, anim, reduced] of [['voll', 'voll'], ['ruhig', 'ruhig'], ['aus', 'aus'], ['reduced', undefined, 'reduce']]) {
     const X = await phone(browser, null, { name: 'M' + label, inClaude: false, costSeen: true, anim }, { width: 390, height: 844, reducedMotion: reduced });
     const P = X.page;
     await P.waitForTimeout(1500);   // the page intro is over
