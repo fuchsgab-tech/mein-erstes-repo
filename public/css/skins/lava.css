@@ -1,0 +1,319 @@
+/* Stil „Lavalampe“ – dunkel: glühendes Wachs in Orange, Magenta und Violett; hell: cremige Pastell-Lampe (Szene: js/skins/lava.js).
+   Regeln immer mit :root[data-skin="lava"] beginnen. Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = Pastell-Lampe, dunkel = glühende Lampe ---------- */
+
+:root[data-skin="lava"] {
+  --bg: #fff1e8;
+  --wallpaper:
+    radial-gradient(75% 40% at 50% 108%, rgba(255, 168, 128, 0.5), transparent 70%),
+    radial-gradient(60% 40% at 88% -10%, rgba(196, 164, 255, 0.42), transparent 70%),
+    radial-gradient(50% 36% at 6% 30%, rgba(255, 170, 200, 0.3), transparent 70%),
+    linear-gradient(180deg, #faefff 0%, #fff1ee 45%, #ffe7d8 100%);
+  --surface: #fffaf6;
+  --card: rgba(255, 250, 246, 0.82);
+  --sidebar-bg: rgba(255, 246, 241, 0.84);
+  --surface-2: rgba(184, 58, 94, 0.06);
+  --surface-3: rgba(184, 58, 94, 0.12);
+  --line: rgba(120, 40, 64, 0.13);
+  --line-2: rgba(120, 40, 64, 0.24);
+  --text: #3a1424;
+  --text-2: #6b3a4c;
+  --text-3: #85536a;
+  --accent: #b83a5e;
+  --on-accent: #ffffff;
+  --danger: #c8203c;
+  --online: #0d8a58;
+  --mix: 20%;
+  --mix-text: 58%;
+  --blur: 12px;
+  --ev-glow-geo: 0 0 10px -4px;
+  --ev-glow-mix: 55%;
+  --shadow-sm: 0 1px 2px rgba(120, 40, 64, 0.07);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 0 1px rgba(184, 58, 94, 0.04), 0 18px 38px -24px rgba(150, 50, 80, 0.45);
+  --shadow-lg: 0 0 0 1px rgba(184, 58, 94, 0.1), 0 30px 70px -26px rgba(110, 30, 60, 0.45);
+  --toast-bg: #3a1424;
+  --toast-text: #fff1e8;
+  --toast-icon: #ffb08a;
+  --scrim: rgba(60, 18, 34, 0.3);
+  --lava-glow: rgba(214, 72, 106, 0.32);
+  --lava-groove: linear-gradient(90deg, #ffab85, #f590b8 50%, #b893ff);
+  --lava-title: linear-gradient(90deg, #a8325a, #c2416b 45%, #7a3fb0);
+  --lava-orb: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--accent) 30%, white) 0 4%, var(--accent) 28%, color-mix(in srgb, var(--accent) 72%, #5a2380) 76%, color-mix(in srgb, var(--accent) 55%, #3a1050));
+  --lava-btn: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #5a2380));
+  --lava-hero:
+    radial-gradient(60% 90% at 86% 112%, rgba(255, 168, 128, 0.75), transparent 62%),
+    radial-gradient(50% 80% at 100% -20%, rgba(196, 164, 255, 0.6), transparent 62%),
+    linear-gradient(160deg, #fff5ee 0%, #ffe6ec 50%, #f3e2ff 100%);
+  --lava-wax: radial-gradient(circle at 38% 32%, #fff6ee 0 6%, #ffb8cc 36%, #f58fb4 70%, #e57aa4);
+  --lava-wax-2: radial-gradient(circle at 40% 34%, #fff6ee 0 6%, #ffc4a6 38%, #ffa47c 72%, #f5926a);
+  --lava-wax-3: radial-gradient(circle at 40% 34%, #fbf3ff 0 6%, #d4bcff 40%, #b893ff 74%, #a47ff5);
+  --lava-shape: 58% 42% 55% 45% / 50% 58% 42% 50%;
+  --fx-a: #fffaf0;
+  --fx-b: #ffb08a;
+  --fx-c: #ff9cc2;
+  --fx-d: #c4a4ff;
+  --fx-s1: #d9577d;
+  --fx-s2: #fff1e8;
+  --fx-s3: #f3c9c0;
+  --fx-s4: #6b2a40;
+  --fx-k: 0.9;
+}
+:root[data-skin="lava"][data-mode="dark"] {
+  --bg: #13061b;
+  --wallpaper:
+    radial-gradient(75% 36% at 50% 110%, rgba(255, 96, 40, 0.45), transparent 70%),
+    radial-gradient(60% 40% at 84% -12%, rgba(146, 52, 230, 0.36), transparent 70%),
+    radial-gradient(40% 30% at 4% 40%, rgba(255, 50, 130, 0.12), transparent 70%),
+    linear-gradient(180deg, #1f0a30 0%, #160823 42%, #1b0919 74%, #2a0b14 100%);
+  --surface: #1f0f29;
+  --card: rgba(26, 10, 34, 0.72);
+  --sidebar-bg: rgba(22, 8, 30, 0.82);
+  --surface-2: rgba(255, 140, 96, 0.07);
+  --surface-3: rgba(255, 140, 96, 0.14);
+  --line: rgba(255, 150, 120, 0.12);
+  --line-2: rgba(255, 150, 120, 0.25);
+  --text: #ffeede;
+  --text-2: #e6bcab;
+  --text-3: #c99d90;
+  --accent: #ff7a3d;
+  --on-accent: #2a0a00;
+  --danger: #ff5c7a;
+  --online: #5cf2a8;
+  --mix: 20%;
+  --mix-text: 42%;
+  --ev-glow-geo: 0 0 14px -3px;
+  --ev-glow-mix: 72%;
+  --shadow-sm: 0 0 0 1px rgba(255, 122, 61, 0.05);
+  --shadow: inset 0 1px 0 rgba(255, 200, 170, 0.07), 0 0 0 1px rgba(255, 122, 61, 0.05), 0 0 44px -20px rgba(255, 90, 60, 0.45), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  --shadow-lg: inset 0 1px 0 rgba(255, 200, 170, 0.08), 0 0 0 1px rgba(255, 122, 61, 0.16), 0 0 70px -22px rgba(255, 80, 120, 0.4), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #2a1030;
+  --toast-text: #ffeede;
+  --toast-icon: var(--accent);
+  --scrim: rgba(10, 2, 14, 0.62);
+  --lava-glow: rgba(255, 106, 60, 0.55);
+  --lava-groove: linear-gradient(90deg, #ffb347, var(--accent) 30%, #ff3d8e 65%, #a34dff);
+  --lava-title: linear-gradient(90deg, #ffe3a3, #ffa25e 35%, #ff6fa8 70%, #c79bff);
+  --lava-orb: radial-gradient(circle at 34% 28%, #fff3b0 0 4%, color-mix(in srgb, var(--accent) 55%, #ffd27a) 18%, var(--accent) 42%, color-mix(in srgb, var(--accent) 45%, #ff2d8e) 80%, color-mix(in srgb, var(--accent) 30%, #a3179e));
+  --lava-btn: linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #ffc46b), var(--accent) 45%, color-mix(in srgb, var(--accent) 55%, #ff4d8e));
+  --lava-hero:
+    radial-gradient(60% 90% at 86% 115%, rgba(255, 110, 40, 0.65), transparent 62%),
+    radial-gradient(50% 80% at 100% -20%, rgba(150, 60, 240, 0.55), transparent 62%),
+    linear-gradient(160deg, #2a0d3c 0%, #1d0828 50%, #2e0b1e 100%);
+  --lava-wax: radial-gradient(circle at 38% 32%, #ffe0f0 0 5%, #ff5fa2 34%, #e0246f 70%, #9e0f52);
+  --lava-wax-2: radial-gradient(circle at 40% 34%, #fff2b0 0 6%, #ffa04a 36%, #ff6a2b 70%, #c2341a);
+  --lava-wax-3: radial-gradient(circle at 40% 34%, #f3dcff 0 6%, #b06bff 38%, #8a3df0 72%, #5a1aa8);
+  --fx-a: #ffe08a;
+  --fx-b: var(--accent);
+  --fx-c: #ff3d8e;
+  --fx-d: #9a4dff;
+  --fx-s1: #ff4f9a;
+  --fx-s2: #1f0a30;
+  --fx-s3: #160823;
+  --fx-s4: #2a0418;
+  --fx-k: 1;
+}
+:root[data-skin="lava"]:not([data-corners="sharp"]) { --r-sm: 10px; --r-md: 12px; --r-lg: 22px; --r-xl: 30px; }
+:root[data-skin="lava"][data-font="modern"] {
+  --font-display: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Quicksand", "Segoe UI Variable Display", system-ui, -apple-system, sans-serif;
+}
+
+/* ---------- Gemeinsames für Live-Stile (wie in skins-live.css) ---------- */
+
+:root[data-skin="lava"] { --live-bf: none; }
+:root[data-skin="lava"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="lava"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf); }
+:root[data-skin="lava"] .sky-art svg { display: none; }
+:root[data-skin="lava"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="lava"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="lava"] .heat .cell { --text-2: var(--text); }
+:root[data-skin="lava"] .sky::before,
+:root[data-skin="lava"] .sky::after,
+:root[data-skin="lava"] .sky-art::before,
+:root[data-skin="lava"] .sky-art::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Schrift: rund und fett, Titel im warmen Verlauf ---------- */
+
+:root[data-skin="lava"] .topbar .title {
+  background: var(--lava-title); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -0.01em;
+}
+:root[data-skin="lava"][data-mode="dark"] .topbar .title { filter: drop-shadow(0 0 14px rgba(255, 110, 70, 0.35)); }
+:root[data-skin="lava"] .topbar .title .year { -webkit-text-fill-color: var(--text-3); color: var(--text-3); font-weight: 600; }
+:root[data-skin="lava"] :is(.dow, .wv-dayhead .wd) { color: color-mix(in srgb, var(--accent) 45%, var(--text-2)); letter-spacing: 0.1em; }
+:root[data-skin="lava"]:not([data-mode="dark"]) :is(.dow, .wv-dayhead .wd) { color: #8a3a58; }
+:root[data-skin="lava"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl, .mb-eyebrow) { letter-spacing: 0.12em; }
+:root[data-skin="lava"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: color-mix(in srgb, var(--accent) 50%, var(--text-2)); }
+:root[data-skin="lava"]:not([data-mode="dark"]) :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: #8a3a58; }
+:root[data-skin="lava"] .cd-num { text-shadow: 0 0 24px var(--lava-glow); }
+:root[data-skin="lava"] .brand img { border-radius: var(--lava-shape); box-shadow: 0 0 18px -4px var(--lava-glow); }
+
+/* ---------- Flächen: weich gerundet, oben ein glühender Wachsstreifen ---------- */
+
+:root[data-skin="lava"] :is(.month, .wv, .card) { border-color: color-mix(in srgb, var(--accent) 16%, var(--line)); }
+:root[data-skin="lava"] .card { background-image: radial-gradient(120% 70% at 50% 135%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%); }
+:root[data-skin="lava"] :is(.month, .wv, .card)::after {
+  content: ""; position: absolute; z-index: 5; left: 12%; right: 12%; top: -1px; height: 2px; border-radius: 2px; pointer-events: none;
+  background: var(--lava-groove); opacity: 0.75;
+  box-shadow: 0 0 12px 0 var(--lava-glow);
+}
+:root[data-skin="lava"]:not([data-mode="dark"]) :is(.month, .wv, .card)::after { box-shadow: none; opacity: 0.85; }
+:root[data-skin="lava"] .sidebar { border-right-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
+:root[data-skin="lava"][data-mode="dark"] .sidebar { box-shadow: inset -1px 0 0 rgba(255, 122, 61, 0.07), 14px 0 44px -32px rgba(255, 80, 120, 0.55); }
+:root[data-skin="lava"] .seg { border-radius: 999px; }
+:root[data-skin="lava"] .seg button { border-radius: 999px; }
+:root[data-skin="lava"] .seg button.on { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 14px -4px var(--lava-glow); }
+:root[data-skin="lava"] .topbar .seg { background: color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: 0 0 0 1px var(--line); }
+:root[data-skin="lava"] :is(.search-box, .icon-btn, .btn) { border-radius: 999px; }
+/* Listeneinträge etwas dichter, damit eine vorbeiziehende Blase die Schrift nicht stört */
+:root[data-skin="lava"][data-mode="dark"] .item { background: color-mix(in srgb, var(--surface) 84%, transparent); }
+:root[data-skin="lava"] .item { border-radius: var(--r-lg); }
+:root[data-skin="lava"] .item:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+:root[data-skin="lava"] :is(.lv-label, .lv-date) { text-shadow: 0 0 4px var(--bg), 0 0 12px var(--bg); }
+:root[data-skin="lava"] .toast { border-radius: 22px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--toast-icon) 30%, transparent), 0 0 30px -10px var(--lava-glow), var(--shadow-lg); }
+
+/* ---------- Heute: glühende Wachskugel, ein Tropfen steigt auf ---------- */
+
+:root[data-skin="lava"] .day.today {
+  position: relative;
+  background: radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 -10px 26px -14px var(--lava-glow);
+}
+:root[data-skin="lava"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: var(--lava-orb); color: var(--on-accent); border-radius: var(--lava-shape);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 18px -2px var(--lava-glow);
+}
+:root[data-skin="lava"] .day.today::after {
+  content: ""; position: absolute; top: 6px; right: 9px; width: 7px; height: 9px; pointer-events: none; opacity: 0;
+  border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%; background: var(--lava-orb);
+  box-shadow: 0 0 8px var(--lava-glow);
+}
+:root[data-skin="lava"][data-motion="on"] .day.today::after { animation: lava-drip 7s ease-in-out 1s infinite; }
+:root[data-skin="lava"] .wv-col.today { background: linear-gradient(0deg, color-mix(in srgb, var(--accent) 13%, transparent), color-mix(in srgb, var(--accent) 3%, transparent)); }
+:root[data-skin="lava"] .now-line { background: var(--lava-groove) var(--accent); box-shadow: 0 0 10px var(--lava-glow); }
+:root[data-skin="lava"] .now-line::before { background: var(--lava-orb); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 12px var(--lava-glow); }
+:root[data-skin="lava"] :is(.now-tag, .wv-now-tag) { background: var(--accent); color: var(--on-accent); box-shadow: 0 0 12px -2px var(--lava-glow); }
+:root[data-skin="lava"] .mini-grid button.today { text-shadow: 0 0 10px var(--lava-glow); }
+:root[data-skin="lava"] .dprog i { background: var(--lava-groove); box-shadow: 0 0 8px var(--lava-glow); }
+
+/* ---------- Termine: weiche Pillen, laufende glühen ---------- */
+
+:root[data-skin="lava"] .bar { --r-xs: 9px; }
+:root[data-skin="lava"] .wv-ev { --r-sm: 12px; }
+:root[data-skin="lava"][data-mode="dark"] .bar.timed.now,
+:root[data-skin="lava"][data-mode="dark"] .wv-ev.now { text-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
+:root[data-skin="lava"][data-events="tint"] .bar.block { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 85%, white), var(--ev-glow); padding-left: 9px; }
+
+/* ---------- Knöpfe: Wachs im Verlauf, der Plus-Knopf ist eine Blase ---------- */
+
+:root[data-skin="lava"] .btn.primary {
+  background: var(--lava-btn); color: var(--on-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 8px 22px -10px var(--lava-glow);
+}
+:root[data-skin="lava"] .btn.primary:hover { filter: brightness(1.06) saturate(1.1); }
+:root[data-skin="lava"] .fab {
+  border-radius: var(--lava-shape); background: var(--lava-orb); color: var(--on-accent);
+  box-shadow: inset 0 -5px 12px rgba(60, 0, 40, 0.3), inset 0 3px 8px rgba(255, 240, 200, 0.35), 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent), 0 0 28px -2px var(--lava-glow), 0 14px 26px -12px rgba(0, 0, 0, 0.5);
+}
+:root[data-skin="lava"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+
+/* ---------- Monatsbanner: Landschaft in warmem Lampenlicht ---------- */
+
+:root[data-skin="lava"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(0.7) sepia(0.12) brightness(1.04);
+  --mb-tint: linear-gradient(100deg, transparent 22%, rgba(255, 150, 175, 0.5) 56%, rgba(190, 150, 255, 0.55));
+  --mb-tint-blend: color;
+  --mb-edge: color-mix(in srgb, var(--accent) 60%, transparent);
+  --mb-sky-accent: 26%;
+  --mb-fx-accent: 0.6;
+}
+:root[data-skin="lava"][data-mode="dark"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(0.85) hue-rotate(-18deg) brightness(0.78) contrast(1.05);
+  --mb-tint: linear-gradient(100deg, rgba(110, 30, 170, 0.4) 10%, rgba(255, 60, 140, 0.42) 55%, color-mix(in srgb, var(--accent) 55%, transparent));
+  --mb-tint-blend: color;
+  --mb-art-blend: luminosity;
+  --mb-art-opacity: 0.9;
+  --mb-edge: var(--accent);
+  --mb-sky-k: 20%;
+  --mb-sky-accent: 24%;
+  --mb-fx-accent: 0.75;
+}
+:root[data-skin="lava"] .mb-chip { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--surface) 86%, transparent); }
+
+/* ---------- Übersicht: Blick in die Lampe mit treibenden Wachsblasen ---------- */
+
+:root[data-skin="lava"] .sky {
+  --sky: var(--lava-hero);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow);
+}
+:root[data-skin="lava"][data-mode="dark"] .sky .greet { text-shadow: 0 0 24px rgba(255, 110, 70, 0.45); }
+:root[data-skin="lava"]:not([data-mode="dark"]) .sky .greet { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
+:root[data-skin="lava"] .sky .date { color: var(--text-2); opacity: 1; }
+:root[data-skin="lava"] .sky-pill { background: color-mix(in srgb, var(--surface) 66%, transparent); border-color: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--text); }
+:root[data-skin="lava"] .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
+/* großer Tropfen, der langsam auf und ab treibt */
+:root[data-skin="lava"] .sky::before {
+  right: 9%; top: 18%; width: 86px; height: 100px; border-radius: var(--lava-shape);
+  background: var(--lava-wax); box-shadow: 0 0 40px -6px var(--lava-glow);
+}
+:root[data-skin="lava"][data-motion="on"] .sky::before { animation: lava-bob 14s ease-in-out infinite, lava-morph 9s ease-in-out infinite; }
+/* Becken am Grund */
+:root[data-skin="lava"] .sky::after {
+  right: -6%; bottom: -34px; width: 58%; height: 70px; border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: var(--lava-wax-2); box-shadow: 0 0 46px -6px var(--lava-glow);
+}
+:root[data-skin="lava"][data-motion="on"] .sky::after { animation: lava-swell 11s ease-in-out infinite; }
+/* zwei kleinere Blasen */
+:root[data-skin="lava"] .sky-art::before {
+  right: calc(9% + 110px); top: 46%; width: 40px; height: 46px; border-radius: 46% 54% 52% 48% / 56% 48% 52% 44%;
+  background: var(--lava-wax-3); box-shadow: 0 0 26px -6px var(--lava-glow);
+}
+:root[data-skin="lava"][data-motion="on"] .sky-art::before { animation: lava-bob 10s ease-in-out -4s infinite reverse; }
+:root[data-skin="lava"] .sky-art::after {
+  right: calc(9% + 34px); top: 4%; width: 26px; height: 22px; border-radius: 50%;
+  background: var(--lava-wax-2); opacity: 0.9;
+}
+:root[data-skin="lava"][data-motion="on"] .sky-art::after { animation: lava-bob 12s ease-in-out -7s infinite; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="lava"] { --live-bf: none; --blur: 0px; }
+  :root[data-skin="lava"] :is(.sheet, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root[data-skin="lava"] .tabbar {
+    background: color-mix(in srgb, var(--surface) 94%, transparent); border-top: 0; border-radius: 24px 24px 0 0;
+    box-shadow: 0 -1px 0 color-mix(in srgb, var(--accent) 22%, transparent), 0 -14px 30px -22px var(--lava-glow);
+  }
+  :root[data-skin="lava"] .tabbar::before {
+    content: ""; position: absolute; left: 18%; right: 18%; top: -1px; height: 2px; border-radius: 2px; pointer-events: none;
+    background: var(--lava-groove); box-shadow: 0 0 10px var(--lava-glow);
+  }
+  :root[data-skin="lava"] .tab.on { color: var(--accent); }
+  :root[data-skin="lava"]:not([data-mode="dark"]) .tab.on { color: #9e2f50; }
+  :root[data-skin="lava"] .tab.on .tab-ic {
+    background: radial-gradient(80% 100% at 50% 110%, color-mix(in srgb, var(--accent) 32%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent), 0 0 16px -4px var(--lava-glow);
+  }
+  :root[data-skin="lava"] :is(.month, .wv)::after { left: 8%; right: 8%; }
+  :root[data-skin="lava"] .day.today::after { right: 3px; top: 3px; width: 6px; height: 8px; }
+  :root[data-skin="lava"] .sky::before { right: 6%; top: 14%; width: 58px; height: 68px; }
+  :root[data-skin="lava"] .sky::after { width: 70%; height: 52px; bottom: -26px; }
+  :root[data-skin="lava"] .sky-art::before { right: calc(6% + 70px); width: 28px; height: 32px; }
+  :root[data-skin="lava"] .sky-art::after { right: calc(6% + 18px); width: 18px; height: 16px; }
+}
+
+@keyframes lava-morph {
+  0%, 100% { border-radius: 58% 42% 55% 45% / 50% 58% 42% 50%; }
+  33% { border-radius: 44% 56% 46% 54% / 58% 44% 56% 42%; }
+  66% { border-radius: 52% 48% 40% 60% / 44% 54% 46% 56%; }
+}
+@keyframes lava-drip {
+  0% { opacity: 0; transform: translateY(14px) scale(0.6, 0.8); }
+  25% { opacity: 0.95; transform: translateY(8px) scale(1, 1.15); }
+  75% { opacity: 0.75; transform: translateY(-2px) scale(1.05, 0.95); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.7); }
+}
+@keyframes lava-bob { 50% { transform: translateY(-14px) scale(0.95, 1.07); } }
+@keyframes lava-swell { 50% { transform: translateY(-6px) scale(1.04, 1.12); } }

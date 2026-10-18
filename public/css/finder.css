@@ -1,0 +1,117 @@
+/* „Wann habt ihr Zeit?“ – freie Zeit mit Freunden finden (public/js/finder.js) */
+
+.sheet.finder-sheet { width: min(600px, 100%); }
+
+.finder-intro {
+  display: flex; align-items: center; gap: 8px; margin: 4px 0 0; padding: 9px 12px; border-radius: var(--r-md);
+  background: var(--accent-soft); color: var(--text-2); font-size: 13px; font-weight: 550; line-height: 1.35;
+}
+.finder-intro svg { flex: none; color: var(--accent-2); }
+
+/* Wer ist dabei? – runde Bilder zum Antippen */
+.finder-people { display: flex; flex-wrap: wrap; gap: 6px 4px; padding: 2px 0 0; }
+.fp {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; width: 66px; padding: 4px 0 2px; border-radius: var(--r-md);
+  font-size: 12px; font-weight: 600; color: var(--text-3); background: none; transition: background 0.15s;
+}
+button.fp:hover { background: var(--surface-2); }
+.fp-av { position: relative; display: grid; place-items: center; padding: 3px; border-radius: 50%; box-shadow: 0 0 0 2px transparent; transition: box-shadow 0.2s; }
+.fp-av > .avatar { transition: opacity 0.2s, filter 0.2s, transform 0.25s var(--spring); }
+.fp:not(.on) .fp-av > .avatar { opacity: 0.45; filter: grayscale(0.7); transform: scale(0.92); }
+.fp.on .fp-av { box-shadow: 0 0 0 2.5px var(--accent); }
+.fp-check {
+  position: absolute; right: -1px; bottom: -1px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); border: 2px solid var(--surface); transform: scale(0); transition: transform 0.25s var(--spring);
+}
+.fp-check svg { stroke-width: 3.2; }
+.fp.on .fp-check { transform: scale(1); }
+.fp-name { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp.on .fp-name { color: var(--text); }
+.fp.me .fp-check { background: var(--text-3); }
+
+/* Zeitraum, Tageszeit, Dauer */
+.finder-opts { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; }
+.finder-opts > .field:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+.finder-opts .seg { display: flex; width: 100%; }
+.finder-opts .seg button { flex: 1 1 auto; justify-content: center; padding: 0 9px; white-space: nowrap; }
+
+/* Vorschläge */
+.finder-sugs h3, .finder-map h3 { margin-bottom: 10px; }
+.sug-list { display: flex; flex-direction: column; gap: 8px; }
+.sug {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px 9px 9px; text-align: left; color: var(--text);
+  border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--line); transition: background 0.15s, transform 0.15s;
+}
+.sug:hover { background: var(--surface-3); }
+.sug:active { transform: scale(0.985); }
+.sug.all { background: color-mix(in srgb, var(--accent) 11%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 38%, transparent); }
+.sug.all:hover { background: color-mix(in srgb, var(--accent) 17%, var(--surface)); }
+.sug-date {
+  flex: none; width: 46px; height: 50px; border-radius: var(--r-md); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--surface); box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--line);
+}
+.sug-date small { font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
+.sug-date b { font-family: var(--font-display); font-size: 20px; line-height: 1.05; }
+.sug.all .sug-date small { color: var(--accent-2); }
+.sug-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sug-main strong { font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sug-main span { font-size: 12.5px; color: var(--text-2); font-weight: 550; }
+.sug.all .sug-main span { color: var(--accent-2); font-weight: 700; }
+.sug .avatars { flex: none; }
+.sug-add {
+  flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent-2);
+}
+.sug.all .sug-add { background: var(--accent); color: var(--on-accent); }
+
+/* Heatmap: Tage × Stunden, Farbe = wie viele frei sind */
+.finder-heat { display: grid; gap: 3px; }
+.fh-row { display: grid; grid-template-columns: 48px repeat(var(--cols), minmax(0, 1fr)); gap: 3px; align-items: center; }
+.fh-day { font-size: 12px; color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fh-day b { color: var(--text-2); font-weight: 700; }
+.fh-row.today .fh-day, .fh-row.today .fh-day b { color: var(--accent-2); }
+.fh-hour { font-size: 10.5px; font-weight: 650; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.fh-cell {
+  height: 24px; padding: 0; border-radius: 5px; min-width: 0;
+  background: color-mix(in srgb, var(--accent) var(--fill), var(--surface-2));
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.fh-cell.none { background: repeating-linear-gradient(135deg, var(--surface-2) 0 4px, var(--surface-3) 4px 7px); }
+.fh-cell.all { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-accent) 30%, transparent); }
+.fh-cell:not(:disabled):hover { position: relative; z-index: 1; transform: scale(1.14); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent); }
+.fh-cell.past { opacity: 0.28; cursor: default; }
+.finder-legend { justify-content: flex-end; }
+.finder-legend i { background: color-mix(in srgb, var(--accent) var(--fill), var(--surface-2)); }
+.finder-legend i:first-of-type { background: repeating-linear-gradient(135deg, var(--surface-2) 0 3px, var(--surface-3) 3px 5px); }
+
+.finder-hint {
+  margin: 18px 0 0; padding: 16px; border-radius: var(--r-md); background: var(--surface-2);
+  color: var(--text-2); font-size: 13.5px; text-align: center;
+}
+.finder-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 34px 0 22px; color: var(--text-2); font-size: 14px; }
+.finder-loading .spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid var(--line-2); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+
+/* Einstiege: Kalender-Fenster und Übersicht „Heute“ */
+.finder-cal-btn { margin-top: 14px; }
+.card-head .finder-link { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .finder-people { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -20px; padding: 2px 16px 0; scroll-padding: 0 16px; }
+  .finder-people::-webkit-scrollbar { display: none; }
+  .fp { flex: none; width: 62px; }
+  .finder-opts { grid-template-columns: minmax(0, 1fr); }
+  .finder-opts > .field:nth-child(2) { grid-row: auto; }
+  .finder-opts > .field { margin-top: 14px; }
+  .finder-opts > .field:nth-child(3) { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+  .finder-opts > .field:nth-child(3) .seg { width: min(200px, 60%); }
+  .finder-intro { font-size: 12.5px; }
+  .finder-opts .seg button { padding: 0 6px; font-size: 13px; }
+  .fh-row { grid-template-columns: 42px repeat(var(--cols), minmax(0, 1fr)); gap: 2px; }
+  .finder-heat { gap: 2px; }
+  .fh-cell { height: 22px; border-radius: 4px; }
+  .fh-day { font-size: 11.5px; }
+}
+@media (max-width: 480px) {
+  .sug .avatars { display: none; }
+  .sug { gap: 10px; }
+}

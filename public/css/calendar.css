@@ -1,0 +1,591 @@
+/* Zeitgarten – lebendige Kalenderansichten (Monatsbanner, Live-Markierungen, …)
+   Wird nach app.css und skins-live.css geladen. Farben kommen aus den Design-Variablen,
+   Bewegung gibt es nur bei data-motion="on". */
+
+/* ---------- Jahreszeiten-Paletten ---------- */
+
+.season {
+  --k: 84%;
+  --k-sky: 72%;
+  --trunk: #7a4b33;
+  --cloud: #ffffff;
+  --sky-a2: color-mix(in oklab, var(--sky-a) 88%, var(--accent));
+  --sky-b2: color-mix(in oklab, var(--sky-b) 84%, var(--accent));
+  background-image: linear-gradient(100deg, transparent 16%, color-mix(in oklab, var(--sky-a2) var(--k-sky), transparent) 48%, color-mix(in oklab, var(--sky-b2) var(--k-sky), transparent));
+}
+:root[data-mode="dark"] .season { --k: 44%; --k-sky: 30%; --cloud: #c9d2e6; }
+
+.season[data-scene="autumn"] {
+  --sky-a: #ffe6c7; --sky-b: #ffc58f; --sun: #ffb44a;
+  --h3: #f0c88f; --h2: #de945a; --h1: #c0653c;
+  --f1: #e4572e; --f2: #f2a33a; --f3: #bd3a2b;
+  --p1: #e4572e; --p2: #f2a33a; --p3: #c94a30;
+}
+.season[data-scene="late"] {
+  --sky-a: #efe8e1; --sky-b: #d5c8bb; --sun: #f6dfbc;
+  --h3: #cdbfb2; --h2: #ab9888; --h1: #857062; --trunk: #5d4a3f;
+  --f1: #c8743c; --f2: #b9573a; --f3: #d79a4a;
+  --p1: #c8743c; --p2: #a8553a; --p3: #d6a052;
+}
+.season[data-scene="winter"], .season[data-scene="xmas"] {
+  --sky-a: #e6effa; --sky-b: #bed3f1; --sun: #fff4d6; --far: #8fb0c9;
+  --h3: #cddcf0; --h2: #e3ecf8; --h1: #ffffff; --trunk: #6a4a3a;
+  --pine: #2f6f63; --cap: #ffffff;
+  --p1: #ffffff; --p2: #f2f7ff; --p3: #e3eeff;
+}
+.season[data-scene="xmas"] { --sky-b: #b3c2ec; --pine: #276a57; }
+.season[data-scene="spring"] {
+  --sky-a: #eaf7ee; --sky-b: #fcdbe8; --sun: #ffe08a;
+  --h3: #d2ebbc; --h2: #a8d88f; --h1: #7cbe73; --trunk: #8a5a44;
+  --f1: #f6a9c7; --f2: #fdd3e2; --f3: #ec84ad;
+  --p1: #f6aac6; --p2: #ffd3e3; --p3: #ef8cb3;
+}
+.season[data-scene="summer"] {
+  --sky-a: #e2f5ff; --sky-b: #a8dcff; --sun: #ffd23f;
+  --f1: #6cbf5a; --f2: #4fa653; --f3: #8fd16c;
+  --h3: #c3e7a6; --h2: #8fd07a; --h1: #5eb35e; --sea: #45b3e6;
+  --p1: #fff3b0; --p2: #ffe066; --p3: #ffffff;
+}
+.season[data-scene="dusk"] {
+  --sky-a: #ffe2cf; --sky-b: #d6b5ee; --sun: #ff9a6a;
+  --f1: #7a5f98; --f2: #6b5590; --f3: #8a6aa3;
+  --h3: #bb93bd; --h2: #8d6ca5; --h1: #604d82;
+  --p1: #fff27a; --p2: #dcff8c; --p3: #ffe9a8;
+}
+.season[data-scene="golden"] {
+  --sky-a: #fff2d2; --sky-b: #ffd189; --sun: #ffbd3d;
+  --f1: #d9a24c; --f2: #c98f3c; --f3: #e6b45f;
+  --h3: #f2d39b; --h2: #e3b46a; --h1: #cd9242;
+  --p1: #fff0b5; --p2: #ffd67a; --p3: #ffffff;
+}
+
+/* Landschaft */
+.season svg { display: block; width: 100%; height: 100%; }
+.season .sa-h3 { fill: color-mix(in oklab, var(--h3) var(--k), var(--surface)); }
+.season .sa-h2 { fill: color-mix(in oklab, var(--h2) var(--k), var(--surface)); }
+.season .sa-h1 { fill: color-mix(in oklab, var(--h1) var(--k), var(--surface)); }
+.season .sa-sun { fill: var(--sun); }
+:root[data-mode="dark"] .season .sa-sun { fill: color-mix(in oklab, var(--sun) 75%, var(--surface)); }
+.season .sa-sun.pale { opacity: 0.85; }
+.season .sa-sun.moon { fill: #fff6d8; }
+.season .sa-f1 { fill: color-mix(in oklab, var(--f1) var(--k), var(--surface)); }
+.season .sa-f2 { fill: color-mix(in oklab, var(--f2) var(--k), var(--surface)); }
+.season .sa-f3 { fill: color-mix(in oklab, var(--f3) var(--k), var(--surface)); }
+.season .sa-shine { fill: #ffffff; opacity: 0.16; }
+.season .sa-far { fill: color-mix(in oklab, var(--far, var(--h2)) var(--k), var(--surface)); opacity: 0.8; }
+.season .sa-far.f1 { fill: color-mix(in oklab, color-mix(in oklab, var(--f1) 60%, var(--h3)) var(--k), var(--surface)); }
+.season .sa-far.f2 { fill: color-mix(in oklab, color-mix(in oklab, var(--f2) 60%, var(--h3)) var(--k), var(--surface)); }
+.season .sa-far.f3 { fill: color-mix(in oklab, color-mix(in oklab, var(--f3) 60%, var(--h3)) var(--k), var(--surface)); }
+.season .sa-pumpkin ellipse { fill: color-mix(in oklab, #e9781f var(--k), var(--surface)); }
+.season .sa-pumpkin .mid { fill: color-mix(in oklab, #f69a35 var(--k), var(--surface)); }
+.season .sa-stemp { fill: none; stroke: #5f7d2c; stroke-width: 1.4; stroke-linecap: round; }
+.season .sa-trunk { fill: color-mix(in oklab, var(--trunk) var(--k), var(--surface)); }
+.season .sa-branch { fill: none; stroke: color-mix(in oklab, var(--trunk) var(--k), var(--surface)); stroke-linecap: round; }
+.season .sa-pine { fill: color-mix(in oklab, var(--pine) var(--k), var(--surface)); }
+.season .sa-cap { fill: color-mix(in oklab, var(--cap, #fff) 92%, var(--surface)); }
+.season .sa-light { fill: #ff5d5d; }
+.season .sa-light.l1 { fill: #ffd257; }
+.season .sa-light.l2 { fill: #74e3a8; }
+.season .sa-star { fill: #ffd257; }
+.season .sa-twinkle { fill: color-mix(in oklab, #ffffff 70%, var(--sky-b)); }
+:root[data-mode="dark"] .season .sa-twinkle { fill: #ffffff; }
+.season .sa-cloud { fill: var(--cloud); opacity: 0.85; }
+:root[data-mode="dark"] .season .sa-cloud { opacity: 0.22; }
+.season .sa-fog { fill: #ffffff; opacity: 0.2; }
+:root[data-mode="dark"] .season .sa-fog { opacity: 0.05; }
+.season .sa-bloom.b0 { fill: #ffffff; }
+.season .sa-bloom.b1 { fill: #ffd84d; }
+.season .sa-bloom.b2 { fill: #f58fb5; }
+.season .sa-sea { fill: color-mix(in oklab, var(--sea) var(--k), var(--surface)); }
+.season .sa-waves path { fill: none; stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.4; stroke-linecap: round; }
+.season .sa-hull { fill: #c2563e; }
+.season .sa-sail { fill: #ffffff; }
+.season .sa-sail2 { fill: #ffe9c2; }
+.season .sa-stem { fill: none; stroke: #4c9a4c; stroke-width: 1.2; }
+.season .sa-petals { fill: #ffcf33; }
+.season .sa-seed { fill: #8a5a2b; }
+.season .sa-grass { fill: none; stroke: color-mix(in oklab, var(--h1) var(--k), var(--surface)); stroke-width: 1.2; stroke-linecap: round; }
+.season .sa-stalk { fill: none; stroke: color-mix(in oklab, #c8923a var(--k), var(--surface)); stroke-width: 1; }
+.season .sa-ear { fill: color-mix(in oklab, #e6ad4c var(--k), var(--surface)); }
+.season .sa-bird { fill: none; stroke: color-mix(in oklab, #6b4b2a 70%, var(--surface)); stroke-linecap: round; }
+.season .sa-carrot { fill: #f08a2c; }
+.season .sa-coal { fill: #3a3a44; }
+.season .sa-wall { fill: color-mix(in oklab, #b0644a var(--k), var(--surface)); }
+.season .sa-window { fill: #ffd36b; }
+:root[data-mode="dark"] .season .sa-window { fill: #ffc94a; filter: drop-shadow(0 0 3px #ffb02e); }
+
+.season :is(.sa-rays, .sa-tree, .sa-cloud, .sa-fog, .sa-boat) { transform-box: fill-box; }
+.season .sa-rays { stroke: var(--sun); stroke-width: 3; stroke-linecap: round; opacity: 0.7; transform-origin: center; }
+.season .sa-tree { transform-origin: 50% 100%; }
+:root[data-motion="on"] .season .sa-rays { animation: spin 50s linear infinite; }
+:root[data-motion="on"] .season .sa-tree { animation: sa-sway 5.5s ease-in-out infinite alternate; }
+:root[data-motion="on"] .season .sa-cloud { animation: sa-drift 22s ease-in-out infinite alternate; }
+:root[data-motion="on"] .season .sa-cloud.c2 { animation-duration: 30s; animation-delay: -9s; }
+:root[data-motion="on"] .season .sa-fog { animation: sa-drift 18s ease-in-out infinite alternate; }
+:root[data-motion="on"] .season .sa-fog.f2 { animation-direction: alternate-reverse; animation-duration: 24s; }
+:root[data-motion="on"] .season :is(.sa-light, .sa-twinkle) { animation: twinkle 2.4s ease-in-out infinite; }
+:root[data-motion="on"] .season .sa-boat { animation: sa-bob 3.2s ease-in-out infinite; }
+@keyframes sa-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+@keyframes sa-drift { from { transform: translateX(-14px); } to { transform: translateX(16px); } }
+@keyframes sa-bob { 50% { transform: translateY(1.6px) rotate(-2deg); } }
+
+/* ---------- Monatsbanner ---------- */
+
+/* Stellschrauben für die Stile – gelten für das Monatsbild (.mb) und die Monatswechsel in der Liste (.lv-month).
+   In der eigenen CSS setzen, z. B. :root[data-skin="x"] :is(.mb, .lv-month) { --mb-tint: …; }
+   --mb-tint        Farbschleier über dem Bild, unter dem Text (Farbe oder Verlauf)
+   --mb-tint-blend  Mischmodus des Schleiers (color, soft-light, overlay, …)
+   --mb-art-filter  Filter für die Landschaft (hue-rotate, saturate, grayscale, …)
+   --mb-art-blend   Mischmodus der Landschaft (luminosity: nur Helligkeit, Farbe kommt vom Schleier)
+   --mb-art-opacity Deckkraft der Landschaft
+   --mb-edge        Leuchtkante unten (Farbe), --mb-sky-k Stärke des Himmelsverlaufs (Standard 72% / dunkel 30%)
+   --mb-sky-accent  wie viel Akzentfarbe im Himmel steckt (Standard 12%)
+   --mb-fx-accent   wie stark die fallenden Teilchen die Akzentfarbe annehmen (0 … 1, Standard 0.12) */
+:is(.mb, .lv-month) { --mb-tint: none; --mb-tint-blend: normal; --mb-art-filter: none; --mb-art-blend: normal; --mb-art-opacity: 1; --mb-edge: transparent; }
+.mb {
+  position: relative; flex: none; height: 118px; overflow: hidden; isolation: isolate;
+  border-bottom: 1px solid var(--line);
+}
+:is(.mb, .lv-month).season {
+  --k-sky: var(--mb-sky-k, 72%);
+  --sky-a2: color-mix(in oklab, var(--sky-a), var(--accent) var(--mb-sky-accent, 12%));
+  --sky-b2: color-mix(in oklab, var(--sky-b), var(--accent) calc(var(--mb-sky-accent, 12%) + 4%));
+}
+:root[data-mode="dark"] :is(.mb, .lv-month).season { --k-sky: var(--mb-sky-k, 30%); }
+:is(.mb, .lv-month)::before {
+  content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+  background: var(--mb-tint); mix-blend-mode: var(--mb-tint-blend);
+}
+:is(.mb, .lv-month)::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; pointer-events: none;
+  background: var(--mb-edge); box-shadow: 0 0 12px 1px var(--mb-edge);
+}
+.mb-art {
+  position: absolute; z-index: -2; top: 0; right: 0; bottom: 0; width: min(600px, 64%); pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 34%); mask-image: linear-gradient(90deg, transparent, #000 34%);
+}
+:is(.mb-art, .lv-month-art) { filter: var(--mb-art-filter); mix-blend-mode: var(--mb-art-blend); opacity: var(--mb-art-opacity); }
+.mb-sky { position: absolute; z-index: -1; inset: 0; pointer-events: none; }
+.mb-fx {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  -webkit-mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.2), #000 55%); mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.2), #000 55%);
+}
+.mb-text {
+  height: 100%; display: grid; align-content: center; min-width: 0; padding: 12px 22px 13px;
+  grid-template-columns: max-content minmax(0, 1fr); grid-template-areas: "eye stats" "mood mood" "chips chips";
+  column-gap: 14px; row-gap: 3px;
+}
+.mb-eyebrow {
+  grid-area: eye; display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 750; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.mb-eyebrow .mb-emoji { font-size: 14px; letter-spacing: 0; }
+.mb-mood {
+  grid-area: mood; margin: 0; max-width: min(560px, 60vw); font-family: var(--font-display); font-size: 22px; font-weight: 780;
+  letter-spacing: -0.025em; line-height: 1.2; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 14px color-mix(in srgb, var(--surface) 85%, transparent);
+}
+.mb-mood .mb-emoji { display: none; }
+.mb-chips { grid-area: chips; display: flex; gap: 8px; min-width: 0; margin-top: 7px; }
+.mb-chips:empty { display: none; }
+.mb-stats {
+  grid-area: stats; align-self: center; margin: 0; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mb-stats b { color: var(--text); font-weight: 780; font-variant-numeric: tabular-nums; }
+.mb-stats .sep { margin: 0 7px; color: var(--text-3); }
+.mb-stats .si { display: none; margin-right: 3px; font-size: 11px; }
+.mb-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; min-width: 0; max-width: 330px;
+  border-radius: 999px; font-size: 12.5px; font-weight: 650; color: var(--text); white-space: nowrap;
+  background: color-mix(in srgb, var(--surface) 80%, transparent); border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-sm); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.25s var(--spring), box-shadow 0.2s, border-color 0.2s;
+}
+.mb-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent); }
+.mb-chip:active { transform: scale(0.96); }
+.mb-chip .k { flex: none; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: color-mix(in srgb, var(--c, var(--accent)) var(--mix-text), var(--text)); }
+.mb-chip .ej { flex: none; font-size: 14px; line-height: 1; }
+.mb-chip .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+.mb-chip .rel { flex: none; color: var(--text-2); font-weight: 600; }
+.mb-chip .rel::before { content: "·"; margin-right: 6px; color: var(--text-3); }
+/* Laufender Termin: der Chip füllt sich, wie viel schon vorbei ist */
+.mb-chip.live {
+  border-color: color-mix(in srgb, var(--c) 60%, transparent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--c) 20%, transparent) calc(var(--done, 0) * 100%), transparent 0),
+    color-mix(in srgb, var(--c) 7%, color-mix(in srgb, var(--surface) 84%, transparent));
+}
+.mb-chip.add { color: var(--accent-2); gap: 5px; }
+
+/* Monatsbild je Stil: Die Jahreszeit bleibt erkennbar, Farben und Licht passen zum Look */
+:root[data-skin="aurora"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 34%;
+  --mb-tint: linear-gradient(100deg, transparent 38%, color-mix(in srgb, #2dd4bf 26%, transparent) 70%, color-mix(in srgb, var(--accent) 34%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.4;
+}
+:root[data-skin="neon"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 28%; --mb-art-filter: grayscale(1) contrast(1.1);
+  --mb-tint: linear-gradient(100deg, transparent 34%, color-mix(in srgb, var(--accent) 50%, transparent) 64%);
+  --mb-tint-blend: color; --mb-edge: color-mix(in srgb, var(--accent) 70%, transparent); --mb-fx-accent: 0.7;
+}
+:root[data-skin="sunset"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 26%;
+  --mb-tint: linear-gradient(100deg, transparent 40%, color-mix(in srgb, #ff7a59 22%, transparent) 70%, color-mix(in srgb, #d6457a 30%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.35;
+}
+:root[data-skin="ozean"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 34%; --mb-art-filter: saturate(0.8);
+  --mb-tint: linear-gradient(100deg, transparent 36%, color-mix(in srgb, var(--accent) 42%, transparent) 66%, color-mix(in srgb, #14b8a6 40%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.45;
+}
+:root[data-skin="pastell"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 24%; --mb-art-filter: saturate(0.7) brightness(1.06);
+  --mb-tint: linear-gradient(100deg, transparent 40%, color-mix(in srgb, #f9a8d4 26%, transparent) 70%, color-mix(in srgb, var(--accent) 26%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.3;
+}
+:root[data-skin="mono"] :is(.mb, .lv-month) { --mb-sky-accent: 0%; --mb-art-filter: grayscale(1) contrast(1.08); --mb-fx-accent: 0; --mb-sky-k: 40%; }
+:root[data-skin="mono"] .mb .mb-fx { filter: grayscale(1); }
+:root[data-skin="jarvis"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 30%; --mb-art-filter: grayscale(1) contrast(1.15) brightness(1.05); --mb-art-opacity: 0.9;
+  --mb-tint: linear-gradient(100deg, transparent 32%, color-mix(in srgb, var(--accent) 52%, transparent) 64%);
+  --mb-tint-blend: color; --mb-edge: var(--accent); --mb-fx-accent: 0.8;
+}
+:root[data-skin="synthwave"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 40%; --mb-art-filter: grayscale(0.6) contrast(1.1);
+  --mb-tint: linear-gradient(100deg, transparent 34%, color-mix(in srgb, var(--accent) 60%, transparent) 62%, color-mix(in srgb, #ff9a3c 55%, transparent) 88%);
+  --mb-tint-blend: color; --mb-edge: var(--accent); --mb-fx-accent: 0.55;
+}
+:root[data-skin="cyberpunk"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 30%; --mb-art-filter: contrast(1.2) saturate(1.2);
+  --mb-tint: linear-gradient(100deg, transparent 36%, color-mix(in srgb, var(--cp-2, #00f0ff) 45%, transparent) 64%, color-mix(in srgb, var(--accent) 55%, transparent));
+  --mb-tint-blend: color; --mb-edge: var(--accent); --mb-fx-accent: 0.5;
+}
+:root[data-skin="galaxie"] :is(.mb, .lv-month) {
+  --mb-sky-accent: 42%; --mb-art-filter: grayscale(0.7) brightness(0.92);
+  --mb-tint: linear-gradient(100deg, transparent 34%, color-mix(in srgb, var(--accent) 58%, transparent) 62%, color-mix(in srgb, #ec4899 40%, transparent));
+  --mb-tint-blend: color; --mb-fx-accent: 0.5;
+}
+
+/* ---------- Puls für laufende Termine ---------- */
+
+.ev-live { display: none; position: relative; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 1.5px var(--surface); }
+.ev-live::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; opacity: 0; }
+:root[data-motion="on"] .ev-live::after { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; opacity: 1; }
+:is(.now, .mb-chip.live) .ev-live { display: inline-block; }
+
+/* ---------- Termin-Balken im Monat ---------- */
+
+.bar .ej { flex: none; font-size: 12px; line-height: 1; }
+.bar.timed.has-ej::before { display: none; }
+.bar.timed .ej {
+  display: grid; place-items: center; width: calc(var(--lane) - 5px); height: calc(var(--lane) - 5px); margin-left: -3px;
+  border-radius: 50%; font-size: 10.5px;
+  background: color-mix(in srgb, var(--c) 18%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 65%, transparent);
+}
+.bar.now .ev-live { margin-left: auto; }
+.bar .ppl { flex: none; display: inline-flex; align-items: center; gap: 2px; margin-left: auto; font-size: 10.5px; font-weight: 700; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.bar.now .ev-live + .ppl { margin-left: 5px; }
+.bar.timed.now {
+  background: color-mix(in srgb, var(--c) 14%, transparent); font-weight: 700;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 42%, transparent), var(--ev-glow);
+}
+.bar.past { opacity: 0.5; filter: saturate(0.7); }
+.bar.past:hover { opacity: 0.85; }
+.bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 2; }
+
+/* Geburtstage & Jahrestage: festlicher Verlauf, Glanz und ein Funkeln am Ende */
+.bar.festive {
+  padding-right: 20px; font-weight: 750;
+  background-image: linear-gradient(100deg, transparent 35%, color-mix(in srgb, #ffc93c 30%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent), 0 3px 10px -5px color-mix(in srgb, var(--c) 80%, transparent);
+}
+.bar.timed.festive { background-color: color-mix(in srgb, var(--c) 14%, transparent); }
+.bar.festive.has-ej::before {
+  content: ""; display: block; position: absolute; inset: 0; width: auto; height: auto; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.6) 50%, transparent 60%) 130% 0 / 260% 100% no-repeat;
+  box-shadow: none;
+}
+.bar.festive::after {
+  content: "✦"; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); pointer-events: none;
+  font-size: 10px; line-height: 1; color: #f0a500; text-shadow: 0 0 6px color-mix(in srgb, #ffc93c 90%, transparent);
+}
+:root[data-motion="on"] .bar.festive.has-ej::before { animation: festive-shine 4.5s ease-in-out infinite; }
+:root[data-motion="on"] .bar.festive::after { animation: twinkle 2.2s ease-in-out infinite; }
+@keyframes festive-shine { 0%, 60% { background-position: 130% 0; } 100% { background-position: -30% 0; } }
+
+/* Erste Ansicht: Termine kommen sanft herein */
+:root[data-motion="on"] .month.intro .bar { animation: bar-in 0.5s var(--ease) both; animation-delay: calc(var(--d, 0) * 1ms); }
+@keyframes bar-in { from { opacity: 0; transform: translateY(5px) scale(0.97); } }
+
+.more { transition: background 0.15s, color 0.15s; }
+.more:hover { background: var(--accent-soft); color: var(--accent-2); }
+
+/* ---------- Tage im Monat ---------- */
+
+.day { position: relative; transition: background-color 0.2s, box-shadow 0.2s; }
+.day .num { transition: transform 0.28s var(--spring), background 0.2s, color 0.2s; }
+.day.we { background-color: color-mix(in srgb, var(--accent) 3%, color-mix(in srgb, var(--surface-2) 50%, transparent)); }
+.day.we:not(.other) .num { color: color-mix(in srgb, var(--danger) 38%, var(--text-2)); }
+.day.busy-1 { background-image: linear-gradient(to top, color-mix(in srgb, var(--accent) 6%, transparent), transparent 55%); }
+.day.busy-2 { background-image: linear-gradient(to top, color-mix(in srgb, var(--accent) 10%, transparent), transparent 75%); }
+.day.busy-3 { background-image: linear-gradient(to top, color-mix(in srgb, var(--accent) 15%, transparent), transparent 95%); }
+@media (hover: hover) {
+  body:not(.is-dragging) .day:hover { background-color: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent); }
+  body:not(.is-dragging) .day:hover .num { transform: translateY(-1px) scale(1.08); }
+  body:not(.is-dragging) .day:not(.today):hover .num { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+}
+.day:active { background-color: color-mix(in srgb, var(--accent) 12%, transparent); }
+.day:active .num { transform: scale(0.9); }
+.day:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 1; }
+.day.drop-target {
+  background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 22px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* Heute: leuchtender Ring und ein Balken, wie viel vom Tag schon vorbei ist */
+.day.today { background-image: radial-gradient(120% 90% at 20% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%); }
+.day.today .num { position: relative; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 4px 14px -3px color-mix(in srgb, var(--accent) 75%, transparent); }
+.day.today .num::before {
+  content: ""; position: absolute; inset: -3px; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); opacity: 0;
+}
+:root[data-motion="on"] .day.today .num::before { animation: today-ring 2.8s ease-out infinite; }
+@keyframes today-ring { 0% { opacity: 0.9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.45); } }
+@keyframes today-ring-sm { 0% { opacity: 0.8; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.28); } }
+:root:is([data-skin="jarvis"], [data-skin="synthwave"], [data-skin="cyberpunk"], [data-skin="galaxie"]) .day.today .num::before { display: none; }
+.dprog { position: absolute; z-index: 1; left: 0; right: 0; top: 0; height: 3px; pointer-events: none; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.dprog i {
+  display: block; height: 100%; width: calc(var(--p, 0) * 100%); border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 35%, transparent), var(--accent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent);
+  transition: width 1s var(--ease);
+}
+
+/* ---------- Woche ---------- */
+
+/* .wv-x hält Kopf und Raster; am Handy scrollt es seitwärts (siehe unten), am Computer nur das Raster */
+.wv-x { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.wv-top { flex: none; }
+.wv-now-tag { display: none; }
+
+.wv-dots { display: flex; align-items: center; justify-content: center; gap: 3px; height: 6px; margin-top: 2px; }
+.wv-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--c); box-shadow: var(--ev-glow); }
+.wv-dots b { font-size: 9.5px; font-weight: 750; line-height: 1; color: var(--text-3); }
+.wv-dayhead { transition: background 0.15s; }
+.wv-dayhead:active .dn { transform: scale(0.9); }
+.wv-dayhead .dn { transition: background 0.15s, transform 0.25s var(--spring); }
+.wv-dayhead.past .dn { color: var(--text-3); }
+.wv-dayhead.past .wv-dots i { opacity: 0.45; }
+.wv-col.we { background: color-mix(in srgb, var(--surface-2) 40%, transparent); }
+
+.wv-allday { background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 70%, transparent), color-mix(in srgb, var(--surface-2) 20%, transparent)); }
+.wv-allday-label { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; padding-top: 6px; line-height: 1.1; }
+.wv-allday-label .icon { color: color-mix(in srgb, var(--accent) 60%, var(--text-3)); }
+
+.wv-ev .tt { flex: none; }
+.wv-ev .ej { margin-right: 4px; }
+.wv-ev .tt .ev-live { margin-right: 5px; vertical-align: 1px; }
+.wv-ev .wm {
+  position: absolute; right: 5px; bottom: 3px; font-size: 26px; line-height: 1; pointer-events: none;
+  opacity: 0.3; transform: rotate(-10deg); filter: saturate(0.85);
+}
+.wv-ev.past { opacity: 0.5; filter: saturate(0.7); }
+.wv-ev.past:hover { opacity: 0.85; }
+.wv-ev.now {
+  z-index: 1; font-weight: 650;
+  box-shadow: inset 3px 0 0 var(--c), 0 0 0 2px color-mix(in srgb, var(--c) 55%, transparent), 0 8px 22px -6px color-mix(in srgb, var(--c) 70%, transparent);
+}
+:root[data-motion="on"] .wv-ev.now { animation: ev-glow 2.6s ease-in-out infinite; }
+@keyframes ev-glow {
+  50% { box-shadow: inset 3px 0 0 var(--c), 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent), 0 10px 28px -4px color-mix(in srgb, var(--c) 75%, transparent); }
+}
+.wv-ev:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 3; }
+
+/* Vergangene Stunden von heute: leicht schraffiert */
+.wv-past {
+  position: absolute; left: 0; right: 0; top: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--text) 5%, transparent) 0 1px, transparent 1px 7px),
+    color-mix(in srgb, var(--text) 3%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 30px), rgba(0, 0, 0, 0.3)); mask-image: linear-gradient(180deg, #000 calc(100% - 30px), rgba(0, 0, 0, 0.3));
+}
+
+/* Jetzt-Linie: Uhrzeit am Rand und ein feiner Strich über die ganze Woche */
+.now-rail { position: absolute; top: 0; height: 100%; left: calc(var(--i, 0) * -100%); width: 700%; background: inherit; opacity: 0.28; pointer-events: none; }
+.now-tag {
+  position: absolute; top: 50%; left: calc(var(--i, 0) * -100% - var(--gutter) + 4px); width: calc(var(--gutter) - 8px);
+  height: 17px; transform: translateY(-50%); border-radius: 9px; background: inherit; color: var(--bg);
+  font-size: 10.5px; font-weight: 800; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums;
+  box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Liste ---------- */
+
+.lv-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lv-dtext { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-count { margin-left: auto; flex: none; font-size: 11.5px; font-weight: 600; color: var(--text-3); }
+.lv-chip {
+  flex: none; display: inline-flex; align-items: center; height: 21px; padding: 0 9px; border-radius: 11px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.03em; background: var(--surface-3); color: var(--text-2);
+}
+.lv-chip.today { background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--accent) 80%, transparent); }
+.lv-chip.tomorrow { background: var(--accent-soft); color: var(--accent-2); }
+.lv-day.today .lv-date .dn { text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+.lv .item .stripe { display: none; }
+.lv-av {
+  position: relative; flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
+  font-size: 19px; line-height: 1;
+  background: color-mix(in srgb, var(--c) 16%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 45%, transparent), var(--ev-glow);
+}
+.lv-av.mono { font-family: var(--font-display); font-size: 15px; font-weight: 800; color: color-mix(in srgb, var(--c) var(--mix-text), var(--text)); }
+.lv .item.past .lv-av { filter: grayscale(0.6); }
+.lv .item.now .lv-av { box-shadow: inset 0 0 0 2px var(--c), 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+.lv .item.now .lv-av::after {
+  content: ""; position: absolute; top: 0; right: 0; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--danger); box-shadow: 0 0 0 2px var(--card);
+}
+:root[data-motion="on"] .lv .item.now .lv-av::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 2px var(--c);
+  animation: today-ring 2.2s ease-out infinite;
+}
+.lv .item.festive {
+  position: relative; overflow: hidden;
+  background-image: linear-gradient(100deg, color-mix(in srgb, var(--c) 12%, transparent), transparent 45%, color-mix(in srgb, #ffc93c 16%, transparent));
+  border-color: color-mix(in srgb, var(--c) 35%, var(--line));
+}
+.lv .item.festive .lv-av { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, #f0a500 70%, transparent), 0 0 0 3px color-mix(in srgb, #ffc93c 22%, transparent); }
+.lv .item.festive::after {
+  content: "✦"; position: absolute; top: 5px; left: 46px; font-size: 10px; line-height: 1; color: #f0a500; pointer-events: none;
+  text-shadow: 7px 9px 0 color-mix(in srgb, #ff5d8f 75%, transparent), -36px 32px 0 color-mix(in srgb, #3ec7e0 75%, transparent);
+}
+:root[data-motion="on"] .lv .item.festive::after { animation: twinkle 2.6s ease-in-out infinite; }
+
+/* Monatswechsel in der Liste */
+.lv-month {
+  position: relative; display: flex; align-items: center; height: 76px; margin: 18px 0 4px; padding: 0 20px;
+  overflow: hidden; isolation: isolate; border-radius: var(--r-lg); border: 1px solid var(--line);
+  background-color: var(--card); box-shadow: var(--shadow-sm); font: inherit;
+}
+.lv-month-art {
+  position: absolute; z-index: -2; top: 0; right: 0; bottom: 0; width: min(440px, 72%); pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%); mask-image: linear-gradient(90deg, transparent, #000 40%);
+}
+.lv-month-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; text-shadow: 0 1px 12px color-mix(in srgb, var(--surface) 90%, transparent); }
+.lv-month strong { font-family: var(--font-display); font-size: 21px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.15; }
+.lv-month-mood { font-size: 12.5px; font-weight: 600; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Mittlere und niedrige Bildschirme ---------- */
+
+@media (max-width: 1100px) {
+  .bar.timed .ej { width: auto; height: auto; margin: 0; background: none; box-shadow: none; font-size: 11px; }
+  .bar { gap: 4px; }
+}
+/* Wenig Höhe: Stimmung und nächster Termin in eine Zeile, damit das Raster Platz behält */
+@media (min-width: 761px) and (max-height: 820px) {
+  .mb { height: 88px; }
+  .mb-text { grid-template-columns: max-content minmax(0, 1fr); grid-template-areas: "eye stats" "mood chips"; row-gap: 4px; padding-top: 10px; padding-bottom: 11px; }
+  .mb-mood { font-size: 19px; max-width: 44vw; }
+  .mb-chips { margin-top: 0; align-self: center; }
+  .mb-chip { height: 28px; }
+}
+@media (min-width: 761px) and (max-width: 1100px) and (max-height: 820px) {
+  .mb-chip + .mb-chip { display: none; }
+}
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  .mb { height: 66px; }
+  .mb-art { width: 72%; }
+  .mb-text {
+    padding: 8px 14px 9px; row-gap: 5px; column-gap: 10px;
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr); grid-template-areas: "mood mood" "chips stats";
+  }
+  .mb-eyebrow { display: none; }
+  .mb-mood { max-width: 84%; font-size: 14.5px; font-weight: 750; letter-spacing: -0.015em; }
+  .mb-mood .mb-emoji { display: inline; margin-right: 5px; }
+  .mb-chips { margin-top: 0; }
+  .mb-chip { height: 25px; gap: 5px; padding: 0 9px 0 8px; font-size: 11.5px; max-width: 100%; }
+  .mb-chip .k { font-size: 9.5px; }
+  .mb-chip .ej { font-size: 12px; }
+  .mb-chip + .mb-chip { display: none; }
+  .mb-stats {
+    justify-self: start; max-width: 100%; height: 25px; line-height: 23px; padding: 0 9px; font-size: 11.5px; border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 78%, transparent); border: 1px solid var(--line);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .mb-stats .sep { margin: 0 5px; }
+  .mb-stats .si { display: inline; }
+  .mb-stats .sw { display: none; }
+  .mb-stats .si .icon { vertical-align: -1px; color: var(--text-2); }
+  :root[data-motion="on"] .day.today .num::before { animation-name: today-ring-sm; }
+  .mb-stats .st-more { display: none; }
+
+  /* Monat: weniger Rand, dafür Titel in bis zu zwei Zeilen (die Höhe misst views.js) */
+  .month { --lane: 17px; --dayhead: 24px; }
+  .dow { padding: 5px 0 4px; }
+  .day { padding-top: 2px; }
+  .day .num { min-width: 20px; height: 20px; padding: 0 3px; border-radius: 10px; }
+  .bar .label { text-overflow: clip; }
+  .bar.wrap {
+    align-items: flex-start; gap: 0; padding: 1.5px 2px 1.5px 3px; white-space: normal;
+    font-size: 10px; line-height: 12px; letter-spacing: -0.015em;
+  }
+  .bar.wrap .label {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; max-height: 24px;
+    overflow: hidden; overflow-wrap: anywhere; -webkit-hyphens: auto; hyphens: auto; font-size: inherit;
+  }
+  .bar.wrap .ej { display: inline; margin: 0 1px 0 0; font-size: 9.5px; line-height: 1; }
+  .bar.wrap .ev-live { position: absolute; top: 2px; right: 2px; }
+  .bar.wrap.now .label { padding-right: 5px; }
+  :root[data-events="line"] .bar.block.wrap { padding-left: 6px; }
+  .more { font-size: 10px; line-height: 15px; }
+  .bar.festive { padding-right: 4px; }
+  .bar.festive::after { display: none; }
+  .bar .ej { font-size: 10px; }
+  .bar.timed .ej { width: auto; height: auto; margin: 0; background: none; box-shadow: none; }
+  .bar.timed.now { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent); }
+  .bar .ev-live { width: 5px; height: 5px; }
+  .dprog { height: 2.5px; }
+  .day.today .num { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent), 0 3px 10px -3px color-mix(in srgb, var(--accent) 75%, transparent); }
+
+  /* Woche: etwa drei Tage sichtbar, seitwärts mit Einrasten; Kopf oben und Stunden links bleiben stehen */
+  .wv-x {
+    --wv-col: calc((100cqw - var(--gutter)) / 3.2);
+    --wv-sticky: linear-gradient(var(--card), var(--card)), var(--bg); /* deckend, damit nichts durchscheint */
+    display: block; container-type: inline-size; overflow: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scroll-padding-left: var(--gutter);
+  }
+  .wv-top, .wv-grid { width: calc(var(--gutter) + 7 * var(--wv-col)); }
+  .wv-top {
+    position: sticky; top: 0; z-index: 6; background: var(--wv-sticky);
+    box-shadow: 0 6px 12px -10px color-mix(in srgb, var(--text) 40%, transparent);
+  }
+  .wv-scroll { overflow: visible; }
+  .wv-col { scroll-snap-align: start; }
+  .wv-head .wv-gutter, .wv-allday-label, .wv-hours { position: sticky; left: 0; z-index: 5; background: var(--wv-sticky); }
+  .wv-hours { box-shadow: 1px 0 0 var(--line); }
+  .now-line .now-tag { display: none; }
+  .wv-now-tag {
+    display: block; position: absolute; z-index: 1; left: 2px; right: 2px; height: 15px; transform: translateY(-50%);
+    border-radius: 8px; background: var(--danger); color: var(--bg); font-size: 9px; font-weight: 800; line-height: 15px;
+    text-align: center; font-variant-numeric: tabular-nums; box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.3);
+  }
+  .wv-now-tag[hidden] { display: none; }
+  .wv-dots { gap: 2px; height: 5px; }
+  .wv-dots i { width: 4px; height: 4px; }
+  .wv-dots b { font-size: 8.5px; }
+  .wv-allday-label span:not(.icon) { display: none; }
+  .wv-ev .wm { font-size: 18px; }
+
+  .lv-av { width: 34px; height: 34px; font-size: 17px; }
+  .lv-month { height: 64px; padding: 0 16px; margin-top: 14px; }
+  .lv-month-art { width: 64%; }
+  .lv-month strong { font-size: 18px; }
+  .lv-month-mood { font-size: 11.5px; }
+}

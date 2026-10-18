@@ -1,0 +1,296 @@
+/* Stil „Liquid Glass“ – mattiertes Glas mit hellen Lichtkanten über weichen, treibenden Farbwolken (Szene: js/skins/glas.js).
+   Regeln immer mit :root[data-skin="glas"] beginnen. Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = Morgenlicht, dunkel = Nachtglas ---------- */
+
+:root[data-skin="glas"] {
+  --bg: #e9edf6;
+  --wallpaper:
+    radial-gradient(55% 45% at 22% 14%, rgba(0, 98, 214, 0.32), transparent 70%),
+    radial-gradient(48% 42% at 88% 24%, rgba(170, 110, 255, 0.34), transparent 70%),
+    radial-gradient(55% 46% at 68% 88%, rgba(255, 120, 170, 0.32), transparent 70%),
+    radial-gradient(42% 38% at 10% 84%, rgba(255, 178, 92, 0.32), transparent 70%),
+    linear-gradient(170deg, #f5f7fc, #e2e7f2);
+  --surface: rgba(255, 255, 255, 0.8);
+  --card: rgba(255, 255, 255, 0.56);
+  --sidebar-bg: rgba(255, 255, 255, 0.44);
+  --surface-2: rgba(118, 126, 156, 0.12);
+  --surface-3: rgba(118, 126, 156, 0.2);
+  --line: rgba(40, 52, 90, 0.1);
+  --line-2: rgba(40, 52, 90, 0.19);
+  --text: #0b1220;
+  --text-2: #353f53;
+  --text-3: #465063;
+  --accent: #0062d6;
+  --on-accent: #ffffff;
+  --accent-2: #0058c2;
+  --danger: #d4203a;
+  --online: #138a43;
+  --mix: 20%;
+  --mix-text: 54%;
+  --blur: 24px;
+  --ev-glow-geo: 0 0 0 0;
+  --ev-glow-mix: 0%;
+  --shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 3px rgba(30, 40, 80, 0.08);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(30, 40, 80, 0.05), 0 18px 40px -22px rgba(30, 40, 100, 0.38);
+  --shadow-lg: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.5), 0 30px 70px -24px rgba(20, 30, 80, 0.42);
+  --toast-bg: rgba(26, 30, 44, 0.9);
+  --toast-text: #ffffff;
+  --toast-icon: #64d2ff;
+  --scrim: rgba(24, 32, 64, 0.22);
+  /* Glas */
+  --gl-bf: blur(24px) saturate(1.8);
+  --gl-edge: rgba(255, 255, 255, 0.62);
+  --gl-rim: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.42) 18%, rgba(255, 255, 255, 0.08) 46%, rgba(255, 255, 255, 0.22) 76%, rgba(255, 255, 255, 0.85) 100%);
+  --gl-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 38%);
+  --gl-fill: rgba(255, 255, 255, 0.5);
+  --gl-fill-h: rgba(255, 255, 255, 0.78);
+  --gl-on: rgba(255, 255, 255, 0.92);
+  --gl-spec: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(255, 255, 255, 0.3);
+  --gl-drop: 0 1px 2px rgba(20, 30, 70, 0.08), 0 6px 18px -8px rgba(20, 30, 80, 0.28);
+  --gl-glow: color-mix(in srgb, var(--accent) 55%, transparent);
+  --gl-hero: rgba(255, 255, 255, 0.6);
+  --fx-a: var(--accent);
+  --fx-b: #a86bff;
+  --fx-c: #ff6fa6;
+  --fx-d: #ffad5a;
+  --fx-s1: #ffffff;
+  --fx-s2: #f4f6fc;
+  --fx-s3: #e0e6f2;
+  --fx-s4: #37cfe0;
+  --fx-k: 1;
+}
+:root[data-skin="glas"][data-mode="dark"] {
+  --bg: #171a30;
+  --wallpaper:
+    radial-gradient(55% 45% at 22% 14%, rgba(60, 140, 255, 0.36), transparent 70%),
+    radial-gradient(48% 42% at 88% 24%, rgba(126, 80, 255, 0.36), transparent 70%),
+    radial-gradient(55% 46% at 68% 88%, rgba(255, 64, 150, 0.3), transparent 70%),
+    radial-gradient(42% 38% at 10% 84%, rgba(0, 190, 210, 0.26), transparent 70%),
+    linear-gradient(170deg, #0b0e1c, #04050b);
+  --surface: rgba(30, 33, 48, 0.86);
+  --card: rgba(18, 20, 32, 0.56);
+  --sidebar-bg: rgba(14, 16, 26, 0.5);
+  --surface-2: rgba(255, 255, 255, 0.08);
+  --surface-3: rgba(255, 255, 255, 0.14);
+  --line: rgba(255, 255, 255, 0.085);
+  --line-2: rgba(255, 255, 255, 0.16);
+  --text: #f4f6fb;
+  --text-2: #c3c9d6;
+  --text-3: #9ca4b6;
+  --accent: #6ab8ff;
+  --on-accent: #001b38;
+  --accent-2: #8ccaff;
+  --danger: #ff6b80;
+  --online: #4ade80;
+  --mix: 26%;
+  --mix-text: 46%;
+  --ev-glow-geo: 0 0 12px -4px;
+  --ev-glow-mix: 60%;
+  --shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.3), 0 20px 44px -22px rgba(0, 0, 0, 0.8);
+  --shadow-lg: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: rgba(40, 44, 62, 0.92);
+  --toast-text: #f4f6fb;
+  --toast-icon: var(--accent);
+  --scrim: rgba(2, 4, 12, 0.5);
+  --gl-bf: blur(26px) saturate(1.7);
+  --gl-edge: rgba(255, 255, 255, 0.14);
+  --gl-rim: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.14) 20%, rgba(255, 255, 255, 0.03) 48%, rgba(255, 255, 255, 0.08) 76%, rgba(255, 255, 255, 0.36) 100%);
+  --gl-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 40%);
+  --gl-fill: rgba(255, 255, 255, 0.08);
+  --gl-fill-h: rgba(255, 255, 255, 0.15);
+  --gl-on: rgba(255, 255, 255, 0.18);
+  --gl-spec: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+  --gl-drop: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 20px -10px rgba(0, 0, 0, 0.6);
+  --gl-glow: color-mix(in srgb, var(--accent) 60%, transparent);
+  --gl-hero: rgba(18, 20, 34, 0.6);
+  --fx-a: #3d8bff;
+  --fx-b: #7f4dff;
+  --fx-c: #ff3d97;
+  --fx-d: #00bcd4;
+  --fx-s1: #ffffff;
+  --fx-s2: #0b0e1c;
+  --fx-s3: #04050b;
+  --fx-s4: #ff8a3d;
+  --fx-k: 1;
+}
+:root[data-skin="glas"]:not([data-corners="sharp"]) { --r-xs: 8px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; }
+:root[data-skin="glas"] {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Segoe UI Variable Text", "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+:root[data-skin="glas"]:is([data-font="modern"], :not([data-font])) {
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", "Segoe UI Variable Display", "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---------- Gemeinsames für Live-Stile ---------- */
+
+:root[data-skin="glas"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="glas"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--gl-bf); -webkit-backdrop-filter: var(--gl-bf); }
+:root[data-skin="glas"] .sky-art svg { display: none; }
+:root[data-skin="glas"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="glas"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="glas"] .heat .cell { --text-2: var(--text); }
+
+/* ---------- Schrift: klar und ruhig wie ein System-Font ---------- */
+
+:root[data-skin="glas"] .topbar .title { font-weight: 750; letter-spacing: -0.03em; }
+:root[data-skin="glas"] .topbar .title .year { color: var(--text-3); font-weight: 600; }
+:root[data-skin="glas"] :is(.dow, .wv-dayhead .wd) { color: var(--text-3); letter-spacing: 0.06em; font-weight: 650; }
+:root[data-skin="glas"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl) { color: var(--text-3); letter-spacing: 0.06em; }
+:root[data-skin="glas"] .brand img { box-shadow: var(--gl-spec), var(--gl-drop); }
+
+/* ---------- Flächen: mattiertes Glas mit heller Lichtkante ---------- */
+
+:root[data-skin="glas"] :is(.month, .wv, .card) {
+  background-image: var(--gl-sheen);
+  border-color: var(--gl-edge);
+}
+/* Lichtkante: oben links und unten rechts am hellsten, wie bei echtem Glas */
+:root[data-skin="glas"] :is(.month, .wv, .card)::before {
+  content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  border-radius: inherit; padding: 1.25px;
+  background: var(--gl-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+:root[data-skin="glas"] .sidebar {
+  border-right-color: var(--gl-edge);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.28), 10px 0 40px -30px rgba(20, 30, 80, 0.4);
+}
+:root[data-skin="glas"][data-mode="dark"] .sidebar { box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05), 10px 0 40px -30px rgba(0, 0, 0, 0.8); }
+:root[data-skin="glas"] .search-box { border-radius: 999px; border-color: var(--gl-edge); box-shadow: var(--gl-spec), var(--gl-drop); }
+:root[data-skin="glas"] .item { border-color: var(--gl-edge); box-shadow: var(--gl-spec), var(--gl-drop); }
+:root[data-skin="glas"][data-mode="dark"] .item { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+:root[data-skin="glas"] .sheet { border-color: var(--gl-edge); box-shadow: var(--gl-spec), var(--shadow-lg); }
+:root[data-skin="glas"] .input { border-radius: var(--r-md); background-color: var(--gl-fill); box-shadow: inset 0 1px 2px rgba(20, 30, 70, 0.06); }
+:root[data-skin="glas"] .toast {
+  backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.12), var(--shadow-lg);
+}
+
+/* ---------- Knöpfe: Pillen aus Glas ---------- */
+
+:root[data-skin="glas"] .btn { border-radius: 999px; background: var(--gl-fill); box-shadow: var(--gl-spec), var(--gl-drop); }
+:root[data-skin="glas"] .btn:hover { background: var(--gl-fill-h); }
+:root[data-skin="glas"] .btn.primary {
+  color: var(--on-accent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent) 55%, color-mix(in srgb, var(--accent) 90%, black));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 8px 22px -10px var(--gl-glow);
+}
+:root[data-skin="glas"] .btn.primary:hover { filter: brightness(1.06); }
+:root[data-skin="glas"] .icon-btn { border-radius: 999px; }
+:root[data-skin="glas"] .icon-btn:hover { background: var(--gl-fill-h); box-shadow: var(--gl-spec); }
+:root[data-skin="glas"] .seg { border-radius: 999px; background: var(--gl-fill); box-shadow: var(--gl-spec), var(--gl-drop); }
+:root[data-skin="glas"] .seg button { border-radius: 999px; }
+:root[data-skin="glas"] .seg button.on { background: var(--gl-on); box-shadow: var(--gl-spec), 0 2px 8px -2px rgba(20, 30, 80, 0.22); }
+:root[data-skin="glas"] .chip { box-shadow: var(--gl-spec); background-color: var(--gl-fill); }
+:root[data-skin="glas"] .chip.on { background-color: color-mix(in srgb, var(--c) 16%, var(--surface)); }
+:root[data-skin="glas"] .cal-row:hover,
+:root[data-skin="glas"] .mini-grid button:hover { background: var(--gl-fill-h); }
+:root[data-skin="glas"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+
+/* Neuer Termin: runder Tropfen aus Akzent-Glas mit Glanzpunkt */
+:root[data-skin="glas"] .fab {
+  border-radius: 50%;
+  background: radial-gradient(120% 120% at 32% 12%, color-mix(in srgb, var(--accent) 70%, white), var(--accent) 52%, color-mix(in srgb, var(--accent) 82%, black));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7), inset 0 -3px 8px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.4), 0 16px 32px -12px var(--gl-glow), 0 4px 10px -4px rgba(0, 0, 0, 0.25);
+}
+:root[data-skin="glas"] .fab::after {
+  content: ""; position: absolute; top: 5px; left: 14px; right: 14px; height: 18px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+}
+
+/* ---------- Heute ---------- */
+
+:root[data-skin="glas"] .day.today {
+  background-image: radial-gradient(120% 100% at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 72%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+:root[data-skin="glas"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent) 60%);
+  color: var(--on-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent), 0 4px 14px -3px var(--gl-glow);
+}
+:root[data-skin="glas"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 2%, transparent)); }
+:root[data-skin="glas"] .now-line { background: var(--accent); box-shadow: 0 0 8px var(--gl-glow); }
+:root[data-skin="glas"] .now-line::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 10px var(--gl-glow); }
+
+/* ---------- Termine: kleine Glasstreifen mit Lichtkante ---------- */
+
+:root[data-skin="glas"] .bar:not(.timed) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 0 0 1px color-mix(in srgb, var(--c) 26%, transparent), var(--ev-glow);
+}
+:root[data-skin="glas"][data-mode="dark"] .bar:not(.timed) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px color-mix(in srgb, var(--c) 34%, transparent), var(--ev-glow);
+}
+:root[data-skin="glas"] .wv-ev { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 0 0 1px color-mix(in srgb, var(--c) 24%, transparent); }
+:root[data-skin="glas"][data-mode="dark"] .wv-ev { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px color-mix(in srgb, var(--c) 32%, transparent); }
+
+/* ---------- Monatsbanner: Landschaft wie hinter einer Glasscheibe, mit hellem Lichtstreif ---------- */
+
+:root[data-skin="glas"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(1.1) brightness(1.04);
+  --mb-tint:
+    linear-gradient(112deg, transparent 30%, rgba(255, 255, 255, 0.5) 44%, transparent 58%),
+    linear-gradient(100deg, transparent 30%, rgba(168, 107, 255, 0.4) 66%, rgba(255, 111, 166, 0.45));
+  --mb-tint-blend: soft-light;
+  --mb-edge: rgba(255, 255, 255, 0.85);
+  --mb-sky-accent: 20%;
+  --mb-fx-accent: 0.35;
+}
+:root[data-skin="glas"][data-mode="dark"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(1.05) brightness(0.86);
+  --mb-tint:
+    linear-gradient(112deg, transparent 30%, rgba(255, 255, 255, 0.28) 44%, transparent 58%),
+    linear-gradient(100deg, transparent 26%, rgba(127, 77, 255, 0.5) 64%, rgba(255, 61, 151, 0.45));
+  --mb-tint-blend: soft-light;
+  --mb-art-opacity: 0.95;
+  --mb-edge: rgba(255, 255, 255, 0.5);
+  --mb-sky-accent: 22%;
+  --mb-fx-accent: 0.5;
+}
+:root[data-skin="glas"] .mb-chip { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--surface) 86%, transparent); box-shadow: var(--gl-spec); }
+
+/* ---------- Übersicht ---------- */
+
+:root[data-skin="glas"] .sky {
+  color: var(--text);
+  background: var(--gl-sheen), linear-gradient(var(--gl-hero), var(--gl-hero)), var(--sky);
+  box-shadow: inset 0 0 0 1px var(--gl-edge), var(--shadow);
+}
+:root[data-skin="glas"] .sky::after {
+  content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  border-radius: inherit; padding: 1.25px; background: var(--gl-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+:root[data-skin="glas"] .sky .greet { text-shadow: none; }
+:root[data-skin="glas"] .sky .date { color: var(--text-2); opacity: 1; }
+:root[data-skin="glas"] .sky-pill { background: var(--gl-fill-h); border-color: var(--gl-edge); color: var(--text); box-shadow: var(--gl-spec); }
+
+/* Liste: Datumsangaben liegen direkt auf dem Hintergrund – ein weicher Schein hält sie lesbar */
+:root[data-skin="glas"] :is(.lv-label, .lv-date) { text-shadow: 0 0 4px var(--bg), 0 0 14px var(--bg); }
+
+/* ---------- Handy: schwebende Tab-Leiste aus Glas ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="glas"] { --gl-bf: blur(20px) saturate(1.7); }
+  :root[data-skin="glas"] .main { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  :root[data-skin="glas"] .tabbar {
+    left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); padding: 5px 6px;
+    border-radius: 32px; border: 1px solid var(--gl-edge);
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    background-image: var(--gl-sheen);
+    box-shadow: var(--gl-spec), 0 14px 34px -14px rgba(20, 30, 80, 0.45);
+    backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  }
+  :root[data-skin="glas"][data-mode="dark"] .tabbar { box-shadow: var(--gl-spec), 0 14px 34px -12px rgba(0, 0, 0, 0.8); }
+  :root[data-skin="glas"] .tab-ic { border-radius: 999px; }
+  :root[data-skin="glas"] .tab.on { color: var(--accent); }
+  :root[data-skin="glas"] .tab.on .tab-ic { background: var(--gl-on); box-shadow: var(--gl-spec), 0 2px 8px -3px rgba(20, 30, 80, 0.3); }
+  :root[data-skin="glas"] .fab { bottom: calc(88px + env(safe-area-inset-bottom)); }
+  :root[data-skin="glas"] :is(.month, .wv)::before { padding: 1px 0 0; }
+}

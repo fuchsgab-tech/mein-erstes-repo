@@ -1,0 +1,322 @@
+/* Stil „Sakura“ – japanischer Frühling auf Washi-Papier, dunkel „Yozakura“: Kirschblüten bei Nacht (Szene: js/skins/sakura.js).
+   Regeln immer mit :root[data-skin="sakura"] beginnen. Verzierungen: pointer-events: none, Bewegung nur bei data-motion="on". */
+
+/* ---------- Farben: hell = Washi & Zinnober, dunkel = Indigo-Nacht mit Laternen ---------- */
+
+:root[data-skin="sakura"] {
+  --bg: #f6ece2;
+  --wallpaper:
+    radial-gradient(60% 50% at 78% 18%, rgba(255, 196, 196, 0.32), transparent 70%),
+    radial-gradient(50% 40% at 10% 100%, rgba(240, 190, 205, 0.28), transparent 70%),
+    linear-gradient(180deg, #fbf4ec, #f3e3dc);
+  --surface: #fffaf4;
+  --card: rgba(255, 251, 245, 0.82);
+  --sidebar-bg: rgba(252, 246, 239, 0.86);
+  --surface-2: rgba(150, 70, 60, 0.06);
+  --surface-3: rgba(150, 70, 60, 0.12);
+  --line: rgba(90, 45, 35, 0.12);
+  --line-2: rgba(90, 45, 35, 0.24);
+  --text: #2b1d1a;
+  --text-2: #654a44;
+  --text-3: #765850;
+  --accent: #c2361d;
+  --on-accent: #ffffff;
+  --danger: #b4232c;
+  --online: #3f8a4c;
+  --mix: 18%;
+  --mix-text: 60%;
+  --blur: 10px;
+  --ev-glow-geo: 0 0 0 0;
+  --ev-glow-mix: 0%;
+  --shadow-sm: 0 1px 0 rgba(120, 60, 40, 0.05);
+  --shadow: 0 1px 0 rgba(120, 60, 40, 0.05), 0 16px 34px -22px rgba(120, 50, 30, 0.4);
+  --shadow-lg: 0 0 0 1px rgba(90, 45, 35, 0.1), 0 30px 70px -26px rgba(90, 30, 20, 0.45);
+  --toast-bg: #2b1d1a;
+  --toast-text: #fbefe6;
+  --toast-icon: #ff9fb8;
+  --scrim: rgba(43, 29, 26, 0.3);
+  --sk-ink: #3b2a2e;
+  --sk-brush: var(--accent);
+  --sk-label: #8c3a2b;
+  --sk-pink: #f2a7bd;
+  --sk-hero: linear-gradient(165deg, #fff8f0 0%, #fde9e6 55%, #f8d6d8 100%);
+  --sk-sun: radial-gradient(circle at 38% 34%, #f27a57, #d8442a 62%, #c2361d);
+  --sk-sun-glow: 0 0 0 10px rgba(216, 68, 42, 0.07), 0 0 50px rgba(216, 68, 42, 0.25);
+  --sk-hill: rgba(59, 42, 46, 0.2);
+  --sk-bloom-glow: none;
+  --fx-a: var(--accent);
+  --fx-b: #ffd6e1;
+  --fx-c: #ea8ba8;
+  --fx-d: #3b3040;
+  --fx-s1: #e8553a;
+  --fx-s2: #fbf3ea;
+  --fx-s3: #c2416a;
+  --fx-s4: #e8b04a;
+  --fx-k: 1;
+}
+:root[data-skin="sakura"][data-mode="dark"] {
+  --bg: #0b0c26;
+  --wallpaper:
+    radial-gradient(45% 40% at 72% 22%, rgba(120, 100, 200, 0.22), transparent 70%),
+    radial-gradient(50% 40% at 15% 100%, rgba(170, 70, 120, 0.2), transparent 70%),
+    linear-gradient(180deg, #090a22, #17143a 60%, #251a46);
+  --surface: #17173d;
+  --card: rgba(21, 20, 54, 0.8);
+  --sidebar-bg: rgba(14, 14, 40, 0.84);
+  --surface-2: rgba(255, 190, 215, 0.07);
+  --surface-3: rgba(255, 190, 215, 0.14);
+  --line: rgba(255, 190, 215, 0.12);
+  --line-2: rgba(255, 190, 215, 0.26);
+  --text: #fbeef2;
+  --text-2: #d8c0d0;
+  --text-3: #ab93ad;
+  --accent: #ff9fc0;
+  --on-accent: #3a0a1c;
+  --danger: #ff6b7d;
+  --online: #6ee7a8;
+  --mix: 22%;
+  --mix-text: 42%;
+  --ev-glow-geo: 0 0 12px -4px;
+  --ev-glow-mix: 60%;
+  --shadow-sm: 0 0 0 1px rgba(255, 190, 215, 0.05);
+  --shadow: 0 0 0 1px rgba(255, 190, 215, 0.05), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 0 0 1px rgba(255, 159, 192, 0.16), 0 0 70px -24px rgba(255, 159, 192, 0.3), 0 30px 80px -24px rgba(0, 0, 0, 0.9);
+  --toast-bg: #262150;
+  --toast-text: #fbeef2;
+  --toast-icon: #ffb067;
+  --scrim: rgba(4, 4, 20, 0.6);
+  --sk-ink: #ffd6e4;
+  --sk-label: #f3b4c9;
+  --sk-pink: #ff9fc0;
+  --sk-hero:
+    radial-gradient(40% 70% at 18% 110%, rgba(255, 150, 80, 0.2), transparent 70%),
+    linear-gradient(170deg, #0d0f2e 0%, #1e1846 60%, #33204f 100%);
+  --sk-sun: radial-gradient(circle at 40% 36%, #fffaf0, #f7e6c4 60%, #e9cf9f);
+  --sk-sun-glow: 0 0 0 10px rgba(255, 240, 208, 0.05), 0 0 60px rgba(255, 240, 208, 0.35);
+  --sk-hill: rgba(4, 4, 18, 0.7);
+  --sk-bloom-glow: drop-shadow(0 0 6px rgba(255, 170, 205, 0.55));
+  --fx-a: var(--accent);
+  --fx-b: #ffd6e4;
+  --fx-c: #e07aa0;
+  --fx-d: #05061a;
+  --fx-s1: #fff0d0;
+  --fx-s2: #3a2c66;
+  --fx-s3: #b03a68;
+  --fx-s4: #ff9a4a;
+  --fx-k: 1;
+}
+:root[data-skin="sakura"]:not([data-corners="pill"]) { --r-xs: 4px; --r-sm: 7px; --r-md: 9px; --r-lg: 12px; --r-xl: 16px; }
+:root[data-skin="sakura"][data-font="modern"] {
+  --font-display: ui-serif, "New York", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Hiragino Mincho ProN", "Yu Mincho", serif;
+}
+/* Blüte als Bild – für den heutigen Tag, die Tab-Leiste und Überschriften */
+:root[data-skin="sakura"] {
+  --sk-flower: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-20 -20 40 40'%3E%3Cdefs%3E%3CradialGradient id='g' cx='0' cy='0' r='17' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23d9547c'/%3E%3Cstop offset='.5' stop-color='%23f4a3bb'/%3E%3Cstop offset='1' stop-color='%23ffe6ee'/%3E%3C/radialGradient%3E%3Cpath id='p' d='M0 0C-7-3-9-12-4-17Q-1-18 0-14Q1-18 4-17C9-12 7-3 0 0Z'/%3E%3C/defs%3E%3Cg fill='url(%23g)'%3E%3Cuse href='%23p'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='3' fill='%23c2416a'/%3E%3Cg fill='%23f2b84b'%3E%3Ccircle cx='0' cy='-6' r='1.3'/%3E%3Ccircle cx='5.7' cy='-1.9' r='1.3'/%3E%3Ccircle cx='3.5' cy='4.9' r='1.3'/%3E%3Ccircle cx='-3.5' cy='4.9' r='1.3'/%3E%3Ccircle cx='-5.7' cy='-1.9' r='1.3'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- Gemeinsames für Live-Stile (wie in skins-live.css) ---------- */
+
+:root[data-skin="sakura"] { --live-bf: none; }
+:root[data-skin="sakura"] :is(.month, .wv, .card) { position: relative; isolation: isolate; }
+:root[data-skin="sakura"] :is(.month, .wv, .card, .sidebar, .search-box) { backdrop-filter: var(--live-bf); -webkit-backdrop-filter: var(--live-bf); }
+:root[data-skin="sakura"] .sky-art svg { display: none; }
+:root[data-skin="sakura"] .sky-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-skin="sakura"] .toast:not(.error) .icon { color: var(--toast-icon, var(--accent)); }
+:root[data-skin="sakura"] .heat .cell { --text-2: var(--text); }
+:root[data-skin="sakura"] .day.today .num::before { display: none; }
+:root[data-skin="sakura"] .sky::before,
+:root[data-skin="sakura"] .sky::after,
+:root[data-skin="sakura"] .sky-art::before,
+:root[data-skin="sakura"] .sky-art::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+}
+
+/* ---------- Schrift: ruhige Serifen wie gedruckt auf Papier ---------- */
+
+:root[data-skin="sakura"] :is(.topbar .title, .sheet-head h2, .sky .greet, .brand, .mb-mood, .ev-title) { font-weight: 650; letter-spacing: -0.01em; }
+:root[data-skin="sakura"] .topbar .title .year { color: var(--accent); font-weight: 500; }
+:root[data-skin="sakura"] :is(.dow, .wv-dayhead .wd) { color: var(--text-2); letter-spacing: 0.16em; }
+:root[data-skin="sakura"] .dow.we { color: var(--accent); }
+:root[data-skin="sakura"]:not([data-mode="dark"]) .dow.we { color: #a8321c; }
+:root[data-skin="sakura"] :is(.side-title, .card-head h3, .section h3, .eyebrow, .cd-lbl, .mb-eyebrow) { color: var(--sk-label); letter-spacing: 0.14em; }
+:root[data-skin="sakura"] .card-head h3 { display: flex; align-items: center; gap: 7px; }
+:root[data-skin="sakura"] .card-head h3::before {
+  content: ""; flex: none; width: 13px; height: 13px; background: var(--sk-flower) center / contain no-repeat; filter: var(--sk-bloom-glow);
+}
+:root[data-skin="sakura"] :is(.cd-num, .lv-date .dn) { font-weight: 600; }
+/* Stempel (Hanko) hinter dem Namen */
+:root[data-skin="sakura"] .brand::after {
+  content: "桜"; content: "桜" / "";
+  display: grid; place-items: center; width: 22px; height: 22px; margin-left: 2px; border-radius: 5px; transform: rotate(-6deg);
+  background: var(--accent); color: var(--on-accent); font: 600 13px/1 var(--font-display); letter-spacing: 0;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--on-accent) 45%, transparent);
+}
+:root[data-skin="sakura"]:not([data-mode="dark"]) .brand::after { background: #b8301a; }
+
+/* ---------- Flächen: Washi mit Pinselstrich ---------- */
+
+:root[data-skin="sakura"] :is(.month, .wv, .card) { border-color: color-mix(in srgb, var(--sk-ink) 16%, transparent); }
+:root[data-skin="sakura"] :is(.month, .wv, .card)::after {
+  content: ""; position: absolute; z-index: 5; left: 18px; top: 0; width: min(36%, 200px); height: 3px; pointer-events: none;
+  background: linear-gradient(90deg, var(--sk-brush), color-mix(in srgb, var(--sk-brush) 55%, transparent) 60%, transparent);
+  clip-path: polygon(0 50%, 5% 0, 100% 40%, 100% 60%, 5% 100%);
+}
+:root[data-skin="sakura"][data-mode="dark"] :is(.month, .wv, .card)::after { opacity: 0.8; }
+:root[data-skin="sakura"] .sidebar { border-right-color: color-mix(in srgb, var(--sk-ink) 16%, transparent); }
+:root[data-skin="sakura"] .seg button.on { box-shadow: inset 0 -2px 0 var(--accent), 0 0 0 1px var(--line); }
+/* Kopfleiste: Knöpfe auf Papier, damit der Zweig dahinter nicht stört */
+:root[data-skin="sakura"] .topbar .seg { background: color-mix(in srgb, var(--surface) 82%, transparent); box-shadow: 0 0 0 1px var(--line); }
+:root[data-skin="sakura"] .topbar :is(.top-design, .top-design ~ .icon-btn) { background: color-mix(in srgb, var(--surface) 62%, transparent); }
+/* Texte direkt auf dem Bild bekommen einen weichen Papierhof */
+:root[data-skin="sakura"] :is(.lv-dtext, .lv-count, .lv-date) { text-shadow: 0 0 4px var(--bg), 0 0 10px var(--bg); }
+:root[data-skin="sakura"] .item:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+:root[data-skin="sakura"] .sheet { position: relative; }
+:root[data-skin="sakura"] .sheet::after {
+  content: ""; position: absolute; z-index: 5; left: 22px; top: 0; width: min(40%, 220px); height: 3px; pointer-events: none;
+  background: linear-gradient(90deg, var(--sk-brush), color-mix(in srgb, var(--sk-brush) 55%, transparent) 60%, transparent);
+  clip-path: polygon(0 50%, 5% 0, 100% 40%, 100% 60%, 5% 100%);
+}
+:root[data-skin="sakura"] .sheet-head h2 { position: relative; }
+:root[data-skin="sakura"] .toast { box-shadow: 0 0 0 1px color-mix(in srgb, var(--toast-icon) 30%, transparent), var(--shadow-lg); }
+:root[data-skin="sakura"] .toast:not(.error) .icon { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--toast-icon) 60%, transparent)); }
+
+/* ---------- Heute: rote Sonne als Tageszahl, eine Blüte in der Ecke ---------- */
+
+:root[data-skin="sakura"] .day.today {
+  position: relative;
+  background: radial-gradient(110% 90% at 20% 0%, color-mix(in srgb, var(--sk-pink) 26%, transparent), transparent 72%);
+}
+:root[data-skin="sakura"] .day.today::after {
+  content: ""; position: absolute; top: 4px; right: 5px; width: 14px; height: 14px; pointer-events: none;
+  background: var(--sk-flower) center / contain no-repeat; filter: var(--sk-bloom-glow);
+}
+:root[data-skin="sakura"][data-motion="on"] .day.today::after { animation: sk-bloom 9s ease-in-out infinite; }
+:root[data-skin="sakura"] :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: radial-gradient(circle at 38% 34%, color-mix(in srgb, var(--accent) 72%, white), var(--accent) 62%);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent), 0 4px 14px -4px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+:root[data-skin="sakura"]:not([data-mode="dark"]) :is(.day.today .num, .wv-dayhead.today .dn) {
+  background: radial-gradient(circle at 38% 34%, #d9502f, #b8301a 70%);
+}
+:root[data-skin="sakura"] .wv-col.today { background: linear-gradient(180deg, color-mix(in srgb, var(--sk-pink) 18%, transparent), color-mix(in srgb, var(--sk-pink) 5%, transparent)); }
+:root[data-skin="sakura"] .now-line { background: var(--accent); }
+:root[data-skin="sakura"] .now-line::before { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+:root[data-skin="sakura"] .mini-grid button.today { font-weight: 800; }
+
+/* ---------- Termine: weiches Papier mit Pinselkante ---------- */
+
+:root[data-skin="sakura"][data-events="tint"] .bar.block { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 80%, var(--text)), var(--ev-glow); padding-left: 9px; }
+:root[data-skin="sakura"][data-events="tint"] .wv-ev { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 80%, var(--text)), inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent), var(--ev-glow); }
+
+/* ---------- Knöpfe: Zinnober-Stempel und eine Sonne als Plus ---------- */
+
+:root[data-skin="sakura"] .btn.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, black), 0 8px 18px -10px color-mix(in srgb, var(--accent) 90%, transparent);
+}
+:root[data-skin="sakura"] .btn.primary:hover { background: var(--accent); }
+:root[data-skin="sakura"] .fab {
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--accent) 62%, white), var(--accent) 58%, color-mix(in srgb, var(--accent) 82%, black));
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4.5px color-mix(in srgb, var(--accent) 45%, transparent), 0 16px 30px -10px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+:root[data-skin="sakura"] :is(.btn.primary, .fab):focus-visible { outline-color: var(--text); }
+
+/* ---------- Monatsbanner: Landschaft wie auf altem Druck, rosa Schleier ---------- */
+
+:root[data-skin="sakura"] :is(.mb, .lv-month) {
+  --mb-art-filter: sepia(0.35) saturate(0.85) hue-rotate(-14deg) brightness(1.03);
+  --mb-tint: linear-gradient(100deg, transparent 32%, rgba(242, 150, 180, 0.4) 64%, color-mix(in srgb, var(--accent) 34%, transparent));
+  --mb-tint-blend: color;
+  --mb-edge: color-mix(in srgb, var(--accent) 55%, transparent);
+  --mb-sky-accent: 20%;
+  --mb-fx-accent: 0.55;
+}
+:root[data-skin="sakura"][data-mode="dark"] :is(.mb, .lv-month) {
+  --mb-art-filter: saturate(0.8) hue-rotate(-20deg) brightness(0.85);
+  --mb-tint: linear-gradient(100deg, transparent 30%, rgba(120, 90, 210, 0.45) 62%, color-mix(in srgb, var(--accent) 40%, transparent));
+  --mb-sky-accent: 26%;
+  --mb-fx-accent: 0.7;
+}
+:root[data-skin="sakura"] .mb-mood { font-weight: 600; }
+:root[data-skin="sakura"] .mb-chip { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--surface) 88%, transparent); }
+
+/* ---------- Übersicht: Sonne (Mond), Tuschberge und ein blühender Zweig ---------- */
+
+:root[data-skin="sakura"] .sky {
+  --sky: var(--sk-hero);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sk-ink) 14%, transparent), var(--shadow);
+}
+:root[data-skin="sakura"] .sky .greet { text-shadow: none; }
+:root[data-skin="sakura"][data-mode="dark"] .sky .greet { text-shadow: 0 0 24px rgba(255, 159, 192, 0.35); }
+:root[data-skin="sakura"] .sky .date { color: var(--text-2); opacity: 1; }
+:root[data-skin="sakura"] .sky-pill { background: color-mix(in srgb, var(--surface) 72%, transparent); border-color: color-mix(in srgb, var(--sk-ink) 18%, transparent); color: var(--text); }
+:root[data-skin="sakura"] .sky-pill .avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
+/* Sonne bzw. Mond */
+:root[data-skin="sakura"] .sky::before {
+  width: 112px; height: 112px; top: 28px; right: 168px; border-radius: 50%;
+  background: var(--sk-sun); box-shadow: var(--sk-sun-glow); opacity: 0.92;
+}
+/* Berge in Tusche: hinten Fuji, vorn sanfte Hügel */
+:root[data-skin="sakura"] .sky::after {
+  left: 0; right: 0; bottom: 0; height: 52%;
+  background: linear-gradient(180deg, var(--sk-hill), color-mix(in srgb, var(--sk-hill) 40%, transparent));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 100' preserveAspectRatio='none'%3E%3Cpath fill-opacity='.5' d='M0 100V62C40 58 70 52 110 56S170 50 200 54L300 14Q318 4 336 14L436 56C470 52 500 58 540 54S580 50 600 52V100Z'/%3E%3Cpath d='M0 100V80C50 72 90 80 140 72S230 82 280 76 380 70 430 78 540 72 600 76V100Z'/%3E%3C/svg%3E") right bottom / 640px 100% repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 100' preserveAspectRatio='none'%3E%3Cpath fill-opacity='.5' d='M0 100V62C40 58 70 52 110 56S170 50 200 54L300 14Q318 4 336 14L436 56C470 52 500 58 540 54S580 50 600 52V100Z'/%3E%3Cpath d='M0 100V80C50 72 90 80 140 72S230 82 280 76 380 70 430 78 540 72 600 76V100Z'/%3E%3C/svg%3E") right bottom / 640px 100% repeat-x;
+}
+/* Zweig mit Blüten oben rechts */
+:root[data-skin="sakura"] .sky-art::before {
+  top: -6px; right: -6px; width: 340px; height: 212px; filter: var(--sk-bloom-glow);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 340 212'%3E%3Cdefs%3E%3CradialGradient id='g' cx='0' cy='0' r='17' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23d9547c'/%3E%3Cstop offset='.5' stop-color='%23f5a9c0'/%3E%3Cstop offset='1' stop-color='%23fff0f4'/%3E%3C/radialGradient%3E%3Cpath id='p' d='M0 0C-7-3-9-12-4-17Q-1-18 0-14Q1-18 4-17C9-12 7-3 0 0Z'/%3E%3Cg id='f'%3E%3Cg fill='url(%23g)'%3E%3Cuse href='%23p'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='3' fill='%23c2416a'/%3E%3C/g%3E%3C/defs%3E%3Cg fill='none' stroke='%23432b30' stroke-linecap='round'%3E%3Cpath d='M346 6C306 14 276 28 242 34' stroke-width='8'/%3E%3Cpath d='M242 34C210 40 182 48 154 64' stroke-width='5.5'/%3E%3Cpath d='M154 64C128 78 104 86 76 84' stroke-width='3.5'/%3E%3Cpath d='M258 30C252 50 246 64 230 78' stroke-width='3.5'/%3E%3Cpath d='M186 47C176 36 164 30 148 30' stroke-width='2.6'/%3E%3Cpath d='M122 77C118 92 114 104 104 116' stroke-width='2.4'/%3E%3C/g%3E%3Cg fill='%23c2416a'%3E%3Cellipse cx='64' cy='82' rx='4' ry='3'/%3E%3Cellipse cx='138' cy='26' rx='3.5' ry='2.6'/%3E%3Cellipse cx='98' cy='124' rx='3.4' ry='2.6'/%3E%3C/g%3E%3Cuse href='%23f' transform='translate(78 84) rotate(12)'/%3E%3Cuse href='%23f' transform='translate(102 76) rotate(40) scale(.85)'/%3E%3Cuse href='%23f' transform='translate(106 114) rotate(5) scale(.8)'/%3E%3Cuse href='%23f' transform='translate(150 30) rotate(30) scale(.9)'/%3E%3Cuse href='%23f' transform='translate(168 56) rotate(-8) scale(1.1)'/%3E%3Cuse href='%23f' transform='translate(130 68) rotate(50) scale(.75)'/%3E%3Cuse href='%23f' transform='translate(204 42) rotate(22) scale(.95)'/%3E%3Cuse href='%23f' transform='translate(230 78) rotate(-20) scale(1.05)'/%3E%3Cuse href='%23f' transform='translate(250 54) rotate(64) scale(.8)'/%3E%3Cuse href='%23f' transform='translate(282 22) rotate(8) scale(.9)'/%3E%3C/svg%3E") right top / contain no-repeat;
+  transform-origin: 100% 0;
+}
+:root[data-skin="sakura"][data-motion="on"] .sky-art::before { animation: sk-sway 7s ease-in-out infinite; }
+/* ein paar Blätter, die langsam aus dem Zweig fallen */
+:root[data-skin="sakura"] .sky-art::after {
+  top: 60px; right: 120px; width: 14px; height: 14px; opacity: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -18 20 20'%3E%3Cpath fill='%23f4a3bb' d='M0 0C-7-3-9-12-4-17Q-1-18 0-14Q1-18 4-17C9-12 7-3 0 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+:root[data-skin="sakura"][data-motion="on"] .sky-art::after { animation: sk-fall 8s ease-in 2s infinite; }
+
+/* ---------- Handy ---------- */
+
+@media (max-width: 760px) {
+  :root[data-skin="sakura"] { --live-bf: none; --blur: 0px; }
+  :root[data-skin="sakura"] :is(.sheet, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root[data-skin="sakura"] .tabbar {
+    background: color-mix(in srgb, var(--surface) 94%, transparent); border-top: 0;
+    box-shadow: 0 -1px 0 color-mix(in srgb, var(--sk-ink) 16%, transparent);
+  }
+  :root[data-skin="sakura"] .tabbar::before {
+    content: ""; position: absolute; left: 14px; top: -1px; width: 42%; height: 3px; pointer-events: none;
+    background: linear-gradient(90deg, var(--sk-brush), transparent);
+    clip-path: polygon(0 50%, 4% 0, 100% 40%, 100% 60%, 4% 100%);
+  }
+  :root[data-skin="sakura"] .topbar :is(.top-design, .top-design ~ .icon-btn) { border-radius: 50%; }
+  :root[data-skin="sakura"] .tab.on { color: var(--accent); }
+  :root[data-skin="sakura"]:not([data-mode="dark"]) .tab.on { color: #a8321c; }
+  :root[data-skin="sakura"] .tab.on .tab-ic {
+    position: relative; border-radius: 16px 6px 16px 6px;
+    background: color-mix(in srgb, var(--sk-pink) 26%, transparent);
+  }
+  :root[data-skin="sakura"] .tab.on .tab-ic::after {
+    content: ""; position: absolute; top: -4px; right: 4px; width: 11px; height: 11px; pointer-events: none;
+    background: var(--sk-flower) center / contain no-repeat; filter: var(--sk-bloom-glow);
+  }
+  :root[data-skin="sakura"] .day.today::after { top: 2px; right: 2px; width: 11px; height: 11px; }
+  :root[data-skin="sakura"] .sky::before { width: 62px; height: 62px; top: 14px; right: 46px; }
+  :root[data-skin="sakura"] .sky::after { height: 40%; -webkit-mask-size: 520px 100%; mask-size: 520px 100%; }
+  :root[data-skin="sakura"] .sky-art::before { width: 214px; height: 134px; }
+  :root[data-skin="sakura"] .sky-art::after { right: 60px; top: 36px; }
+  :root[data-skin="sakura"] :is(.month, .wv)::after { left: 12px; }
+}
+
+@keyframes sk-sway { 50% { transform: rotate(-1.6deg); } }
+@keyframes sk-bloom { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(36deg) scale(1.12); } }
+@keyframes sk-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  10% { opacity: 0.9; }
+  80% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(-150px, 120px) rotate(320deg); }
+}
