@@ -688,6 +688,49 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 @media (pointer: coarse) { .fresh-hint .btn.small.fresh-later { min-height: 44px; min-width: 44px; } .sort-chip { min-height: 44px; } }
 .sort-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-hi); background: color-mix(in oklab, var(--accent) 16%, var(--field)); }
 
+/* Rekruten-Check: a shade over the page with a sheet (bottom sheet on phones, centred panel from 641 px). The sheet scrolls
+   in its middle part; "Alle verwerfen" and "Schließen" stay at the bottom under the thumb. One card per candidate with
+   the editor's Stufe/Max inputs and the result: main job, why, gap, team effect, who would change. */
+html.recruit-open, html.recruit-open body { overflow: hidden; }
+html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+.recruit { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px; background: rgb(8 6 4 / 0.82); }
+.recruit-sheet { width: min(900px, 100%); max-height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; overflow: hidden;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--line-strong); border-top: 3px solid var(--accent); border-radius: var(--radius); box-shadow: var(--edge), var(--shadow); }
+.recruit-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); }
+.recruit-top h3 { font-size: var(--step-1); color: var(--accent-hi); }
+.recruit-top h3:focus { outline: none; }
+.recruit-body { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; min-height: 0; padding: 14px 16px; display: grid; gap: 12px; align-content: start; }
+.rk-ro { font-size: 0.875rem; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); padding: 6px 10px; }
+.rk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; align-items: start; }
+.rk-card { display: grid; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--field); }
+.rk-card.best { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.rk-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+.rk-label { font-family: var(--font-display); font-size: 1.125rem; color: var(--accent-hi); }
+.badge.rk-best { color: var(--on-accent); background: var(--accent-hi); border-color: var(--accent-hi); font-weight: 700; }
+.rk-card .rk-name { width: 100%; font-weight: 700; }
+.rk-fill { display: flex; gap: 6px; min-width: 0; }
+.rk-fill input { flex: 1 1 auto; min-width: 0; }
+.rk-msg:empty { display: none; }
+.rk-stats .st-row, .rk-stats .st-head { grid-template-columns: minmax(0, 1fr) 4em 4em; }
+.rk-stats input[type="number"] { width: 100%; }
+.rk-card .wc-traits { width: 100%; }
+.rk-out { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); min-width: 0; overflow-wrap: anywhere; }
+.rk-out[hidden] { display: none; }
+.rk-main { font-weight: 700; color: var(--accent-hi); }
+.rk-why, .rk-empty { font-size: 0.875rem; color: var(--muted); }
+.rk-moves { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; font-size: 0.875rem; }
+.rk-moves li::marker { color: var(--accent); }
+.rk-act { display: flex; flex-wrap: wrap; gap: 8px; }
+.rk-act .btn { flex: 1 1 auto; }
+.recruit-act { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 10px 16px max(12px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line-strong); background: var(--surface); }
+@media (max-width: 640px) {
+  .recruit { padding: 0; place-items: end stretch; }
+  .recruit-sheet { width: 100%; max-height: 92vh; max-height: 92dvh; border-radius: 12px 12px 0 0; border-bottom: 0; }
+  .recruit-body { padding: 12px; }
+  .recruit-act .btn { flex: 1 1 0; }
+}
+@media (pointer: coarse) { .recruit .btn, .recruit input { min-height: 44px; } }
+
 /* "Animationen" in Einstellungen (per device). */
 .anim-seg button { min-width: 7.5em; }
 @media (max-width: 560px) { .seg.anim-seg { grid-template-columns: repeat(3, minmax(0, 1fr)); } .anim-seg button { min-width: 0; padding-inline: 10px; } }
@@ -856,6 +899,11 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
    by script (play: voll scale 1.25 -> 0.95 -> 1 in 320 ms, ruhig a 150 ms fade). */
 [data-anim="voll"] .entry-banner { animation: rise 0.22s ease-out backwards; }
 [data-anim="ruhig"] .entry-banner { animation: calmIn 0.15s ease-out both; }
+/* Rekruten-Check: the shade fades, the sheet comes up 24 px (voll); ruhig: the sheet only fades (150 ms). */
+[data-anim="voll"] .recruit:not([hidden]) { animation: calmIn 0.2s ease-out both; }
+[data-anim="voll"] .recruit:not([hidden]) .recruit-sheet { animation: sheetIn 0.26s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+[data-anim="ruhig"] .recruit:not([hidden]) .recruit-sheet { animation: calmIn 0.15s ease-out both; }
+@keyframes sheetIn { from { opacity: 0; transform: translateY(24px); } }
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -979,6 +1027,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         <button class="btn primary" type="button" id="toggle-photo" data-photo aria-expanded="false" aria-controls="photo" hidden>Foto einlesen</button>
         <button class="btn" type="button" id="add-worker">+ Arbeiter</button>
         <button class="btn" type="button" id="toggle-import" aria-expanded="false" aria-controls="import">Aus Text einfügen</button>
+        <button class="btn" type="button" id="recruit-open">Rekruten prüfen</button>
         <button class="chip sort-chip" type="button" id="sort-old" aria-pressed="false" hidden>Älteste zuerst</button>
       </div>
       <p class="muted small" style="max-width: 52ch;">Stufe = aktueller Wert, Max = höchster Wert, den der Arbeiter erreichen kann (steht im Spiel daneben). Fehlt Max, rechnet die App nur mit der Stufe.</p>
@@ -1201,6 +1250,26 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     </div>
   </div>
   <div class="entry-fx" id="entry-fx" aria-hidden="true"></div>
+</div>
+<!-- Rekruten-Check: up to 3 candidates, each compared with the plan without them. Nothing is saved before "Anwerben".
+     A bottom sheet on phones, a centred panel on wider screens; the page behind is inert, the toast (Rückgängig) is not. -->
+<div class="recruit" id="recruit" role="dialog" aria-modal="true" aria-labelledby="recruit-title" lang="de" hidden>
+  <div class="recruit-sheet">
+    <div class="recruit-top">
+      <h3 id="recruit-title" tabindex="-1">Rekruten prüfen</h3>
+      <button type="button" class="entry-x" data-rk="close" aria-label="Schließen" aria-keyshortcuts="Escape">✕</button>
+    </div>
+    <div class="recruit-body">
+      <p class="muted small">Tragt die Werte eines möglichen Rekruten ein, bevor ihr ihn im Spiel anwerbt. Die App rechnet den Plan mit ihm und zeigt, ob er eine Lücke füllt. Gespeichert wird erst mit „Anwerben“.</p>
+      <p class="rk-ro" hidden>Ihr könnt hier nur ansehen: Prüfen geht, Anwerben nicht.</p>
+      <div class="rk-list" id="rk-list"></div>
+      <div class="row"><button type="button" class="btn" data-rk="add">+ Kandidat</button></div>
+    </div>
+    <div class="recruit-act">
+      <button type="button" class="btn" data-rk="drop-all">Alle verwerfen</button>
+      <button type="button" class="btn" data-rk="close">Schließen</button>
+    </div>
+  </div>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 <!-- The photo a review card was read from, large. -->
@@ -3132,6 +3201,235 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     $("#plan-title").focus({ preventScroll: true });
   });
 
+  // ---------- Rekruten-Check: would a candidate fill a gap? ----------
+  // Up to 3 candidates on this device (localStorage until "Alle verwerfen"); nothing goes to the shared list while
+  // checking. Each one is compared with the plan without them: compute(active workers + candidate) against
+  // compute(active workers), with the current settings and Festlegungen and calm OFF (the ideal assignment, not what
+  // happens to be entered in the game). "Anwerben" adds a normal worker (stamped now) with a Rückgängig toast.
+  const REC_KEY = "bellwright-rekruten-v1";
+  const REC_MAX = 3;
+  const rk = { list: [], seq: 0, open: false };
+  const rkBlank = () => ({ k: ++rk.seq, name: "", traits: "", stats: {} });
+  function rkClean(d) {
+    if (!d || typeof d !== "object") return null;
+    const stats = {};
+    for (const a of ATTRS) {
+      const v = d.stats && typeof d.stats === "object" ? d.stats[a.id] : null;
+      const cur = v ? toNum(v.cur, null) : null, max = v ? toNum(v.max, null) : null;
+      if (cur !== null || max !== null) stats[a.id] = { cur, max };
+    }
+    return { k: ++rk.seq, name: String(d.name ?? "").slice(0, 40), traits: String(d.traits ?? "").slice(0, 120), stats };
+  }
+  function rkLoad() { const v = lsGet(REC_KEY, null); rk.list = (Array.isArray(v) ? v : []).map(rkClean).filter(Boolean).slice(0, REC_MAX); }
+  function rkSave() {
+    if (rk.list.length) lsSet(REC_KEY, rk.list.map(c => ({ name: c.name, traits: c.traits, stats: c.stats })));
+    else { try { localStorage.removeItem(REC_KEY); } catch (e) { /* ignore */ } }
+  }
+  const rkCard = c => document.querySelector(`#rk-list .rk-card[data-k="${c.k}"]`);
+  function rkCardHtml(c, i) {
+    const id = f => `rk-${c.k}-${f}`;
+    return `<article class="rk-card" data-k="${c.k}">
+      <div class="rk-head"><span class="rk-label">Kandidat ${i + 1}</span><span class="badge rk-best" hidden>Bester Kandidat</span></div>
+      <input type="text" class="rk-name" data-rk="name" maxlength="40" placeholder="Name (optional)" aria-label="Name von Kandidat ${i + 1} (optional)" value="${esc(c.name)}">
+      <div class="rk-fill"><input type="text" data-rk="text" placeholder="Als Text: „Kochen 4/7, Ernte 3/5“" aria-label="Werte als Text einfügen, wie beim Import"><button type="button" class="btn small" data-rk="fill">Einfügen</button></div>
+      <p class="rk-msg muted small" aria-live="polite"></p>
+      <div class="stats rk-stats">
+        <div class="st-head" aria-hidden="true"><span>Fertigkeit</span><span>Stufe</span><span>Max</span></div>
+        ${ATTRS.map(a => { const v = c.stats[a.id] || {}; return `<div class="st-row">
+          <label class="st-name" for="${id("cur-" + a.id)}">${esc(a.de)}<small>${esc(a.game)}</small></label>
+          <input type="number" min="0" max="${MAXV}" inputmode="numeric" id="${id("cur-" + a.id)}" data-rk="cur:${a.id}" aria-label="${esc(a.de)} Stufe" value="${v.cur ?? ""}">
+          <input type="number" min="0" max="${MAXV}" inputmode="numeric" data-rk="max:${a.id}" placeholder="?" aria-label="${esc(a.de)} Max" value="${v.max ?? ""}"></div>`; }).join("")}
+      </div>
+      <input type="text" class="wc-traits" data-rk="traits" maxlength="120" placeholder="Eigenschaften, z. B. Optimist, Slacker, Dullard" aria-label="Eigenschaften" value="${esc(c.traits)}">
+      <div class="rk-out">
+        <p class="rk-empty">Tragt mindestens eine Stufe ein, dann rechnet die App.</p>
+        <p class="rk-main"></p><p class="rk-why"></p><p class="rk-gap"></p><p class="rk-team"></p><ul class="rk-moves"></ul>
+      </div>
+      <div class="rk-act"><button type="button" class="btn primary" data-rk="hire">Anwerben</button><button type="button" class="btn" data-rk="drop">Verwerfen</button></div>
+    </article>`;
+  }
+  // One candidate against the plan without them. null = no values entered yet. Unnamed: called like the card.
+  function rkEval(c, i, ws, s, opts, base) {
+    if (!Object.keys(c.stats).length) return null;
+    const cw = normWorker("rk-" + c.k, { name: c.name.trim() || `Kandidat ${i + 1}`, role: "worker", traits: c.traits, stats: c.stats, order: Number.MAX_SAFE_INTEGER });
+    const next = compute([...ws, cw], s, opts);
+    const job = next.main[cw.id];
+    if (!job) return { none: true, d: -Infinity };   // every job switched off
+    const J = JOB[job], v = J.attr ? cw.stats[J.attr] : null;
+    const before = base.team.filter(w => base.main[w.id] === job), now = next.team.filter(w => next.main[w.id] === job).length;
+    const gap = !before.length ? `Füllt eine Lücke: bisher hatte niemand ${J.label} als Hauptjob.`
+      : now > before.length ? `Verstärkt ${J.label} (jetzt ${now} Leute)`
+      : `Übernimmt ${J.label} von ${joinDe(before.filter(w => next.main[w.id] !== job).map(w => w.name || "Ohne Namen"))}`;
+    const d = next.objective - base.objective, r = Math.round(d * 2) / 2;   // "etwa": to half a level
+    const moves = base.team.filter(w => base.main[w.id] && next.main[w.id] !== base.main[w.id]).map(w => next.main[w.id]
+      ? `${w.name || "Ohne Namen"} würde von ${JOB[base.main[w.id]].label} zu ${JOB[next.main[w.id]].label} wechseln`
+      : `${w.name || "Ohne Namen"} hätte keinen Hauptjob mehr`);
+    return {
+      d, gap, why: next.cells[cw.id][job].why,
+      main: `Hauptjob: ${J.label}${J.attr ? ` (Stufe ${v.cur}/${v.max === null ? "?" : v.max})` : ""}`,
+      team: r >= 0.5 ? `Das Team wird etwa ${String(r).replace(".", ",")} ${r === 1 ? "Stufe" : "Stufen"} besser.` : "Das Team wird dadurch kaum besser.",
+      moves: moves.length > 3 ? [...moves.slice(0, 3), `+${moves.length - 3} weitere`] : moves,
+    };
+  }
+  // The results of all cards (live: renderAll calls it while the panel is open). Never writes.
+  function rkResults() {
+    if (!rk.open) return;
+    const ro = locked();
+    $("#recruit .rk-ro").hidden = !ro;
+    $('#recruit [data-rk="add"]').disabled = rk.list.length >= REC_MAX;
+    const ws = sortedWorkers(), s = state.settings, opts = { calm: false, prefs, explain: false };
+    const base = compute(ws, s, opts);
+    const res = rk.list.map((c, i) => rkEval(c, i, ws, s, opts, base));
+    const ds = res.map(r => (r ? r.d : -Infinity));
+    const best = res.filter(r => r && !r.none).length >= 2 ? ds.indexOf(Math.max(...ds)) : -1;
+    rk.list.forEach((c, i) => {
+      const el = rkCard(c), r = res[i];
+      if (!el) return;
+      const q = s2 => el.querySelector(s2);
+      const set = (s2, text) => { const x = q(s2); x.hidden = !text; if (x.textContent !== (text || "")) x.textContent = text || ""; };
+      set(".rk-empty", r ? "" : "Tragt mindestens eine Stufe ein, dann rechnet die App.");
+      set(".rk-main", r && (r.none ? "Kein Hauptjob: alle Jobs sind abgeschaltet." : r.main));
+      set(".rk-why", r && !r.none ? r.why : "");
+      set(".rk-gap", r && !r.none ? r.gap : "");
+      set(".rk-team", r && !r.none ? r.team : "");
+      const mv = q(".rk-moves"), mh = (r && !r.none ? r.moves : []).map(m => `<li>${esc(m)}</li>`).join("");
+      if (mv.innerHTML !== mh) mv.innerHTML = mh;
+      mv.hidden = !mh;
+      q(".rk-best").hidden = i !== best;
+      el.classList.toggle("best", i === best);
+      const hire = q('[data-rk="hire"]');
+      hire.disabled = ro || !r;
+      hire.title = ro ? "Nur ansehen: Anwerben geht hier nicht." : "";
+    });
+  }
+  function rkRender() {
+    $("#rk-list").innerHTML = rk.list.map(rkCardHtml).join("");
+    rkResults();
+  }
+  function rkOpen() {
+    if (rk.open || !state.ready || state.loadFailed) return;
+    rkLoad();
+    if (!rk.list.length) rk.list.push(rkBlank());
+    rk.open = true;
+    $("#recruit").hidden = false;
+    document.documentElement.classList.add("recruit-open");   // the page behind does not scroll
+    $(".wrap").inert = true;
+    rkRender();
+    $("#recruit-title").focus({ preventScroll: true });
+  }
+  function rkClose() {
+    if (!rk.open) return;
+    rk.open = false;
+    $("#recruit").hidden = true;
+    document.documentElement.classList.remove("recruit-open");
+    $(".wrap").inert = false;
+    $("#rk-list").innerHTML = "";
+    $("#recruit-open").focus();
+  }
+  // The text field takes the import format ("Mara: Kochen 9/10, Ernte 2/3 – Eigenschaften: Prodigy"); a line
+  // without a name works too ("Kochen 4/7").
+  function rkFill(c, el) {
+    const inp = el.querySelector('[data-rk="text"]'), msg = el.querySelector(".rk-msg");
+    const text = inp.value.trim();
+    if (!text) return;
+    let row = parseRoster(text).rows[0];
+    const named = !!row;
+    if (!row) row = parseRoster("Rekrut: " + text).rows[0];
+    if (!row || (!Object.keys(row.stats).length && !row.traits)) { msg.textContent = "Keine Werte erkannt. Beispiel: „Kochen 4/7, Ernte 3/5“."; shake(inp); return; }
+    if (named && row.name) c.name = row.name.slice(0, 40);
+    if (row.traits) c.traits = row.traits.slice(0, 120);
+    for (const [a, v] of Object.entries(row.stats)) c.stats[a] = { cur: v.cur, max: v.max };
+    el.querySelector('[data-rk="name"]').value = c.name;
+    el.querySelector('[data-rk="traits"]').value = c.traits;
+    for (const a of ATTRS) {
+      const v = c.stats[a.id] || {};
+      el.querySelector(`[data-rk="cur:${a.id}"]`).value = v.cur ?? "";
+      el.querySelector(`[data-rk="max:${a.id}"]`).value = v.max ?? "";
+    }
+    inp.value = "";
+    msg.textContent = "Übernommen.";
+    rkSave(); rkResults();
+  }
+  function rkHire(c) {
+    if (locked() || !Object.keys(c.stats).length) return;
+    const i = rk.list.indexOf(c), name = c.name.trim();
+    const w = normWorker(newId(), { name: name || "Neuer Rekrut", role: "worker", traits: c.traits.trim(), stats: c.stats, order: Date.now() });
+    saveWorker(w, 0);
+    stampNow(w.id, 0);   // the values were entered just now
+    rk.list.splice(i, 1); rkSave();
+    rkRender(); renderAll();
+    $('#recruit [data-rk="add"]').focus({ preventScroll: true });
+    toast(name ? `${name} angeworben.` : "Rekrut angeworben.", { label: "Rückgängig", fn: () => {
+      if (locked()) { toast("Rückgängig geht gerade nicht."); return null; }
+      if (state.workers.has(w.id)) {
+        if (state.mode === "local") reloadApplied();
+        state.workers.delete(w.id);
+        backend.deleteWorker(w.id);
+        if (applied[w.id]) putIngame(w.id, null);   // ticked off in the meantime
+        if (prefs[w.id]) putPrefs(w.id, null, 0);
+        if (stamps[w.id]) putStamp(w.id, null, 0);
+      }
+      if (rk.list.length < REC_MAX) { c.k = ++rk.seq; rk.list.splice(Math.min(i, rk.list.length), 0, c); rkSave(); }
+      if (rk.open) rkRender();
+      renderAll();
+      toast("Anwerben zurückgenommen.");
+      return rk.open ? $('#recruit [data-rk="add"]') : $("#recruit-open");
+    } });
+  }
+  $("#recruit-open").addEventListener("click", rkOpen);
+  $("#recruit").addEventListener("click", e => {
+    const t = e.target.closest("[data-rk]");
+    if (!t || t.tagName === "INPUT") return;
+    const a = t.dataset.rk, el = t.closest(".rk-card"), c = el && rk.list.find(x => String(x.k) === el.dataset.k);
+    if (a === "close") rkClose();
+    else if (a === "drop-all") { rk.list = []; rkSave(); rkClose(); }
+    else if (a === "add" && rk.list.length < REC_MAX) {
+      const n = rkBlank();
+      rk.list.push(n); rkSave(); rkRender();
+      const ne = rkCard(n);
+      if (ne) { ne.scrollIntoView({ block: "nearest", behavior: scrollMode() }); ne.querySelector('[data-rk="name"]').focus({ preventScroll: true }); }
+    }
+    else if (a === "fill" && c) rkFill(c, el);
+    else if (a === "drop" && c) { rk.list = rk.list.filter(x => x !== c); rkSave(); rkRender(); $('#recruit [data-rk="add"]').focus({ preventScroll: true }); }
+    else if (a === "hire" && c) rkHire(c);
+  });
+  $("#recruit").addEventListener("input", e => {
+    const t = e.target, f = t.dataset.rk, el = t.closest(".rk-card");
+    const c = el && rk.list.find(x => String(x.k) === el.dataset.k);
+    if (!f || !c || f === "text") return;
+    if (f === "name") c.name = t.value.slice(0, 40);
+    else if (f === "traits") c.traits = t.value.slice(0, 120);
+    else {
+      const [kind, a] = f.split(":");
+      if (!ATTR[a] || (kind !== "cur" && kind !== "max")) return;
+      const v = c.stats[a] || { cur: null, max: null };
+      v[kind] = toNum(t.value, null);
+      if (v.cur === null && v.max === null) delete c.stats[a]; else c.stats[a] = v;
+    }
+    rkSave(); rkResults();
+  });
+  // Escape closes, Enter in the text field fills, Tab stays inside the panel.
+  document.addEventListener("keydown", e => {
+    if (!rk.open) return;
+    const box = $("#recruit");
+    if (e.key === "Escape") { e.preventDefault(); rkClose(); return; }
+    if (e.key === "Enter" && e.target.dataset && e.target.dataset.rk === "text") {
+      e.preventDefault();
+      const el = e.target.closest(".rk-card"), c = el && rk.list.find(x => String(x.k) === el.dataset.k);
+      if (c) rkFill(c, el);
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const act = document.activeElement;
+    const f = [...box.querySelectorAll("button, input, [tabindex]")]
+      .filter(el => (el.tabIndex >= 0 || el === act) && !el.disabled && !el.closest("[hidden]") && el.getClientRects().length);
+    if (!f.length) return;
+    const idx = f.indexOf(act);
+    if (idx < 0) { e.preventDefault(); (e.shiftKey ? f[f.length - 1] : f[0]).focus(); }
+    else if (e.shiftKey && idx === 0) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && idx === f.length - 1) { e.preventDefault(); f[0].focus(); }
+  });
+
   // ---------- Rendering: worker editor ----------
   function cardHtml(id) {
     const fid = f => `${id}-${f.replace(":", "-")}`;
@@ -3212,6 +3510,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       fillCard(card, w);
     });
     for (const id of ["#add-worker", "#toggle-import", "#adopt-example", "#do-import"]) $(id).disabled = locked();
+    $("#recruit-open").disabled = !state.ready || state.loadFailed;   // read-only viewers may check, not add
     for (const b of $$('[data-act="add"]')) b.disabled = locked();
   }
 
@@ -3298,6 +3597,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     renderJobs();
     renderPhotoAvail();
     refreshReview();
+    rkResults();   // Rekruten-Check, only while its panel is open
   }
 
   // ---------- Storage backends ----------
