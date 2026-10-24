@@ -439,6 +439,15 @@ table.ktable { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
   .ktable td { border: 0; padding: 3px 12px; white-space: normal; }
   .ktable td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-weight: 500; }
 }
+/* Hilfe, Gebäudeprioritäten: the number in the plan's priority colours; on phones each row is a small card, number left. */
+.btable td { vertical-align: middle; }
+.btable td:first-child { width: 4.5rem; }
+.bprio { display: inline-grid; place-items: center; width: 40px; height: 32px; border-radius: var(--radius); font-weight: 800; font-size: 1.0625rem; font-variant-numeric: lining-nums tabular-nums; }
+.bprio.p0 { font-size: 1.125rem; }
+@media (max-width: 640px) {
+  .btable tr { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 12px; }
+  .btable td, .btable td:first-child { width: auto; padding: 0; }
+}
 .sources { font-size: 0.875rem; color: var(--muted); max-width: 90ch; }
 .foot { margin-top: 36px; padding-top: 14px; border-top: 3px double var(--line-strong); font-size: var(--step--1); color: var(--muted); text-align: center; }
 
@@ -1044,9 +1053,33 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         <li><strong>5 ist der Standardwert.</strong> Neue Dorfbewohner stehen überall auf 5. Bei gleicher Zahl wählen sie zufällig, darum lohnt sich ein klarer Hauptjob.</li>
         <li>Ein Arbeiter nimmt immer die offene Aufgabe mit der kleinsten Zahl. Gibt es dort nichts zu tun, geht er zur nächsten.</li>
         <li>Nur Arbeiter bekommen Jobs. Wachen und Begleiter arbeiten nicht im Dorf.</li>
-        <li><strong>Arbeitspriorität und Gebäude-Priorität sind zwei Dinge.</strong> Die Arbeitspriorität sagt, <em>was</em> jemand macht. Die Gebäude-Priorität sagt, <em>welche Werkstatt</em> innerhalb eines Jobs zuerst bedient wird, zum Beispiel welcher von zwei Rennöfen.</li>
+        <li><strong>Arbeitspriorität und Gebäudepriorität sind zwei Dinge.</strong> Die Arbeitspriorität sagt, <em>was</em> jemand macht. Die Gebäudepriorität sagt, <em>welche Werkstatt</em> innerhalb eines Jobs zuerst bedient wird, zum Beispiel welcher von zwei Rennöfen.</li>
         <li><strong>Training:</strong> Seht ihr eine ausgegraute Spalte „Training“, könnt ihr sie ignorieren. Laut Spielern hat sie noch keine Funktion.</li>
         <li><strong>Außenposten:</strong> Arbeiter arbeiten nur an Gebäuden ihres eigenen Dorfs oder Außenpostens. Ist ein Job ausgegraut, fehlt dort das Gebäude. Plant Außenposten am besten getrennt und gebt dort die Lieferung weit vorne.</li>
+      </ul>
+    </section>
+
+    <section class="prose" id="help-buildings">
+      <h2>Gebäudeprioritäten</h2>
+      <p><strong>Arbeitspriorität</strong> = <em>was</em> jemand macht. <strong>Gebäudepriorität</strong> = <em>wo</em> er es innerhalb eines Jobs zuerst macht.</p>
+      <p>1 = am wichtigsten, 5 = Standard, ⊘ = aus. Gebäude ohne Zahl (Wohnzelte, Brunnen, Wegweiser, Rathaus) brauchen keine.</p>
+      <div class="ktable-wrap">
+        <table class="ktable btable">
+          <thead><tr><th scope="col">Zahl</th><th scope="col">Gebäude</th></tr></thead>
+          <tbody>
+            <tr><td><span class="bprio p1">1</span></td><td>Kochstellen (Lagerfeuer mit Kochtopf), Forschungstisch, Sägegrube solange ihr viel baut</td></tr>
+            <tr><td><span class="bprio p2">2</span></td><td>Werkzeugmacher, Bauernhöfe, Dreschhaus, Holzfällerplatz, Minenlager, Geflügelstall, eine Baustelle, die fertig werden soll</td></tr>
+            <tr><td><span class="bprio p3">3</span></td><td>Holzfällerhütte, Jägerlager, Metzgerei, Mischkübel, Webstuhl + Webertisch, Gerbergestell, Räuchergestelle</td></tr>
+            <tr><td><span class="bprio p4">4</span></td><td>Fischerlager, Handwerkerecke, Einfache Werkbank, Schwammhütte</td></tr>
+            <tr><td><span class="bprio p5">5</span></td><td>Alle Lager (Vorratslager, Scheunen, Lagertruhen), Sammlerhütte + Trockengestelle, Försterei, Komposthaufen, Karawane</td></tr>
+            <tr><td><span class="bprio p0" role="img" aria-label="aus">⊘</span></td><td>was ihr gerade nicht braucht</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>Höchstens 3–4 Gebäude auf 1.</li>
+        <li>Eine Baustelle auf 2, bis sie fertig ist, dann wieder 5.</li>
+        <li>Ein rotes Warnzeichen am Gebäude heißt meist: Werkzeug oder Material fehlt.</li>
       </ul>
     </section>
 
