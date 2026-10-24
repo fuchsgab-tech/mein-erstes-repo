@@ -5,6 +5,9 @@
 // Part B drives page.html (from mk.js) in Playwright: phones share one fake server in node (one map and one
 // listener list per collection: workers, settings, ingame, prefs), user stub with id/isOwner/can/profiles, sample stub.
 const { chromium } = require('playwright');
+// BUILD 13: while villagers have open numbers, the banner's "Jetzt im Spiel eintragen" replaces the grid-head button,
+// so the mode opens through whichever trigger is visible.
+const ENTRY_OPEN = '#entry-banner-go:visible, #entry-open:visible';
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -494,7 +497,7 @@ async function sharedFlow(browser) {
   await A.page.click('[data-view="cards"]'); await A.page.waitForTimeout(150);
 
   // Eintragen-Modus: the fixed target is shown like any other, tagged "fest".
-  await A.page.click('#entry-open'); await A.page.waitForTimeout(200);
+  await A.page.click(ENTRY_OPEN); await A.page.waitForTimeout(200);
   let seen = null;
   for (let i = 0; i < 8 && !seen; i++) {
     seen = await A.page.evaluate(() => { const c = document.querySelector('#entry-stage .entry-card'); if (!c || c.dataset.wid !== 'w_wulfric') return null; const r = c.querySelector('.er-row[data-job="research"]'); return r ? { to: r.querySelector('.er-to').textContent, fixed: r.querySelector('.er-to').classList.contains('fixed'), label: r.getAttribute('aria-label') } : { none: true }; });

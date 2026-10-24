@@ -3,6 +3,9 @@
 // Phones are separate browser contexts sharing one fake server in node (per-collection docs and listeners),
 // the same pattern as feat-ingame.js. navigator.wakeLock is stubbed per phone: 'ok' | 'deny' | 'none'.
 const { chromium } = require('playwright');
+// BUILD 13: while villagers have open numbers, the banner's "Jetzt im Spiel eintragen" replaces the grid-head button
+// (and the sticky bar waits until the banner is scrolled away), so the mode opens through whichever trigger is visible.
+const ENTRY_OPEN = '#entry-banner-go:visible, #entry-open:visible';
 
 const AP_KEY = 'bellwright-arbeitsplan-eingetragen-v1';
 const LS_KEY = 'bellwright-arbeitsplan-v1';
@@ -161,9 +164,13 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const P = L.page;
     check('example team: no entry button, no sticky bar', await P.evaluate(() => document.getElementById('entry-open').hidden && document.getElementById('entry-sticky').hidden));
     await P.click('#tab-arbeiter'); await P.click('#adopt-example'); await P.click('#tab-plan'); await P.waitForTimeout(200);
-    const b0 = await P.evaluate(() => ({ t: document.getElementById('entry-open').textContent, h: document.getElementById('entry-open').hidden, sticky: getComputedStyle(document.getElementById('entry-sticky')).position, stickyHidden: document.getElementById('entry-sticky').hidden, inHead: !!document.querySelector('.grid-head #entry-open') }));
-    check('adopted: button "Im Spiel eintragen (7 offen)" in .grid-head', !b0.h && b0.inHead && b0.t === 'Im Spiel eintragen (7 offen)', b0);
-    check('coarse pointer: sticky bar at the bottom of the Plan panel', !b0.stickyHidden && b0.sticky === 'sticky', b0);
+    const b0 = await P.evaluate(() => ({ t: document.getElementById('entry-open').textContent, h: document.getElementById('entry-open').hidden, sticky: getComputedStyle(document.getElementById('entry-sticky')).position, stickyHidden: document.getElementById('entry-sticky').hidden, inHead: !!document.querySelector('.grid-head #entry-open'), banner: !document.getElementById('entry-banner').hidden }));
+    // BUILD 13: the banner at the top replaces the head button (which keeps its label) and the sticky bar waits until the banner is scrolled away.
+    check('adopted: the banner replaces the head button "Im Spiel eintragen (7 offen)" in .grid-head', b0.h && b0.banner && b0.inHead && b0.t === 'Im Spiel eintragen (7 offen)', b0);
+    await P.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); await P.waitForTimeout(250);
+    const b1 = await P.evaluate(() => ({ sticky: getComputedStyle(document.getElementById('entry-sticky')).position, stickyHidden: document.getElementById('entry-sticky').hidden }));
+    check('coarse pointer: sticky bar at the bottom of the Plan panel (banner scrolled away)', !b1.stickyHidden && b1.sticky === 'sticky', b1);
+    await P.evaluate(() => window.scrollTo(0, 0)); await P.waitForTimeout(150);
     await P.click('#mark-all'); await P.waitForTimeout(150);
     check('everyone ticked: button and bar hidden', await P.evaluate(() => document.getElementById('entry-open').hidden && document.getElementById('entry-sticky').hidden));
     await P.click('#panel-plan [data-phase="ausbau"]'); await P.waitForTimeout(200);
@@ -174,7 +181,8 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const snaps = await P.evaluate(k => JSON.parse(localStorage.getItem(k)), AP_KEY);
     const before = clone(snaps);
 
-    // Open from the sticky bar.
+    // Open from the sticky bar (BUILD 13: it shows once the banner is scrolled away).
+    await P.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); await P.waitForTimeout(250);
     await P.click('#entry-sticky button'); await P.waitForTimeout(200);
     let e = await E(P);
     const dlg = await P.evaluate(() => { const d = document.getElementById('entry'); return { role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), lb: d.getAttribute('aria-labelledby'), z: getComputedStyle(d).zIndex, pos: getComputedStyle(d).position, oy: getComputedStyle(d).overflowY, inert: document.querySelector('.wrap').inert, htmlOv: getComputedStyle(document.documentElement).overflow, bg: getComputedStyle(d).backgroundColor }; });
@@ -287,15 +295,17 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const relBefore = await P.evaluate(() => window.__wake.rel);
     await P.keyboard.press('Escape'); await P.waitForTimeout(150);
     const cl = await P.evaluate(() => ({ hidden: document.getElementById('entry').hidden, cls: document.documentElement.className, inert: document.querySelector('.wrap').inert, active: document.activeElement.id, rel: window.__wake.rel }));
-    check('Escape closes: page unlocked, wake lock released, focus to the entry button', cl.hidden && !cl.cls.includes('entry-open') && !cl.inert && cl.rel === relBefore + 1 && cl.active === 'entry-open', cl);
+    // BUILD 13: the resume banner is gone, the new banner (still open villagers) took over: its button gets the focus.
+    check('Escape closes: page unlocked, wake lock released, focus to the entry button', cl.hidden && !cl.cls.includes('entry-open') && !cl.inert && cl.rel === relBefore + 1 && cl.active === 'entry-banner-go', cl);
     const c1 = await canvasSig(P); await P.waitForTimeout(250); const c2 = await canvasSig(P);
     check('embers run again after closing', c1 !== c2);
     // Open by the title button, close with ✕: focus back on the opener.
-    await P.click('#entry-open'); await P.waitForTimeout(150);
+    const opener = await P.evaluate(() => ['entry-banner-go', 'entry-open'].find(id => !document.getElementById(id).closest('[hidden]')));
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(150);
     await P.click('[data-e="close"]'); await P.waitForTimeout(100);
-    check('✕ closes, focus back on the opener', await P.evaluate(() => document.getElementById('entry').hidden && document.activeElement.id === 'entry-open'));
+    check('✕ closes, focus back on the opener', !!opener && await P.evaluate(id => document.getElementById('entry').hidden && document.activeElement.id === id, opener));
     // Finale: tick everyone that is left.
-    await P.click('#entry-open'); await P.waitForTimeout(150);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(150);
     const nLeft = (await openOrder(P)).length;
     for (let k = 0; k < nLeft; k++) {
       const s = await E(P);
@@ -313,7 +323,7 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     // (BUILD 4: with "Plan ruhig halten" Ausbau → Start only changes one villager, so this goes to Aufrüsten,
     // which leaves several open, as the test needs.)
     await P.click('#panel-plan [data-phase="krieg"]'); await P.waitForTimeout(150);
-    await P.click('#entry-open'); await P.waitForTimeout(150);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(150);
     await P.keyboard.press('ArrowRight'); await P.keyboard.press('Escape');
     await P.reload(); await P.waitForTimeout(600);
     check('closed midway: banner after reload', !(await P.evaluate(() => document.getElementById('entry-resume').hidden)));
@@ -335,24 +345,24 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
   {
     const seedLs = { [LS_KEY]: { settings: null, workers: Object.entries(SEED_W).map(([id, w]) => ({ id, ...w })) } };
     const D = await phone(browser, null, { name: 'D', inClaude: false, wake: 'deny', seedLs }, { width: 360, height: 740 });
-    await D.page.click('#entry-open'); await D.page.waitForTimeout(150);
+    await D.page.click(ENTRY_OPEN); await D.page.waitForTimeout(150);
     let e = await E(D.page);
     check('refused lock: no pill, tip shown, flag set', !e.awake && e.tip && (await D.page.evaluate(k => localStorage.getItem(k), TIP_KEY)) === 'true', e);
     check('360: no horizontal scroll', await D.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.getElementById('entry').scrollWidth <= document.getElementById('entry').clientWidth));
     check('new villager line without a snapshot', e.isNew && e.rows.filter(r => r.diff).every(r => r.from === 'von 5') && e.rows.filter(r => !r.diff).every(r => r.to === 'bleibt 5'), e.rows);
     await D.page.screenshot({ path: 'entry-360.png' });
     await D.page.keyboard.press('Escape');
-    await D.page.click('#entry-open'); await D.page.waitForTimeout(150);
+    await D.page.click(ENTRY_OPEN); await D.page.waitForTimeout(150);
     e = await E(D.page);
     check('tip only once per device', !e.tip && !e.awake);
     await D.ctx.close();
     const N = await phone(browser, null, { name: 'N', inClaude: false, wake: 'none', seedLs });
-    await N.page.click('#entry-open'); await N.page.waitForTimeout(150);
+    await N.page.click(ENTRY_OPEN); await N.page.waitForTimeout(150);
     e = await E(N.page);
     check('no wake lock API: tip, no pill', e.tip && !e.awake, e);
     await N.ctx.close();
     const O = await phone(browser, null, { name: 'O', inClaude: false, wake: 'ok', seedLs });
-    await O.page.click('#entry-open'); await O.page.waitForTimeout(150);
+    await O.page.click(ENTRY_OPEN); await O.page.waitForTimeout(150);
     await O.page.evaluate(() => { window.__wake.s[0].release(); window.__setHidden(true); });
     await O.page.waitForTimeout(80);
     const gone = (await E(O.page)).awake;
@@ -373,7 +383,7 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const A = await phone(browser, srv, { name: 'A', inClaude: true, writable: true, wake: 'ok', user: { id: 'u_owner', owner: true, can: true } });
     const B = await phone(browser, srv, { name: 'B', inClaude: true, writable: true, wake: 'ok', user: { id: 'u_lena', owner: false, can: true } });
     check('db: button "(5 offen)"', (await A.page.$eval('#entry-open', e => e.textContent)) === 'Im Spiel eintragen (5 offen)');
-    await A.page.click('#entry-open'); await A.page.waitForTimeout(150);
+    await A.page.click(ENTRY_OPEN); await A.page.waitForTimeout(150);
     let e = await E(A.page);
     check('db: opens on Agnes', e.name === 'Agnes' && e.count === '1 / 5', e);
     const pvA = await planVals(A.page, 'w_agnes');
@@ -409,9 +419,10 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     // Read-only viewer: "Weiter ▶" writes nothing.
     const C = await phone(browser, srv, { name: 'C', inClaude: true, writable: false, wake: 'ok', user: { id: 'u_ro', owner: false, can: false } });
     const logLen = srv.log.length;
-    const cBtn = await C.page.evaluate(() => ({ h: document.getElementById('entry-open').hidden, t: document.getElementById('entry-open').textContent }));
+    // BUILD 13: the trigger may be the banner button or the head button, whichever is shown.
+    const cBtn = await C.page.evaluate(() => ({ h: document.getElementById('entry-open').hidden && document.getElementById('entry-banner').hidden, t: document.getElementById('entry-open').textContent }));
     check('read-only: may open the mode too', !cBtn.h, cBtn);
-    await C.page.click('#entry-open'); await C.page.waitForTimeout(150);
+    await C.page.click(ENTRY_OPEN); await C.page.waitForTimeout(150);
     e = await E(C.page);
     check('read-only: "Weiter ▶", "Nur ansehen" note, no Überspringen', e.next === 'Weiter ▶' && e.ro && !e.skip, e);
     const n1 = e.name;
@@ -427,7 +438,7 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const srv = makeServer({ workers: SEED_W });
     const R = await phone(browser, srv, { name: 'R', inClaude: true, writable: true, wake: 'ok', user: { id: 'u_owner', owner: true, can: true } }, { reduced: true });
     const B = await phone(browser, srv, { name: 'B2', inClaude: true, writable: true, wake: 'ok', user: { id: 'u_lena', owner: false, can: true } });
-    await R.page.click('#entry-open'); await R.page.waitForTimeout(150);
+    await R.page.click(ENTRY_OPEN); await R.page.waitForTimeout(150);
     await R.page.click('#entry-next');
     const st1 = await R.page.evaluate(() => { const s = document.querySelector('#entry .entry-seal .applied-ok'); return { shown: !s.closest('[hidden]'), stamp: s.classList.contains('stamp'), anim: getComputedStyle(s, '::before').animationName }; });
     check('reduced motion: seal shown without the stamp animation', st1.shown && st1.stamp && st1.anim === 'none', st1);
@@ -446,24 +457,25 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     for (let k = 0; k < 13; k++) many['w' + k] = { name: 'Leute' + k, role: 'worker', traits: '', order: k, stats: st({ labourer: [k % 7, 9], cooking: [(k * 3) % 8, 9], farming: [(k * 5) % 9, 10], crafting: [(k * 2) % 7, 8], researching: [k % 5, 7], harvesting: [(k * 4) % 9, 9], hunting: [(k * 6) % 8, 9] }) };
     const seedLs = { [LS_KEY]: { settings: null, workers: Object.entries(many).map(([id, w]) => ({ id, ...w })) } };
     const M = await phone(browser, null, { name: 'M', inClaude: false, wake: 'ok', seedLs });
-    await M.page.click('#entry-open'); await M.page.waitForTimeout(150);
+    await M.page.click(ENTRY_OPEN); await M.page.waitForTimeout(150);
     const e = await E(M.page);
     check('13 villagers: count only, no dots', e.count === '1 / 13' && !e.dotsShown, { count: e.count, dots: e.dotsShown });
     await M.ctx.close();
 
     const seed5 = { [LS_KEY]: { settings: null, workers: Object.entries(SEED_W).map(([id, w]) => ({ id, ...w })) } };
     const Q = await phone(browser, null, { name: 'Q', inClaude: false, wake: 'ok', seedLs: seed5 }, { width: 844, height: 390 });
-    await Q.page.click('#entry-open'); await Q.page.waitForTimeout(150);
+    await Q.page.click(ENTRY_OPEN); await Q.page.waitForTimeout(150);
     const land = await Q.page.evaluate(() => { const h = document.querySelector('.ep-head').getBoundingClientRect(), r = document.querySelector('.er-rows'); return { headRight: h.right, rowsLeft: r.getBoundingClientRect().left, cols: getComputedStyle(r).columnCount, ov: document.getElementById('entry').scrollWidth <= document.getElementById('entry').clientWidth }; });
     check('landscape: name block left, rows in two columns', land.headRight <= land.rowsLeft && land.cols === '2' && land.ov, land);
     await Q.page.screenshot({ path: 'entry-landscape.png' });
     await Q.ctx.close();
 
     const W = await phone(browser, null, { name: 'W', inClaude: false, wake: 'ok', seedLs: seed5 }, { width: 1280, height: 900 });
-    const desk = await W.page.evaluate(() => ({ sticky: getComputedStyle(document.getElementById('entry-sticky')).display, btn: !document.getElementById('entry-open').hidden }));
-    check('desktop: title button, no sticky bar', desk.btn && desk.sticky === 'none', desk);
+    // BUILD 13: with open villagers the banner stands in for the title button.
+    const desk = await W.page.evaluate(() => ({ sticky: getComputedStyle(document.getElementById('entry-sticky')).display, btn: !document.getElementById('entry-open').hidden || !document.getElementById('entry-banner').hidden }));
+    check('desktop: title button (or the banner), no sticky bar', desk.btn && desk.sticky === 'none', desk);
     await W.page.screenshot({ path: 'entry-plan-1280.png' });
-    await W.page.click('#entry-open'); await W.page.waitForTimeout(150);
+    await W.page.click(ENTRY_OPEN); await W.page.waitForTimeout(150);
     await W.page.screenshot({ path: 'entry-1280.png' });
     await W.page.click('details.ep-why summary'); await W.page.waitForTimeout(80);
     check('why details open on desktop', await W.page.evaluate(() => document.querySelector('details.ep-why').open));
@@ -479,7 +491,7 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     await P.addInitScript(() => { const t = () => { throw new DOMException('blocked', 'SecurityError'); }; for (const k of ['getItem', 'setItem', 'removeItem', 'clear', 'key']) Storage.prototype[k] = t; });
     await P.goto('file://' + process.cwd() + '/page.html#plan'); await P.waitForTimeout(400);
     await P.click('#tab-arbeiter'); await P.click('#adopt-example'); await P.click('#tab-plan'); await P.waitForTimeout(150);
-    await P.click('#entry-sticky button'); await P.waitForTimeout(150);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(150);
     let guard = 0;
     while (!(await E(P)).finale && guard++ < 10) { await P.click('#entry-next'); await P.waitForTimeout(800); }
     const f = await E(P);
@@ -490,7 +502,7 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const srv = makeServer({ workers: SEED_W });
     const A = await phone(browser, srv, { name: 'FA', inClaude: true, writable: true, wake: 'ok', user: { id: 'u_owner', owner: true, can: true } }, { width: 1280 });
     const B = await phone(browser, srv, { name: 'FB', inClaude: true, writable: true, wake: 'ok', user: { id: 'u_lena', owner: false, can: true } });
-    await A.page.click('#entry-open'); await A.page.waitForTimeout(150);
+    await A.page.click(ENTRY_OPEN); await A.page.waitForTimeout(150);
     for (let k = 0; k < 5; k++) await A.page.keyboard.press('ArrowRight');
     await B.page.click('#wp-w_agnes [data-applied]');
     await until(async () => (await E(A.page)).finaleText.startsWith('1 von'), 3000);
@@ -503,7 +515,7 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     for (let k = 0; k < 12; k++) many['w' + k] = { name: 'Leute' + k, role: 'worker', traits: '', order: k, stats: st({ labourer: [k % 7, 9], cooking: [(k * 3) % 8, 9], farming: [(k * 5) % 9, 10] }) };
     const srv2 = makeServer({ workers: many });
     const C = await phone(browser, srv2, { name: 'FC', inClaude: true, writable: false, wake: 'deny', user: { id: 'u_ro', owner: false, can: false } }, { width: 568, height: 320 });
-    await C.page.click('#entry-open'); await C.page.waitForTimeout(150);
+    await C.page.click(ENTRY_OPEN); await C.page.waitForTimeout(150);
     const lay = await C.page.evaluate(() => {
       const d = document.getElementById('entry-dots').getBoundingClientRect();
       const kids = [...document.getElementById('entry-notes').children].filter(k => !k.hidden).map(k => k.getBoundingClientRect().left);

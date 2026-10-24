@@ -650,6 +650,30 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 .wp-unfix { display: flex; justify-content: flex-start; }
 .er-fest { color: var(--accent-hi); }
 
+/* Eintragen ohne Verrutschen. The banner at the top of the Plan tab while villagers have open numbers (it stands in for
+   the button next to the plan title; the sticky phone bar waits until it is scrolled away). "Hier warst du": the villager
+   last worked on gets a gold edge (::before, no layout change), a warm tint and "◆ hier", in the cards and the table.
+   The table reads easier on phones: zebra rows, taller rows, the names stay on the left. */
+.entry-banner { border-left-color: var(--ember); }
+.entry-banner p { display: grid; gap: 2px; }
+.entry-banner-lead { font-family: var(--font-display); font-size: var(--step-1); color: var(--accent-hi); line-height: 1.2; }
+.entry-banner .btn.entry-banner-go { min-height: 48px; padding-inline: 18px; font-size: 1.0625rem; }
+@media (pointer: coarse) { .entry-banner .btn.entry-banner-go { min-height: 52px; } .entry-banner .btn.entry-banner-later { min-height: 44px; min-width: 44px; } }
+@media (max-width: 560px) { .entry-banner .row { width: 100%; flex-wrap: nowrap; } .entry-banner .btn.entry-banner-go { flex: 1 1 auto; } }
+.fokus-mark { display: none; }
+.fokus .fokus-mark { display: inline-flex; align-items: center; font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em; line-height: 1.4; color: var(--on-accent); background: var(--accent-hi); border-radius: 999px; padding: 1px 8px; margin-left: 8px; white-space: nowrap; vertical-align: 0.2em; box-shadow: 0 1px 2px rgb(0 0 0 / 0.45); }
+.wp-card.fokus { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 15%, var(--surface-2)), color-mix(in oklab, var(--accent) 8%, var(--surface))); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); border-top-color: var(--accent-hi); }
+.wp-card.fokus::before, .matrix tr.fokus > .wcol::before { content: ""; position: absolute; left: -1px; top: -3px; bottom: -1px; width: 4px; border-radius: var(--radius) 0 0 var(--radius); background: var(--accent-hi); pointer-events: none; }
+.matrix tr.fokus > .wcol::before { left: 0; top: 0; bottom: 0; border-radius: 0; }
+.matrix .fokus .fokus-mark { position: absolute; top: 6px; right: 6px; margin: 0; }
+.matrix tr.fokus .wname { max-width: calc(100% - 56px); }   /* a long name wraps before the mark; the column keeps its width */
+.matrix tbody tr:nth-child(even) > td { background-color: rgb(255 236 200 / 0.035); }
+.matrix tbody tr:nth-child(even) > .wcol { background-color: color-mix(in oklab, var(--fg) 5%, var(--surface)); }
+.matrix tbody tr.fokus > td { background-color: rgb(217 164 65 / 0.13); }
+.matrix tbody tr.fokus > .wcol { background-color: color-mix(in oklab, var(--accent) 17%, var(--surface)); }
+@media (max-width: 560px), (pointer: coarse) { .matrix tbody th, .matrix tbody td { padding-block: 9px; } }
+@media (pointer: coarse) { .matrix .cell { height: 44px; } }
+
 /* "Animationen" in Einstellungen (per device). */
 .anim-seg button { min-width: 7.5em; }
 @media (max-width: 560px) { .seg.anim-seg { grid-template-columns: repeat(3, minmax(0, 1fr)); } .anim-seg button { min-width: 0; padding-inline: 10px; } }
@@ -813,6 +837,11 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 [data-anim="voll"] .rc-stat.cleared::after { animation: okflash 0.4s ease-out; }
 @keyframes okflash { from { opacity: 1; } to { opacity: 0; } }
 [data-anim="voll"] .zoom[open] { animation: calmIn 0.2s ease-out both; }
+
+/* Eintragen ohne Verrutschen: the banner comes in like a list row (voll) or fades (ruhig); the "◆ hier" mark stamps
+   by script (play: voll scale 1.25 -> 0.95 -> 1 in 320 ms, ruhig a 150 ms fade). */
+[data-anim="voll"] .entry-banner { animation: rise 0.22s ease-out backwards; }
+[data-anim="ruhig"] .entry-banner { animation: calmIn 0.15s ease-out both; }
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -847,6 +876,14 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 
   <!-- PLAN -->
   <div class="panel" id="panel-plan" role="tabpanel" aria-labelledby="tab-plan" tabindex="-1">
+    <!-- Villagers with open numbers: the way into the Eintragen-Modus. Stands in for the button next to the plan title. -->
+    <div class="banner entry-banner" id="entry-banner" hidden>
+      <p id="entry-banner-text"></p>
+      <div class="row">
+        <button class="btn primary entry-banner-go" type="button" id="entry-banner-go" data-entry-open>Jetzt im Spiel eintragen</button>
+        <button class="btn small entry-banner-later" type="button" id="entry-banner-later">Später</button>
+      </div>
+    </div>
     <div class="banner entry-resume" id="entry-resume" hidden>
       <p id="entry-resume-text"></p>
       <div class="row">
@@ -2188,6 +2225,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       others.hidden = false;
       others.textContent = `Nicht eingeteilt (keine Dorfarbeit): ${joinDe(plan.others.map(w => `${w.name || "Ohne Namen"} (${ROLE_LABEL[w.role]})`))}.`;
     } else others.hidden = true;
+    // "Hier warst du" after every redraw; the first plan after loading scrolls to it if the Plan tab was opened.
+    paintFokus();
+    if (fokusPending && hasGrid && !$("#panel-plan").hidden) { fokusPending = false; fokusScroll(); }
     renderReason();
     entryRefresh();
   }
@@ -2212,7 +2252,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         const label = `${w.name || "Arbeiter"}, ${j.label}: ${c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}${was ? `, ${wasText(was)}` : ""}`;
         return `<td><button type="button" class="${cls}" data-cell="${esc(key)}" data-focus="c:${esc(key)}" aria-label="${esc(label)}">${c.off ? "aus" : c.p}</button></td>`;
       }).join("");
-      return `<tr><th class="wcol" scope="row"><span class="wname" tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}</span><span class="wsub">Hauptjob: ${esc(mj ? mj.label : "–")}</span>${tick}</th>${cells}</tr>`;
+      return `<tr data-fokus="${esc(w.id)}"><th class="wcol" scope="row"><span class="wname" tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}</span>${FOKUS_MARK}<span class="wsub">Hauptjob: ${esc(mj ? mj.label : "–")}</span>${tick}</th>${cells}</tr>`;
     }).join("");
     const foot = `<tfoot><tr><th class="wcol" scope="row">Besetzung</th>${plan.jobs.map(j => {
       const c = plan.coverage[j.id];
@@ -2247,7 +2287,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const seal = done ? `<div class="applied-box"><span class="applied-ok${justApplied.has(w.id) ? " stamp" : ""}">im Spiel eingetragen</span>${who ? `<small class="applied-who">${esc(who)}</small>` : ""}</div>` : "";
     const unfix = canFix && prefs[w.id]
       ? `<div class="wp-unfix"><button type="button" class="linkbtn" data-fix="clear" data-fix-k="${esc(w.id)}|" data-focus="fx:${esc(w.id)}|:clear">Alle Festlegungen lösen</button></div>` : "";
-    return `<article class="wp-card" id="wp-${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${seal}</div>${body}${unfix}${foot}</article>`;
+    return `<article class="wp-card" id="wp-${esc(w.id)}" data-fokus="${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}${FOKUS_MARK}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${seal}</div>${body}${unfix}${foot}</article>`;
   }
 
   // "Festlegen:" inside an opened row (cards) and in the table's reason box. Only for people who can change the plan.
@@ -2407,6 +2447,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   // turns as an inert .entry-ghost, the seal drops with sparks in #entry-fx, numbers roll in, the finale banner unfurls.
   const ENTRY_KEY = "bellwright-eintragen-v1";      // {ids, i, at}: where to pick up again after a reload
   const TIP_KEY = "bellwright-sperre-tipp-v1";      // the screen-lock tip was shown on this device
+  const LATER_KEY = "bellwright-eintragen-spaeter-v1";   // "Später" on the banner: the number of open villagers it was hidden at
+  let laterAt = (() => { const v = lsGet(LATER_KEY, null); return Number.isInteger(v) ? v : null; })();
   const entry = {
     open: false, ids: [], i: 0, finale: false,
     opener: null,         // the button that opened the mode, gets focus back
@@ -2420,6 +2462,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     html: "", finHtml: "",
     turnT: null,          // a page turn is running (the old page is an .entry-ghost until then)
     lock: null, waking: false, tip: false,   // screen wake lock
+    lastWid: null,        // the villager shown last: "Hier warst du" in the plan once the mode closes
   };
   let tipShown = false;   // the screen-lock tip was shown in this page load (covers browsers that block storage)
   let resumeChecked = false, resumeOffer = null;  // the resume banner is decided once, when the plan can first be tracked
@@ -2669,7 +2712,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       entry.finHtml = "";
       entryPaintFinale();
     } else {
-      entry.finale = false; entry.i = k;
+      entry.finale = false; entry.i = k; entry.lastWid = entry.ids[k];
       fin.hidden = true; fin.innerHTML = ""; entry.finHtml = "";
       const card = document.createElement("article");
       card.className = "entry-card leaf";
@@ -2753,7 +2796,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     if (!ids.length) return;
     const act = document.activeElement;
     entry.opener = act && act !== document.body ? act : null;
-    Object.assign(entry, { open: true, ids: ids.slice(), i: 0, finale: false, tip: false });
+    Object.assign(entry, { open: true, ids: ids.slice(), i: 0, finale: false, tip: false, lastWid: null });
     entry.undo.clear();
     resumeOffer = null;
     $("#entry-resume").hidden = true;
@@ -2780,10 +2823,12 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     embers.hold(false);
     entryUnwake();
     renderPlan();
+    if (entry.lastWid) setFokus(entry.lastWid);   // "Hier warst du": the villager last shown in the mode
     const vis = el => el && el.isConnected && !el.closest("[hidden]") && el.getClientRects().length > 0;
     const o = entry.opener;
     entry.opener = null;
     if (vis(o)) o.focus({ preventScroll: true });
+    else if (vis($("#entry-banner-go"))) $("#entry-banner-go").focus();
     else if (vis($("#entry-open"))) $("#entry-open").focus();
     else $("#plan-title").focus();
   }
@@ -2836,9 +2881,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   function renderEntryTriggers(plan, track) {
     const n = track ? entryQueue(plan).length : 0;
     const label = `Im Spiel eintragen (${n} offen)`;
-    for (const b of $$("[data-entry-open]")) if (b.textContent !== label) b.textContent = label;
-    $("#entry-open").hidden = !n;
-    $("#entry-sticky").hidden = !n;
+    for (const b of $$("[data-entry-open]:not(#entry-banner-go)")) if (b.textContent !== label) b.textContent = label;
     if (track && !resumeChecked) { resumeChecked = true; resumeOffer = entryReadResume(); }
     const box = $("#entry-resume");
     const k = resumeOffer && track && !entry.open ? entryFirstOpen(plan, resumeOffer.ids, resumeOffer.i) : -1;
@@ -2849,7 +2892,29 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if ($("#entry-resume-text").textContent !== text) $("#entry-resume-text").textContent = text;
     }
     box.hidden = k < 0;
+    // The banner: while villagers have open numbers, unless "Später" was tapped at this count or the resume banner
+    // already invites. It stands in for the title button; the sticky bar (touch) comes once it is scrolled away.
+    if (track && !n && laterAt !== null) { laterAt = null; try { localStorage.removeItem(LATER_KEY); } catch (e) { /* ignore */ } }
+    const on = n > 0 && laterAt !== n && k < 0;
+    trig.n = n; trig.on = on;
+    if (on) {
+      const html = `<strong class="entry-banner-lead">${n} Bewohner ${n === 1 ? "hat" : "haben"} neue Zahlen</strong><span class="muted small">Ein Bewohner pro Bildschirm – so verrutscht ihr beim Eintragen nicht.</span>`;
+      if ($("#entry-banner-text").innerHTML !== html) $("#entry-banner-text").innerHTML = html;
+    }
+    $("#entry-banner").hidden = !on;
+    $("#entry-open").hidden = !n || on;
+    syncSticky();
   }
+  // The sticky bar shows when villagers are open and the banner is not on screen (hidden by "Später", or scrolled away).
+  const trig = { n: 0, on: false };
+  function syncSticky() {
+    let seen = false;
+    if (trig.on) { const r = $("#entry-banner").getBoundingClientRect(); seen = r.height > 0 && r.bottom > 0 && r.top < innerHeight; }
+    const hide = !trig.n || (trig.on && seen);
+    if ($("#entry-sticky").hidden !== hide) $("#entry-sticky").hidden = hide;
+  }
+  try { new IntersectionObserver(syncSticky).observe($("#entry-banner")); }
+  catch (e) { addEventListener("scroll", syncSticky, { passive: true }); }   // no IntersectionObserver: check on scroll
 
   $("#entry").addEventListener("click", e => {
     const t = e.target.closest("[data-e]");
@@ -2898,7 +2963,54 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     resumeOffer = null;
     try { localStorage.removeItem(ENTRY_KEY); } catch (e) { /* ignore */ }
     $("#entry-resume").hidden = true;
+    renderPlan();   // the banner may take over now
+    (!$("#entry-banner").hidden ? $("#entry-banner-go") : $("#entry-open").hidden ? $("#plan-title") : $("#entry-open")).focus();
+  });
+  // "Später": this device hides the banner until the number of open villagers changes; the title button is back.
+  $("#entry-banner-later").addEventListener("click", () => {
+    laterAt = trig.n;
+    lsSet(LATER_KEY, laterAt);   // blocked storage: it holds for this page load
+    renderPlan();
     ($("#entry-open").hidden ? $("#plan-title") : $("#entry-open")).focus();
+  });
+
+  // ---------- "Hier warst du": the villager last worked on (per device) ----------
+  // A tap anywhere in a card (cards) or row (table) marks that villager; so does closing the Eintragen-Modus (the one
+  // shown last). Stored on this device only. The plan HTML carries the mark hidden in every card/row (FOKUS_MARK);
+  // paintFokus() switches the one .fokus after every redraw, so a tap never redraws the plan (a row still opens).
+  const FOKUS_KEY = "bellwright-fokus-v1";
+  const FOKUS_MARK = `<span class="fokus-mark"><span aria-hidden="true">◆ hier</span><span class="vh">, hier wart ihr zuletzt</span></span>`;
+  let fokus = (() => { const v = lsGet(FOKUS_KEY, null); return typeof v === "string" && v && v.length <= 80 ? v : null; })();
+  let fokusPending = false;   // the Plan tab opened before the plan was drawn: scroll once it is there
+  let fokusBoot = true;
+  const FOKUS_STAMP = { frames: [{ transform: "scale(1.25)" }, { transform: "scale(0.95)", offset: 0.6 }, { transform: "scale(1)" }], opts: { duration: 320, easing: "cubic-bezier(0.3, 1.6, 0.5, 1)" } };
+  const FOKUS_FADE = { frames: [{ opacity: 0 }, { opacity: 1 }], opts: { duration: 150, easing: "ease-out" } };
+  const fokusEl = () => fokus ? document.querySelector(`#plan-view [data-fokus="${CSS.escape(fokus)}"]`) : null;
+  function paintFokus() {
+    for (const el of $$("#plan-view [data-fokus]")) { const on = el.dataset.fokus === fokus; if (el.classList.contains("fokus") !== on) el.classList.toggle("fokus", on); }
+  }
+  function setFokus(wid) {
+    if (!wid || wid === fokus) return;
+    fokus = wid;
+    lsSet(FOKUS_KEY, wid);   // blocked storage: it holds for this page load
+    paintFokus();
+    const el = fokusEl(), m = el && el.querySelector(".fokus-mark");
+    if (m) play(m, FOKUS_STAMP, FOKUS_FADE);
+  }
+  // The Plan tab was opened: bring the marked villager into view when it is off-screen (glide only in "voll").
+  function fokusScroll() {
+    const el = fokusEl();
+    if (!el) { if (!lastPlan && fokus) fokusPending = true; return; }
+    const row = el.tagName === "TR", box = row ? el.querySelector("th") : el;
+    const r = box.getBoundingClientRect();
+    let seen;
+    if (row) { const w = box.closest(".matrix-wrap").getBoundingClientRect(); seen = r.top >= Math.max(0, w.top) && r.bottom <= Math.min(innerHeight, w.bottom); }
+    else seen = (r.top >= 0 && r.top <= innerHeight - 140) || (r.top < 0 && r.bottom >= innerHeight / 2);
+    if (!seen) box.scrollIntoView({ block: row ? "center" : "start", inline: "nearest", behavior: scrollMode() });
+  }
+  $("#plan-view").addEventListener("click", e => {
+    const el = e.target.closest && e.target.closest("[data-fokus]");
+    if (el) setFokus(el.dataset.fokus);
   });
 
   // ---------- Rendering: worker editor ----------
@@ -3560,6 +3672,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   function showTab(name, push, focus) {
     if (!TABS.includes(name)) name = "plan";
     const from = TABS.findIndex(t => !$("#panel-" + t).hidden);
+    const planOpens = name === "plan" && (fokusBoot || $("#panel-plan").hidden);   // at boot, or coming from another tab
+    fokusBoot = false;
     for (const t of TABS) {
       const p = $("#panel-" + t);
       const wasHidden = p.hidden;
@@ -3573,6 +3687,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     if (push) { try { history.replaceState(null, "", "#" + name); } catch (e) { /* ignore */ } }
     if (name === "plan" && lastPlan) renderPhaseControls(phaseCosts(lastPlan));   // worked out only while the Plan tab is in view
     if (focus) { const p = $("#panel-" + name); p.focus({ preventScroll: true }); window.scrollTo({ top: 0 }); }
+    if (planOpens) { fokusScroll(); syncSticky(); }   // "Hier warst du" comes into view; the sticky bar follows the banner
   }
 
   // ---------- Events ----------

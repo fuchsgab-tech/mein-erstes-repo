@@ -3,6 +3,9 @@
 // reduced motion = "aus" unless chosen on this device, page turn <= 400 ms, a second tap during the stamp advances at once
 // (one write), list stagger 30 ms capped at 10, toast in/out and error shake timings, all three levels, 360 px.
 const { chromium } = require('playwright');
+// BUILD 13: while villagers have open numbers, the banner's "Jetzt im Spiel eintragen" replaces the grid-head button
+// (and the sticky bar waits until the banner is scrolled away), so the mode opens through whichever trigger is visible.
+const ENTRY_OPEN = '#entry-banner-go:visible, #entry-open:visible';
 
 const LS_KEY = 'bellwright-arbeitsplan-v1';
 const AP_KEY = 'bellwright-arbeitsplan-eingetragen-v1';
@@ -260,7 +263,7 @@ const startPose = (page, sel, name) => page.evaluate(([sel, name]) => {
     check(`${w}: hidden page: the loop stops, visible: it runs again`, hid === 0 && back > 0, { hid, back });
     if (w === 390) {
       // The Eintragen-Modus covers the page: no frames.
-      await P.click('#entry-open'); await P.waitForTimeout(100);
+      await P.click(ENTRY_OPEN); await P.waitForTimeout(100);
       await P.evaluate(() => { window.__raf.req = 0; }); await P.waitForTimeout(300);
       check('entry mode open: the ember loop waits', (await P.evaluate(() => window.__raf.req)) === 0);
       await P.keyboard.press('Escape'); await P.waitForTimeout(150);
@@ -279,7 +282,7 @@ const startPose = (page, sel, name) => page.evaluate(([sel, name]) => {
     const srv = makeServer({ workers: SEED_W });
     const { ctx, page: P } = await open(browser, srv, { name: 'E-' + mode, inClaude: true, writable: true, anim: mode, user: { id: 'u_owner', owner: true, can: true } });
     const writes = () => srv.log.filter(l => l.c === 'ingame').length;
-    await P.click('#entry-open'); await P.waitForTimeout(450);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(450);
     await resetSeen(P);
     await P.evaluate(() => { window.__sp.batches = []; window.__sp.life = []; });
     // Fertig once: the seal; the next villager comes by itself soon.
@@ -369,7 +372,7 @@ const startPose = (page, sel, name) => page.evaluate(([sel, name]) => {
     check('reduced: the note says the device asks for less motion and that a choice here wins', s.note === NOTE, s.note);
     await resetSeen(P);
     await P.click('#tab-plan'); await P.click('#panel-plan [data-phase="ausbau"]'); await P.waitForTimeout(40); await sampleNow(P);
-    await P.click('#entry-open'); await P.waitForTimeout(40); await sampleNow(P);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(40); await sampleNow(P);
     await P.click('#entry-next'); await P.waitForTimeout(40); await sampleNow(P);
     await P.waitForTimeout(500); await P.keyboard.press('Escape'); await P.waitForTimeout(40); await sampleNow(P);
     await P.click('#tab-jobs'); await P.waitForTimeout(40); await sampleNow(P);

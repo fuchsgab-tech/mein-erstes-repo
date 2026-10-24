@@ -3,6 +3,9 @@
 // banner + fountain), rolling plan numbers, the phase-switch light sweep, the title torch, pausing while hidden,
 // the entry flow in all three modes against a shared fake server, timing, cleanup and overflow at 360/390/1280.
 const { chromium } = require('playwright');
+// BUILD 13: while villagers have open numbers, the banner's "Jetzt im Spiel eintragen" replaces the grid-head button
+// (and the sticky bar waits until the banner is scrolled away), so the mode opens through whichever trigger is visible.
+const ENTRY_OPEN = '#entry-banner-go:visible, #entry-open:visible';
 
 const LS_KEY = 'bellwright-arbeitsplan-v1';
 const AP_KEY = 'bellwright-arbeitsplan-eingetragen-v1';
@@ -214,7 +217,7 @@ const stuck = page => page.evaluate(() => ({
     off += await sampleOff();
     await P.click('#panel-plan [data-phase="start"]'); await P.waitForTimeout(1300);
     // Open the mode.
-    await P.click('#entry-open'); await P.waitForTimeout(60);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(60);
     off += await sampleOff();
     await P.evaluate(() => window.__sample());
     const first = await nameOf(P);
@@ -358,7 +361,7 @@ const stuck = page => page.evaluate(() => ({
     const c3 = await canvasSig(P); await P.waitForTimeout(250); const c4 = await canvasSig(P);
     check('visible again: everything runs', !v.cls && v.torch.every(s => s === 'running') && c3.h !== c4.h, { v });
     // Entry open, Fertig, and switch to "aus" (another tab) while the seal lands: effects stop, flow goes on.
-    await P.click('#entry-sticky button'); await P.waitForTimeout(100);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(100);
     await P.click('#entry-next'); await P.waitForTimeout(60);
     await P.evaluate(k => { localStorage.setItem(k, '"aus"'); window.dispatchEvent(new StorageEvent('storage', { key: k })); }, ANIM_KEY);
     const s = await stuck(P);
@@ -374,7 +377,7 @@ const stuck = page => page.evaluate(() => ({
     const seedLs = { [LS_KEY]: { settings: null, workers: Object.entries(SEED_W).map(([id, x]) => ({ id, ...x })) } };
     const L = await phone(browser, null, { name: 'O' + w, inClaude: false, anim: 'voll', seedLs }, { width: w, height: h });
     const P = L.page;
-    await P.click('#entry-open'); await P.waitForTimeout(80);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(80);
     let worst = { doc: 0, entry: 0 };
     const take = async () => { const o = await overflow(P); worst = { doc: Math.max(worst.doc, o.doc), entry: Math.max(worst.entry, o.entry) }; };
     for (let k = 0; k < 4; k++) {
@@ -408,7 +411,7 @@ const stuck = page => page.evaluate(() => ({
     check('"aus" -> "voll": the old flashes and the bell do not go off', left.bump > 0 && fired.length === 0 && (await P.evaluate(() => document.querySelectorAll('.bump').length)) === 0, { left, fired });
     await P.click('#panel-plan [data-phase="start"]'); await P.waitForTimeout(1300);
     // The page behind the mode: its loops wait while the mode covers it.
-    await P.click('#entry-open'); await P.waitForTimeout(100);
+    await P.click(ENTRY_OPEN); await P.waitForTimeout(100);
     const behind = await P.evaluate(() => document.querySelector('h1').getAnimations({ subtree: true }).map(a => a.playState));
     check('mode open: the title torch behind it is paused', behind.length > 0 && behind.every(s => s === 'paused'), behind);
     // Partial finale -> "Noch offene ansehen": the copy of the finale stays as it is under the page coming back.
