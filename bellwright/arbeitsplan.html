@@ -674,6 +674,20 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 @media (max-width: 560px), (pointer: coarse) { .matrix tbody th, .matrix tbody td { padding-block: 9px; } }
 @media (pointer: coarse) { .matrix .cell { height: 44px; } }
 
+/* Werte aktuell halten: "+1" between Stufe and Max, how old the values are under the main job, the Plan hint and the
+   Arbeiter chip "Älteste zuerst". On narrow cards the inputs and the bar give the skill names their room. */
+.st-row, .st-head { grid-template-columns: minmax(0, 1fr) 3.2em 2.5rem 3.2em 44px; }
+.st-head span:nth-child(4) { text-align: center; }
+.st-row input[type="number"] { width: 100%; }
+.btn.small.st-up { min-width: 0; width: 100%; padding-inline: 0; font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
+@media (pointer: coarse) { .st-row, .st-head { grid-template-columns: minmax(0, 1fr) 3.2em 44px 3.2em 44px; } .btn.small.st-up { min-height: 44px; } }
+@media (max-width: 420px) { .st-row, .st-head { grid-template-columns: minmax(0, 1fr) 3em 44px 3em 24px; gap: 5px; } }
+.wc-fresh { font-size: var(--step--1); color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 0 10px; min-height: 1.2em; }
+.wc-fresh:focus { outline: none; }
+.fresh-hint p { max-width: 62ch; }
+@media (pointer: coarse) { .fresh-hint .btn.small.fresh-later { min-height: 44px; min-width: 44px; } .sort-chip { min-height: 44px; } }
+.sort-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-hi); background: color-mix(in oklab, var(--accent) 16%, var(--field)); }
+
 /* "Animationen" in Einstellungen (per device). */
 .anim-seg button { min-width: 7.5em; }
 @media (max-width: 560px) { .seg.anim-seg { grid-template-columns: repeat(3, minmax(0, 1fr)); } .anim-seg button { min-width: 0; padding-inline: 10px; } }
@@ -905,6 +919,15 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       </div>
     </div>
 
+    <!-- Values older than a week: villagers get better by working, so the plan may use old numbers. -->
+    <div class="banner fresh-hint" id="fresh-hint" hidden>
+      <p id="fresh-hint-text"></p>
+      <div class="row">
+        <button class="btn" type="button" id="fresh-check">Werte prüfen</button>
+        <button class="btn small fresh-later" type="button" id="fresh-later">Später</button>
+      </div>
+    </div>
+
     <ul class="notes" id="notes"></ul>
 
     <section class="reveal" style="--i:3">
@@ -956,6 +979,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         <button class="btn primary" type="button" id="toggle-photo" data-photo aria-expanded="false" aria-controls="photo" hidden>Foto einlesen</button>
         <button class="btn" type="button" id="add-worker">+ Arbeiter</button>
         <button class="btn" type="button" id="toggle-import" aria-expanded="false" aria-controls="import">Aus Text einfügen</button>
+        <button class="chip sort-chip" type="button" id="sort-old" aria-pressed="false" hidden>Älteste zuerst</button>
       </div>
       <p class="muted small" style="max-width: 52ch;">Stufe = aktueller Wert, Max = höchster Wert, den der Arbeiter erreichen kann (steht im Spiel daneben). Fehlt Max, rechnet die App nur mit der Stufe.</p>
     </div>
@@ -1401,6 +1425,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     ingameDenied: false,    // db: refused before the first ingame snapshot, so it never comes (the plan then shows without it)
     prefsReady: false,      // db: the first 'prefs' snapshot (Festlegungen) has arrived; the plan waits for it
     prefsDenied: false,     // db: the prefs never come (refused or connection lost): the plan shows without them
+    stampsReady: false,     // when the values were last checked ('stamps') has arrived; the Plan hint waits for it
+    stampsDenied: false,    // db: the stamps never come: the hint counts from this device's first sight
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -1449,6 +1475,23 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     if (d.pins && typeof d.pins === "object" && !Array.isArray(d.pins))
       for (const [k, v] of Object.entries(d.pins)) if (PREF_ID.test(k) && k !== lockMain && Number.isInteger(v) && (v === 0 || (v >= 2 && v <= 9))) pins[k] = v;
     return lockMain || Object.keys(pins).length ? { lockMain, pins } : null;
+  }
+
+  // When a villager's values were last entered or checked: {wid: {at, by}} ('stamps' collection in shared mode, doc id =
+  // worker id, never a field on the worker doc; 'stamps' inside LS_KEY locally). Without a stamp the time this device
+  // first saw the villager counts (SEEN_KEY), so old data needs no writes and nobody is nagged right away.
+  let stamps = {};
+  const SEEN_KEY = "bellwright-gesehen-v1";
+  const seen = (() => { const v = lsGet(SEEN_KEY, {}); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; })();
+  function cleanStamp(d) {
+    if (!d || typeof d !== "object" || Array.isArray(d) || typeof d.at !== "number" || !isFinite(d.at) || d.at <= 0) return null;
+    return { at: d.at, by: typeof d.by === "string" ? d.by.slice(0, 200) : "" };
+  }
+  function valuesAt(wid) {
+    const s = stamps[wid];
+    if (s) return s.at;
+    if (!(typeof seen[wid] === "number" && seen[wid] > 0)) { seen[wid] = Date.now(); lsSet(SEEN_KEY, seen); }   // this device only
+    return seen[wid];
   }
 
   // ---------- The planner ----------
@@ -2147,6 +2190,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     $("#wcount").textContent = n ? String(n) : "";
     $("#wcount-sr").textContent = n ? `, ${n} eingetragen` : "";
     $("#mast-sub").classList.toggle("has-team", n > 0);
+    renderFreshHint();
     const hideAll = () => {
       $("#notes").hidden = true; $("#reason").hidden = true; $("#others").hidden = true;
       $("#mark-all").hidden = true; $("#legend-chg").hidden = true; $("#chips").hidden = true; $("#card-hint").hidden = true;
@@ -3013,6 +3057,81 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     if (el) setFokus(el.dataset.fokus);
   });
 
+  // ---------- Werte aktuell halten: villagers get better by working, the plan should not use old numbers ----------
+  // valuesAt() (above) is when the values were last entered or checked. Cards say how old they are, "+1" raises a Stufe
+  // in one tap, the Plan tab nudges once values are older than a week. Editing, +1, imports and "Stimmen noch" stamp.
+  const STALE = 7 * 864e5;
+  const FRESH_LATER_KEY = "bellwright-werte-spaeter-v1";   // "Später" on the Plan hint: when it was tapped (3 days)
+  let freshLater = (() => { const v = lsGet(FRESH_LATER_KEY, 0); return typeof v === "number" && isFinite(v) ? v : 0; })();
+  let sortOld = null, sortUsed = false;   // Arbeiter tab "Älteste zuerst": the order fixed when it was switched on
+  function valuesAge(at, now = Date.now()) {
+    const day = t => { const x = new Date(t); return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); };
+    const d = Math.max(0, Math.round((day(now) - day(at)) / 864e5));
+    return d === 0 ? "Werte von heute" : d === 1 ? "Werte von gestern" : `Werte von vor ${d} Tagen`;
+  }
+  // Someone whose every skill is at its Max (or the top value) cannot get better by working: no nagging there.
+  const canGrow = w => ATTRS.some(a => { const s = w.stats[a.id]; return s.cur < (s.max === null ? MAXV : Math.min(MAXV, s.max)); });
+  const oldestFirst = () => sortedWorkers().map(w => [w.id, valuesAt(w.id)]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+  // The list order; while "Älteste zuerst" is on, the order from when it was switched on (a card does not jump away
+  // while you raise its values), villagers added since then at the end.
+  function editorOrder() {
+    const ws = sortedWorkers();
+    if (!sortOld) return ws;
+    const pos = new Map(sortOld.map((id, i) => [id, i]));
+    return ws.slice().sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : 1e9) - (pos.has(b.id) ? pos.get(b.id) : 1e9));
+  }
+  // "+1": the Stufe goes up by one; Max follows when it would be below it (never down; an unknown Max stays unknown).
+  function raiseStat(wid, a) {
+    const old = state.workers.get(wid);
+    if (locked() || !old || !ATTR[a] || old.stats[a].cur >= MAXV) return;
+    const w = JSON.parse(JSON.stringify(old)), s = w.stats[a];
+    s.cur += 1;
+    if (s.max !== null && s.max < s.cur) s.max = s.cur;
+    saveWorker(normWorker(wid, w, { raiseMax: false }));
+    stampNow(wid);
+    renderPlan(); refreshCardsMain(); refreshReview();
+    const inp = document.getElementById(`${wid}-cur-${a}`);
+    if (inp) play(inp, FOKUS_STAMP, FOKUS_FADE);   // the number stamps (voll) or fades in (ruhig)
+  }
+  $("#wlist").addEventListener("click", e => {
+    const b = e.target.closest("[data-up]");
+    if (b) { const c = b.closest("[data-wid]"); if (c) raiseStat(c.dataset.wid, b.dataset.up); return; }
+    const ok = e.target.closest('[data-act="fresh"]');
+    if (ok && !locked()) {
+      const c = ok.closest("[data-wid]"), w = c && state.workers.get(c.dataset.wid);
+      if (!w) return;
+      stampNow(w.id, 0);   // checked in the game, nothing changed
+      refreshCardsMain(); renderPlan();
+      c.querySelector('[data-out="fresh"]').focus({ preventScroll: true });
+      toast(`Werte von ${w.name || "diesem Arbeiter"} als aktuell gemerkt.`);
+    }
+  });
+  $("#sort-old").addEventListener("click", () => { sortOld = sortOld ? null : oldestFirst(); renderEditor(); });
+  // The Plan hint: real team only, for people who can change values, once the stamps are there, not after "Später".
+  function renderFreshHint() {
+    const wait = state.mode === "db" && !state.stampsReady && !state.stampsDenied;
+    const later = Date.now() - freshLater < 3 * 864e5;
+    const old = isExample() || !state.ready || state.loadFailed || locked() || wait || later ? []
+      : sortedWorkers().filter(w => w.role === "worker" && canGrow(w) && Date.now() - valuesAt(w.id) > STALE);
+    const n = old.length;
+    if (n) {
+      const text = `Die Werte von ${n} ${n === 1 ? "Bewohner" : "Bewohnern"} sind über eine Woche alt. Durch Arbeit werden sie besser – kurz nachschauen?`;
+      if ($("#fresh-hint-text").textContent !== text) $("#fresh-hint-text").textContent = text;
+    }
+    $("#fresh-hint").hidden = !n;
+  }
+  $("#fresh-check").addEventListener("click", () => {
+    sortOld = oldestFirst(); sortUsed = true;
+    showTab("arbeiter", true, true);
+    renderEditor();
+  });
+  $("#fresh-later").addEventListener("click", () => {
+    freshLater = Date.now();
+    lsSet(FRESH_LATER_KEY, freshLater);   // blocked storage: it holds for this page load
+    renderPlan();
+    $("#plan-title").focus({ preventScroll: true });
+  });
+
   // ---------- Rendering: worker editor ----------
   function cardHtml(id) {
     const fid = f => `${id}-${f.replace(":", "-")}`;
@@ -3025,11 +3144,13 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         <button type="button" class="btn danger" data-act="del" aria-label="Arbeiter löschen">Löschen</button>
       </div>
       <div class="wc-main" data-out="main"></div>
+      <p class="wc-fresh" data-out="fresh" tabindex="-1"></p>
       <div class="stats">
-        <div class="st-head" aria-hidden="true"><span>Fertigkeit</span><span>Stufe</span><span>Max</span><span></span></div>
+        <div class="st-head" aria-hidden="true"><span>Fertigkeit</span><span>Stufe</span><span></span><span>Max</span><span></span></div>
         ${ATTRS.map(a => `<div class="st-row">
           <label class="st-name" for="${fid("cur:" + a.id)}">${esc(a.de)}<small>${esc(a.game)}</small></label>
           <input type="number" min="0" max="${MAXV}" inputmode="numeric" id="${fid("cur:" + a.id)}" data-f="cur:${a.id}" aria-label="${esc(a.de)} Stufe">
+          <button type="button" class="btn small st-up" data-up="${a.id}" aria-label="${esc(a.de)}: Stufe um 1 erhöhen">+1</button>
           <input type="number" min="0" max="${MAXV}" inputmode="numeric" id="${fid("max:" + a.id)}" data-f="max:${a.id}" placeholder="?" aria-label="${esc(a.de)} Max">
           <span class="bar" data-bar="${a.id}" aria-hidden="true"><i class="bmax"></i><i class="bcur"></i></span>
         </div>`).join("")}
@@ -3050,6 +3171,12 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (el.value !== s) el.value = s;
     }
     card.querySelector('[data-act="del"]').disabled = locked();
+    // "+1" (not read-only, not above the top value) and how old the values are; "Stimmen noch" after a week.
+    for (const b of card.querySelectorAll("[data-up]")) b.disabled = locked() || w.stats[b.dataset.up].cur >= MAXV;
+    const at = valuesAt(w.id), fr = card.querySelector('[data-out="fresh"]');
+    const frHtml = esc(valuesAge(at)) + (!locked() && Date.now() - at > STALE
+      ? ` <button type="button" class="linkbtn" data-act="fresh" aria-label="${esc(`Die Werte von ${w.name || "diesem Arbeiter"} stimmen noch`)}">Stimmen noch</button>` : "");
+    if (fr.innerHTML !== frHtml) fr.innerHTML = frHtml;
     for (const a of ATTRS) {
       const bar = card.querySelector(`[data-bar="${a.id}"]`);
       const st = w.stats[a.id];
@@ -3064,7 +3191,12 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 
   function renderEditor() {
     const list = $("#wlist");
-    const ws = sortedWorkers();
+    const ws = editorOrder();
+    const sc = $("#sort-old");
+    sc.hidden = !sortUsed || !ws.length;
+    sc.setAttribute("aria-pressed", String(!!sortOld));
+    const scHtml = `Älteste zuerst${sortOld ? ` <span aria-hidden="true">✕</span>` : ""}`;
+    if (sc.innerHTML !== scHtml) sc.innerHTML = scHtml;
     $("#w-loading").hidden = state.ready && !state.loadFailed;
     $("#w-loading").textContent = state.loadFailed ? "Die Arbeiterliste konnte nicht geladen werden. Ladet die Seite neu." : "Lädt eure Arbeiterliste …";
     $("#w-empty").hidden = !state.ready || state.loadFailed || ws.length > 0;
@@ -3179,15 +3311,19 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       prefs = {};   // older versions save without 'prefs' and ignore it
       if (d.prefs && typeof d.prefs === "object" && !Array.isArray(d.prefs))
         for (const [wid, v] of Object.entries(d.prefs)) { const p = cleanPrefs(v); if (p && wid.length <= 80) prefs[wid] = p; }
+      stamps = {};   // likewise 'stamps' (when the values were last checked)
+      if (d.stamps && typeof d.stamps === "object" && !Array.isArray(d.stamps))
+        for (const [wid, v] of Object.entries(d.stamps)) { const s = cleanStamp(v); if (s && wid.length <= 80) stamps[wid] = s; }
     },
     save() {
       if (!state.ready) return;
-      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()], prefs }) && !state.noStore) { state.noStore = true; renderStatus(); }
+      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()], prefs, stamps }) && !state.noStore) { state.noStore = true; renderStatus(); }
     },
     setWorker() { this.save(); },
     deleteWorker() { this.save(); },
     setSettings() { this.save(); },
     setPrefs() { this.save(); },
+    setStamp() { this.save(); },
     // Tick-off per browser, as before: putIngame already merged the change into `applied`.
     setIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
     deleteIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
@@ -3201,6 +3337,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     let retries = 0, retryT = null;
     let gotW = false, gotS = false, gotI = false, gotP = false;          // first delivery of each listener ever
     let sinceW = false, sinceS = false, sinceI = false, sinceP = false;  // delivered since the last subscribe()
+    let gotT = false, sinceT = false;                      // the same for 'stamps' (when the values were last checked)
+    let srvStamps = {};                                    // the last stamps the server sent, to undo a refused write
     let srvPrefs = {};                                     // the last Festlegungen the server sent, to undo a refused write
     let srvWorkers = new Map();                            // the last workers the server sent, to undo a refused delete
     let srvIngame = { ids: new Set(), vals: {}, meta: {} }; // the last tick-offs the server sent, to undo a refused write
@@ -3210,7 +3348,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (gotW && gotS) state.ready = true;
       if (gotI) state.ingameReady = true;
       if (gotP) state.prefsReady = true;
-      if (sinceW && sinceS && sinceI && sinceP) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
+      if (gotT) state.stampsReady = true;
+      if (sinceW && sinceS && sinceI && sinceP && sinceT) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
     }
 
     // Resolves true when the write went through (after one retry for a transient error).
@@ -3314,6 +3453,27 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       settle();
       renderAll();
     }
+    function onStamps(snap) {
+      gotT = sinceT = true;
+      const srv = {};
+      for (const d of snap.docs) { const t = cleanStamp(d.data && d.data()); if (t) srv[d.id] = t; }
+      srvStamps = srv;
+      const m = { ...srv };
+      // A stamp that is not saved yet keeps the local copy.
+      for (const key of pending) if (key.startsWith("t:")) {
+        const wid = key.slice(2);
+        if (stamps[wid]) m[wid] = stamps[wid]; else delete m[wid];
+      }
+      stamps = m;
+      settle();
+      renderAll();
+    }
+    // A refused stamp: show what the server has again, unless a newer write is on its way.
+    function restoreStamp(wid) {
+      if (pending.has("t:" + wid)) return;
+      if (srvStamps[wid]) stamps[wid] = srvStamps[wid]; else delete stamps[wid];
+      renderAll();
+    }
     // A refused Festlegung: show what the server has again, unless a newer write is on its way.
     function restorePrefs(wid) {
       if (pending.has("p:" + wid)) return;
@@ -3359,6 +3519,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         if (!gotW) state.loadFailed = true;
         if (!gotI) state.ingameDenied = true;
         if (!gotP) state.prefsDenied = true;
+        if (!gotT) state.stampsDenied = true;
         state.ready = true; renderAll(); return;
       }
       for (const u of unsubs) { try { u(); } catch (x) { /* ignore */ } }
@@ -3372,16 +3533,18 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         state.mode = "lost";
         if (!gotW) state.loadFailed = true;
         if (!gotP) state.prefsDenied = true;   // the plan shows without them rather than waiting forever
+        if (!gotT) state.stampsDenied = true;
         state.ready = true; renderAll();
       }
     }
     function subscribe() {
-      sinceW = sinceS = sinceI = sinceP = false;
+      sinceW = sinceS = sinceI = sinceP = sinceT = false;
       unsubs = [
         db.collection("workers").onSnapshot(onWorkers, onListenError),
         db.doc("settings/main").onSnapshot(onSettings, onListenError),
         db.collection("ingame").onSnapshot(onIngame, onListenError),
         db.collection("prefs").onSnapshot(onPrefs, onListenError),
+        db.collection("stamps").onSnapshot(onStamps, onListenError),
       ];
     }
     return {
@@ -3420,6 +3583,13 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         }, ok => { if (!ok) restorePrefs(wid); });
       },
       deleteIngame(wid) { return writeIngame(wid, () => db.collection("ingame").doc(wid).delete()); },
+      // When the values were last checked: {at, by} a moment after the last change (typing, +1); none = delete.
+      setStamp(wid, delay = 600) {
+        schedule("t:" + wid, delay, () => {
+          const t = stamps[wid], ref = db.collection("stamps").doc(wid);
+          return t ? ref.set({ at: t.at, by: t.by }) : ref.delete();
+        }, ok => { if (!ok) restoreStamp(wid); });
+      },
     };
   }
 
@@ -3445,6 +3615,13 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     state.workers.set(w.id, w);
     backend.setWorker(w.id, delay);
   }
+  // When the values were last checked: memory first (cards and hint follow at once), then the backend. doc null = none.
+  function putStamp(wid, doc, delay) {
+    const t = cleanStamp(doc);
+    if (t) stamps[wid] = t; else delete stamps[wid];
+    backend.setStamp(wid, delay);
+  }
+  const stampNow = (wid, delay) => putStamp(wid, { at: Date.now(), by: myId }, delay);
   function addWorker(name) {
     if (locked()) return null;
     const w = blankWorker(name);
@@ -3744,10 +3921,12 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         if (state.mode === "local") reloadApplied();
         const ing = ingameDoc(id);
         const pf = prefsCopy(id);
+        const sp = stamps[id] ? { ...stamps[id] } : null;
         state.workers.delete(id);
         backend.deleteWorker(id);
         putIngame(id, null);
         if (pf) putPrefs(id, null, 0);
+        if (sp) putStamp(id, null, 0);
         renderAll();
         toast(`${w.name || "Arbeiter"} gelöscht.`, { label: "Rückgängig", fn: () => {
           if (locked()) { toast("Rückgängig geht gerade nicht."); return null; }
@@ -3755,6 +3934,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
             saveWorker(w, 0);
             if (ing) putIngame(id, ing);
             if (pf) putPrefs(id, pf, 0);
+            if (sp) putStamp(id, sp, 0);
             renderAll();
           }
           toast(`${w.name || "Arbeiter"} ist wieder da.`);
@@ -3797,7 +3977,9 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
       if (k === "cur") w.stats[a].cur = v === null ? 0 : v;
       else w.stats[a].max = v;
     }
-    saveWorker(normWorker(id, w, { raiseMax: false }));
+    const nw = normWorker(id, w, { raiseMax: false });
+    if (JSON.stringify(nw.stats) !== JSON.stringify(old.stats)) stampNow(id);   // the values were just checked
+    saveWorker(nw);
     renderPlan();
     refreshCardsMain();
     refreshReview();   // an open review compares with the values stored now ("bisher", doubts)
@@ -3808,7 +3990,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     const w = card && state.workers.get(card.dataset.wid);
     if (!w || !e.target.dataset.f) return;
     const nw = normWorker(w.id, w);
-    if (!locked() && JSON.stringify(nw.stats) !== JSON.stringify(w.stats)) { saveWorker(nw); renderPlan(); refreshReview(); }
+    if (!locked() && JSON.stringify(nw.stats) !== JSON.stringify(w.stats)) { saveWorker(nw); stampNow(w.id); renderPlan(); refreshReview(); }
     fillCard(card, nw, true);
   });
   $("#wlist").addEventListener("focusin", e => { if (e.target.type === "number") { try { e.target.select(); } catch (x) { /* ignore */ } } });
@@ -4528,8 +4710,10 @@ Reply with only this JSON:
       if (!ex || x.el.dataset.prole || sel.dataset.touched) w.role = ROLE_LABEL[sel.value] ? sel.value : "worker";
       const traits = x.el.querySelector('[data-r="traits"]').value.trim();
       if (traits) w.traits = traits.slice(0, 120);
-      for (const [a, v] of Object.entries(readCard(x.el, x.c.it).stats)) mergeStat(w, a, v.cur, v.max);
+      const read = readCard(x.el, x.c.it).stats;
+      for (const [a, v] of Object.entries(read)) mergeStat(w, a, v.cur, v.max);
       saveWorker(normWorker(w.id, w), 0);
+      if (Object.keys(read).length) stampNow(w.id, 0);   // values read from a photo or text just now
       if (ex) updated++; else added++;
     });
     const hadPhoto = all.some(x => x.c.it.src === "photo"), hadText = all.some(x => x.c.it.src === "text");
@@ -4941,6 +5125,7 @@ Reply with only this JSON:
       local.load();
       state.ready = true;
       state.ingameReady = true;   // ticks stay in this browser (AP_KEY), as before
+      state.stampsReady = true;   // stamps come with the LS payload
       backend = local;
       window.addEventListener("storage", e => {
         if (e.key !== LS_KEY) return;

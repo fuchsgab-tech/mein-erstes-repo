@@ -165,7 +165,7 @@ async function partA(browser) {
 // Part B: the page
 // =====================================================================================================
 function makeServer(seed = {}) {
-  const srv = { workers: new Map(), settings: new Map(), ingame: new Map(), prefs: new Map(), log: [], pages: new Set() };
+  const srv = { workers: new Map(), settings: new Map(), ingame: new Map(), prefs: new Map(), stamps: new Map(), log: [], pages: new Set() };   // BUILD 14: 'stamps' too
   for (const [c, docs] of Object.entries(seed)) for (const [id, d] of Object.entries(docs)) srv[c].set(id, clone(d));
   srv.docs = c => [...srv[c]].map(([id, d]) => [id, clone(d)]);
   srv.broadcast = c => { const docs = srv.docs(c); for (const p of srv.pages) p.evaluate(([c, docs]) => window.__deliver && window.__deliver(c, docs), [c, docs]).catch(() => {}); };
