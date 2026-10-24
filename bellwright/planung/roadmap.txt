@@ -535,3 +535,73 @@ TEST: extend t2/feat-anim.js: no keyframe animates anything but transform/opacit
 (no createRadialGradient in the loop); sparks <= 20 and gone after 800 ms; ruhig animations <= 150 ms and <= 8 px;
 reduced motion: no stored choice -> aus, stored voll -> voll; page turn <= 400 ms; a second tap during the stamp advances at
 once without a second write; reveal stagger 30 ms capped at 10; toast/shake timings; all three levels + 360 px.
+
+====================================================================================================
+ROUND 3 (user approved 2026-10-24: "Alle drei perfekt" + the building table; a building-priority PLANNER is NOT wanted)
+Build in this order, each finished, tested and saved before the next.
+
+BUILD 12. Spickzettel Gebäudeprioritäten (Hilfe) | effort S
+- New Hilfe section "Gebäudeprioritäten" (after the job-priority explanation). Explain in 2 short lines: job priority =
+  WAS jemand macht, Gebäudepriorität = WO er es innerhalb eines Jobs zuerst macht. Scale: 1 = am wichtigsten,
+  5 = Standard, ⊘ = aus, Gebäude ohne Zahl (Wohnzelte, Brunnen, Wegweiser, Rathaus) brauchen keine.
+- Table (stacks into cards at 360 px, no horizontal page scroll):
+  1  Kochstellen (Lagerfeuer mit Kochtopf), Forschungstisch, Sägegrube solange ihr viel baut
+  2  Werkzeugmacher, Bauernhöfe, Dreschhaus, Holzfällerplatz, Minenlager, Geflügelstall, eine Baustelle, die fertig werden soll
+  3  Holzfällerhütte, Jägerlager, Metzgerei, Mischkübel, Webstuhl + Webertisch, Gerbergestell, Räuchergestelle
+  4  Fischerlager, Handwerkerecke, Einfache Werkbank, Schwammhütte
+  5  Alle Lager (Vorratslager, Scheunen, Lagertruhen), Sammlerhütte + Trockengestelle, Försterei, Komposthaufen, Karawane
+  ⊘  was ihr gerade nicht braucht
+- Rules below it: "Höchstens 3–4 Gebäude auf 1." · "Eine Baustelle auf 2, bis sie fertig ist, dann wieder 5." ·
+  "Ein rotes Warnzeichen am Gebäude heißt meist: Werkzeug oder Material fehlt."
+- A link to it from the Plan tab is not needed.
+
+BUILD 13. Eintragen ohne Verrutschen | effort M
+User problem: while entering numbers on the Xbox they look TV -> phone -> TV and land on the wrong villager in the normal
+plan view; they had forgotten the Eintragen-Modus exists.
+- Prominent banner at the top of the Plan tab whenever tracking() and the open queue (same count as the existing
+  "Im Spiel eintragen (n offen)" button) is > 0: "{n} Bewohner haben neue Zahlen" + big primary button
+  "Jetzt im Spiel eintragen" (opens the existing Eintragen-Modus) + small "Später" (hides it for this device until the
+  count changes; localStorage, try/catch). Not for the example team. Avoid three CTAs at once on a phone: the banner
+  replaces the grid-head button while the banner is visible; the sticky phone bar only shows once the banner is scrolled
+  out of view.
+- "Hier warst du" highlight: tapping/clicking anywhere in a villager's card (cards view) or row (table view) marks that
+  villager as the focus: clear gold left border, warm background tint and a small marker "◆ hier". Only one at a time,
+  stored per device (localStorage 'bellwright-fokus-v1'), survives re-renders, live snapshots, tab switches and
+  reloads. Closing the Eintragen-Modus sets the focus to the villager last shown there. When the Plan tab is opened and
+  the focused villager is off-screen, scroll it into view (no smooth scroll unless anim() is voll).
+- Table view readability (row slipping): zebra striping, slightly taller rows on phones, the name column sticky on the
+  left while scrolling sideways, and the focused row highlighted across the whole width.
+- Animations only per the bellwright-animations skill (stamp/fade, voll/ruhig/aus).
+
+BUILD 14. Werte aktuell halten | effort M
+Villagers get better through work, but the plan uses old numbers.
+- Arbeiter tab editor: next to each skill's Stufe field a "+1" button (>= 44 px; disabled read-only; at MAXV stays).
+  +1 raises cur by 1 and raises Max to cur if needed (never lowers Max). Saves through the existing worker save path.
+- Freshness: NEW collection 'stamps', doc id = worker id: {at, by} (do NOT add fields to worker docs – old tabs replace
+  them with set()). Written when a worker's stats change through the editor, +1, text import or photo import.
+  Deleted with the worker, restored by its Rückgängig. Local mode: inside the LS payload.
+  A worker without a stamp uses this device's first-seen time (localStorage map), so nobody is nagged right away and no
+  db writes are needed for old data.
+- Each worker card (Arbeiter tab) shows muted "Werte von heute / gestern / vor 12 Tagen".
+- Plan tab hint when at least one active worker's values are older than 7 days: "Die Werte von {n} Bewohnern sind über
+  eine Woche alt. Durch Arbeit werden sie besser – kurz nachschauen?" with button "Werte prüfen" (opens Arbeiter tab
+  sorted by oldest first, a small chip "Älteste zuerst" to switch back) and "Später" (hidden for 3 days on this device).
+- The hint never shows for the example team or when there are no workers.
+
+BUILD 15. Rekruten-Check | effort M
+Before recruiting someone in the game, the group enters the candidate's values and sees whether they fill a gap.
+- Arbeiter tab: button "Rekruten prüfen" opens a panel (bottom sheet on phones) for up to 3 candidates. Per candidate:
+  optional name, the 7 skills (Stufe/Max, same inputs as the editor), traits (same parser), plus a text field that
+  accepts the same text format as the import (parseRoster) to fill it quickly. Nothing is written to the db while
+  checking; read-only viewers may check but not add.
+- For each candidate compute the plan with the current active workers + the candidate (current settings, prefs and
+  locks respected, calm OFF so the result is the ideal assignment) and compare with the plan without them:
+  * "Hauptjob: Kochen (Stufe 4/7)" plus the reason line from compute,
+  * gap text: if that job had nobody on 1 before -> "Füllt eine Lücke: bisher hatte niemand Kochen als Hauptjob.",
+    otherwise "Verstärkt Ernte (jetzt 2 Leute)",
+  * team effect from out.objective: "Das Team wird etwa {Δ, 0,5 gerundet} Stufen besser",
+  * who would change main job: "Edda würde von Kochen zu Ernte wechseln" (max 3 lines, then "+n weitere").
+  * With 2-3 candidates: mark the one with the biggest Δ as "Bester Kandidat".
+- Buttons per candidate: "Anwerben" (adds them as a normal worker with these values, stamp now, toast with Rückgängig)
+  and "Verwerfen". The panel remembers its candidates per device until closed with "Alle verwerfen" (localStorage).
+- Copy in "ihr" form; works at 360 px one-handed.
