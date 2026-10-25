@@ -1605,7 +1605,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const team = workers.filter(w => w.role === "worker");
     const others = workers.filter(w => w.role !== "worker");
     const N = team.length;
-    const out = { jobs: JOBS_SHOWN.filter(j => jobs.includes(j)), team, others, cells: {}, main: {}, notes: [], coverage: {}, objective: 0 };
+    const out = { jobs: JOBS_SHOWN.filter(j => jobs.includes(j)), team, others, cells: {}, main: {}, notes: [], coverage: {}, objective: 0, level: {}, worth: 0 };
     if (!N || !jobs.length) return out;
     // Festlegungen of the team (guards and companions keep theirs, but they rest).
     const prefIn = opts && opts.prefs && typeof opts.prefs === "object" ? opts.prefs : null;
@@ -1928,6 +1928,18 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     }
     // The plan's worth: Σ score of the main jobs, without the must bonus.
     out.objective = team.reduce((a, w) => a + (main[w.id] ? score(w, JOB[main[w.id]]) : 0), 0);
+    // The skill the team has at work, in Stufen a player can believe (Rekruten-Check: "Das Team wird etwa … Stufen
+    // besser"). Per switched-on job with a skill: the level of whoever has it as main job (a second one on the same job
+    // adds half, a third a third …), at least half the best level of someone who has it on 2 (it runs alongside);
+    // weighted by importance (normal = 1, dringend 5/3, unwichtig 1/3). Jobs without a skill add nothing, so a newcomer
+    // who only carries counts through the person he frees, never for having no skills (which is what score() rewards
+    // a hauler for, so out.objective cannot compare teams). out.level = the level the plan works with (raw).
+    out.level = Object.fromEntries(team.map(w => [w.id, Object.fromEntries(skilled.map(j => [j.id, raw(w, j)]))]));
+    for (const j of skilled) {
+      const hold = team.filter(w => main[w.id] === j.id).map(w => raw(w, j)).sort((a, b) => b - a);
+      const two = team.filter(w => main[w.id] !== j.id && cells[w.id][j.id].p === 2 && !cells[w.id][j.id].off).map(w => raw(w, j));
+      out.worth += Math.max(hold.reduce((a, l, i) => a + l / (i + 1), 0), two.length ? Math.max(...two) / 2 : 0) * imp(j.id) / 3;
+    }
 
     for (const j of jobs) {
       const ps = team.map(w => cells[w.id][j.id]);
@@ -3007,7 +3019,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     box.hidden = k < 0;
     // The banner: while villagers have open numbers, unless "Später" was tapped at this count or the resume banner
     // already invites. It stands in for the title button; the sticky bar (touch) comes once it is scrolled away.
-    if (track && !n && laterAt !== null) { laterAt = null; try { localStorage.removeItem(LATER_KEY); } catch (e) { /* ignore */ } }
+    // Once the count changed (also back to the old number later), that "Später" is used up.
+    if (track && laterAt !== null && n !== laterAt) { laterAt = null; try { localStorage.removeItem(LATER_KEY); } catch (e) { /* ignore */ } }
     const on = n > 0 && laterAt !== n && k < 0;
     trig.n = n; trig.on = on;
     if (on) {
@@ -3208,7 +3221,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   // happens to be entered in the game). "Anwerben" adds a normal worker (stamped now) with a Rückgängig toast.
   const REC_KEY = "bellwright-rekruten-v1";
   const REC_MAX = 3;
-  const rk = { list: [], seq: 0, open: false };
+  const rk = { list: [], seq: 0, open: false, unsaved: false };   // unsaved: the last save to this device failed
   const rkBlank = () => ({ k: ++rk.seq, name: "", traits: "", stats: {} });
   function rkClean(d) {
     if (!d || typeof d !== "object") return null;
@@ -3220,10 +3233,14 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     }
     return { k: ++rk.seq, name: String(d.name ?? "").slice(0, 40), traits: String(d.traits ?? "").slice(0, 120), stats };
   }
-  function rkLoad() { const v = lsGet(REC_KEY, null); rk.list = (Array.isArray(v) ? v : []).map(rkClean).filter(Boolean).slice(0, REC_MAX); }
+  function rkLoad() {
+    if (rk.unsaved) return;   // the last save did not go through (blocked storage): this page load's list is the newer one
+    const v = lsGet(REC_KEY, null);
+    rk.list = (Array.isArray(v) ? v : []).map(rkClean).filter(Boolean).slice(0, REC_MAX);
+  }
   function rkSave() {
-    if (rk.list.length) lsSet(REC_KEY, rk.list.map(c => ({ name: c.name, traits: c.traits, stats: c.stats })));
-    else { try { localStorage.removeItem(REC_KEY); } catch (e) { /* ignore */ } }
+    if (rk.list.length) rk.unsaved = !lsSet(REC_KEY, rk.list.map(c => ({ name: c.name, traits: c.traits, stats: c.stats })));
+    else { try { localStorage.removeItem(REC_KEY); rk.unsaved = false; } catch (e) { rk.unsaved = true; } }
   }
   const rkCard = c => document.querySelector(`#rk-list .rk-card[data-k="${c.k}"]`);
   function rkCardHtml(c, i) {
@@ -3258,9 +3275,10 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const J = JOB[job], v = J.attr ? cw.stats[J.attr] : null;
     const before = base.team.filter(w => base.main[w.id] === job), now = next.team.filter(w => next.main[w.id] === job).length;
     const gap = !before.length ? `Füllt eine Lücke: bisher hatte niemand ${J.label} als Hauptjob.`
-      : now > before.length ? `Verstärkt ${J.label} (jetzt ${now} Leute)`
-      : `Übernimmt ${J.label} von ${joinDe(before.filter(w => next.main[w.id] !== job).map(w => w.name || "Ohne Namen"))}`;
-    const d = next.objective - base.objective, r = Math.round(d * 2) / 2;   // "etwa": to half a level
+      : now > before.length ? `Verstärkt ${J.label} (jetzt ${now} Leute).`
+      : `Übernimmt ${J.label} von ${joinDe(before.filter(w => next.main[w.id] !== job).map(w => w.name || "Ohne Namen"))}.`;
+    // The team effect in Stufen (out.worth, see compute), to half a level ("etwa"); it also picks "Bester Kandidat".
+    const d = next.worth - base.worth, r = Math.round(d * 2) / 2;
     const moves = base.team.filter(w => base.main[w.id] && next.main[w.id] !== base.main[w.id]).map(w => next.main[w.id]
       ? `${w.name || "Ohne Namen"} würde von ${JOB[base.main[w.id]].label} zu ${JOB[next.main[w.id]].label} wechseln`
       : `${w.name || "Ohne Namen"} hätte keinen Hauptjob mehr`);
@@ -3314,6 +3332,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     $("#recruit").hidden = false;
     document.documentElement.classList.add("recruit-open");   // the page behind does not scroll
     $(".wrap").inert = true;
+    embers.hold(true);   // the sheet covers the page: the ember loop waits, as in the Eintragen-Modus
     rkRender();
     $("#recruit-title").focus({ preventScroll: true });
   }
@@ -3323,6 +3342,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     $("#recruit").hidden = true;
     document.documentElement.classList.remove("recruit-open");
     $(".wrap").inert = false;
+    embers.hold(false);
     $("#rk-list").innerHTML = "";
     $("#recruit-open").focus();
   }
@@ -3373,7 +3393,9 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       if (rk.open) rkRender();
       renderAll();
       toast("Anwerben zurückgenommen.");
-      return rk.open ? $('#recruit [data-rk="add"]') : $("#recruit-open");
+      // Focus on the candidate's card again ("+ Kandidat" may be disabled now), else the panel's title.
+      const back = rk.open && rkCard(c);
+      return rk.open ? (back ? back.querySelector('[data-rk="name"]') : $("#recruit-title")) : $("#recruit-open");
     } });
   }
   $("#recruit-open").addEventListener("click", rkOpen);
@@ -3407,6 +3429,14 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       if (v.cur === null && v.max === null) delete c.stats[a]; else c.stats[a] = v;
     }
     rkSave(); rkResults();
+  });
+  // Leaving a Stufe/Max field shows what the app computes with (whole numbers 0–15), as in the worker editor.
+  $("#recruit").addEventListener("change", e => {
+    const t = e.target, f = t.dataset && t.dataset.rk, el = t.closest(".rk-card");
+    const c = el && rk.list.find(x => String(x.k) === el.dataset.k);
+    if (!c || !f || !/^(cur|max):/.test(f)) return;
+    const [kind, a] = f.split(":"), v = c.stats[a], s = v && v[kind] !== null ? String(v[kind]) : "";
+    if (t.value !== s) t.value = s;
   });
   // Escape closes, Enter in the text field fills, Tab stays inside the panel.
   document.addEventListener("keydown", e => {

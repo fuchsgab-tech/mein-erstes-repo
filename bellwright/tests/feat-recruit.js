@@ -1,11 +1,15 @@
 // BUILD 15 "Rekruten-Check": Arbeiter tab "Rekruten prüfen" opens a panel (bottom sheet on phones) for up to 3
 // candidates (optional name, 7 skills Stufe/Max, traits, a text field in the import format). Each is compared with the
 // plan without them: compute(current active workers + candidate, current settings, prefs/locks, calm OFF) against
-// compute(workers, same options): main job + reason, gap text, team effect from out.objective, who would change main job
+// compute(workers, same options): main job + reason, gap text, team effect (out.worth, see Part 0), who would change main job
 // (max 3, then "+n weitere"), "Bester Kandidat" with 2–3. Nothing is written while checking; "Anwerben" adds a normal
 // worker (stamp now, toast with Rückgängig), "Verwerfen" drops one, "Alle verwerfen" clears and closes; the panel keeps
 // its candidates per device (localStorage) until then. Read-only viewers may check, not add.
 // Part A computes the expected texts in node with the planner cut out of the app file (as feat-pins.js does).
+// Part 0 checks the team effect itself: out.worth = the skill the team has at work, in Stufen a player can believe (per
+// job with a skill: the main holders' levels, a second one half, a third a third …; at least half the best level of
+// someone on 2; × importance/3). It replaced out.objective, which rewards a free hauler for having no skills, so a weak
+// all-rounder came out ahead of a skilled specialist (test team: 2/3 cook +15, 7/10 researcher +12,5).
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -16,7 +20,7 @@ function load(file) {
   const s = fs.readFileSync(file, 'utf8');
   const a = s.indexOf('// ---------- Game data ----------');
   const b = s.indexOf('// ---------- Rendering: Plan ----------');
-  const fn = new Function('localStorage', 'matchMedia', 'document', '"use strict";\n' + s.slice(a, b) + '\nreturn { compute, JOB, JOBS, ATTRS, defaultSettings, normWorker };');
+  const fn = new Function('localStorage', 'matchMedia', 'document', '"use strict";\n' + s.slice(a, b) + '\nreturn { compute, JOB, JOBS, ATTRS, defaultSettings, normSettings, normWorker, EXAMPLE, PHASES };');
   const store = {};
   return fn({ getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } }, () => ({ matches: false }), undefined);
 }
@@ -49,15 +53,80 @@ function expect(workers, settings, prefs, c, label) {
   const main = `Hauptjob: ${J.label}${J.attr ? ` (Stufe ${s.cur}/${s.max === null ? '?' : s.max})` : ''}`;
   const before = base.team.filter(w => base.main[w.id] === job), now = next.team.filter(w => next.main[w.id] === job).length;
   const gap = !before.length ? `Füllt eine Lücke: bisher hatte niemand ${J.label} als Hauptjob.`
-    : now > before.length ? `Verstärkt ${J.label} (jetzt ${now} Leute)`
-    : `Übernimmt ${J.label} von ${joinDe(before.filter(w => next.main[w.id] !== job).map(w => w.name || 'Ohne Namen'))}`;
-  const d = next.objective - base.objective, r = Math.round(d * 2) / 2;
+    : now > before.length ? `Verstärkt ${J.label} (jetzt ${now} Leute).`
+    : `Übernimmt ${J.label} von ${joinDe(before.filter(w => next.main[w.id] !== job).map(w => w.name || 'Ohne Namen'))}.`;
+  const d = next.worth - base.worth, r = Math.round(d * 2) / 2;
   const team = r >= 0.5 ? `Das Team wird etwa ${String(r).replace('.', ',')} ${r === 1 ? 'Stufe' : 'Stufen'} besser.` : 'Das Team wird dadurch kaum besser.';
   const moves = base.team.filter(w => base.main[w.id] && next.main[w.id] !== base.main[w.id])
     .map(w => next.main[w.id] ? `${w.name || 'Ohne Namen'} würde von ${T.JOB[base.main[w.id]].label} zu ${T.JOB[next.main[w.id]].label} wechseln` : `${w.name || 'Ohne Namen'} hätte keinen Hauptjob mehr`);
   return { main, why: cell.why, gap, team, d, moves };
 }
 const movesShown = m => m.length > 3 ? [...m.slice(0, 3), `+${m.length - 3} weitere`] : m;
+
+// ---------- Part 0: the team effect ----------
+// Derived here from what compute() returns (main jobs, the numbers, out.level = the level the plan works with).
+function worthOf(p, s) {
+  let W = 0;
+  for (const j of p.jobs) {
+    if (!j.attr) continue;
+    const hold = p.team.filter(w => p.main[w.id] === j.id).map(w => p.level[w.id][j.id]).sort((a, b) => b - a);
+    const two = p.team.filter(w => p.main[w.id] !== j.id && p.cells[w.id][j.id].p === 2 && !p.cells[w.id][j.id].off).map(w => p.level[w.id][j.id]);
+    W += Math.max(hold.reduce((a, l, i) => a + l / (i + 1), 0), two.length ? Math.max(...two) / 2 : 0) * s.jobs[j.id].imp / 3;
+  }
+  return W;
+}
+const ALL = (cur, max) => Object.fromEntries(['labourer', 'harvesting', 'farming', 'cooking', 'crafting', 'researching', 'hunting'].map(a => [a, [cur, max]]));
+const CANDS = {
+  rolf: { name: 'Rolf', traits: '', stats: st({ researching: [7, 10], crafting: [6, 8], labourer: [5, 7] }) },   // a skilled researcher
+  weak: { name: '', traits: '', stats: st({ cooking: [2, 3], labourer: [2, 3] }) },                              // a weak all-rounder
+  mara: { name: 'Mara', traits: 'Prodigy', stats: st({ cooking: [9, 10], harvesting: [2, 3] }) },
+  blank: { name: 'Leer', traits: '', stats: st({ labourer: [0, 0] }) },                                          // no skills at all
+  allround: { name: 'Allerlei', traits: '', stats: st(ALL(2, 3)) },
+  crafter: { name: 'Hans', traits: '', stats: st({ crafting: [8, 10] }) },
+  hunter: { name: 'Jana', traits: '', stats: st({ hunting: [7, 9] }) },
+};
+const phaseSettings = id => { const ph = T.PHASES.find(p => p.id === id); return T.normSettings({ phase: id, jobs: Object.fromEntries(T.JOBS.map(j => [j.id, { on: j.defaultOn !== false, imp: ph.imp[j.id] }])) }); };
+const EX = Object.fromEntries(T.EXAMPLE.map(w => [w.id, w]));
+function part0() {
+  const s = T.defaultSettings(), prefs = { w_edda: { lockMain: 'cooking', pins: {} } };
+  // The level the plan works with: Stufe + 35 % of the way to Max ("Potenzial einrechnen"), Prodigy faster.
+  const p0 = T.compute(roster(SEED_W), s, { calm: false, explain: false });
+  check('0) out.level: the level the plan works with (Godric Forschen 4/7, Prodigy: 4 + 0,35·1,3·3)', Math.abs(p0.level.w_godric.research - (4 + 0.35 * 1.3 * 3)) < 1e-9 && Math.abs(p0.level.w_hilde.farming - 7.7) < 1e-9, p0.level && p0.level.w_godric);
+  // out.worth is exactly the rule above, for every team, phase and candidate here.
+  const bad = [];
+  for (const [team, ph, pf] of [[SEED_W, 'start', prefs], [SEED_W, 'ausbau', {}], [EX, 'start', {}], [EX, 'krieg', {}], [Object.fromEntries(Object.entries(SEED_W).slice(0, 2)), 'start', {}]]) {
+    const ss = phaseSettings(ph), ws = roster(team);
+    for (const c of [null, ...Object.values(CANDS)]) {
+      const p = T.compute(c ? [...ws, candWorker(c, 'Kandidat')] : ws, ss, { calm: false, prefs: pf, explain: false });
+      if (!(Math.abs(p.worth - worthOf(p, ss)) < 1e-9)) bad.push({ ph, c: c && c.name, worth: p.worth, want: worthOf(p, ss) });
+    }
+  }
+  check('0) out.worth = main holders (1, 1/2, 1/3 …), at least half the best on 2, × importance/3, skill jobs only', !bad.length, bad.slice(0, 3));
+  // Intuition on the test team (Start, Edda locked on Kochen).
+  const D = c => expect(SEED_W, s, prefs, c, 'Kandidat');
+  const rolf = D(CANDS.rolf), weak = D(CANDS.weak), mara = D(CANDS.mara);
+  const R = d => Math.round(d * 2) / 2;
+  check('0) the 7/10 researcher (fills research) clearly beats the 2/3 cook who only carries (>= 1 Stufe ahead)', R(rolf.d) - R(weak.d) >= 1 && rolf.d > mara.d, { rolf: rolf.d, weak: weak.d, mara: mara.d });
+  check('0) plausible size: the researcher about his level minus what research had on 2 (4 to 8,5 Stufen)', rolf.d >= 4 && rolf.d <= 8.5, rolf.d);
+  check('0) plausible size: the 2/3 cook only frees Hilde for Landwirtschaft (at most 4,5 Stufen)', weak.d > 0 && weak.d <= 4.5 && weak.moves.some(m => m.startsWith('Hilde')), { d: weak.d, moves: weak.moves });
+  // Someone with no skills never beats a specialist who takes a job nobody had as main job.
+  const worse = [];
+  for (const [team, ph] of [[SEED_W, 'start'], [SEED_W, 'ausbau'], [EX, 'start'], [EX, 'ausbau']]) {
+    const ss = phaseSettings(ph);
+    const e = c => expect(team, ss, {}, c, 'Kandidat');
+    const blank = e(CANDS.blank), allround = e(CANDS.allround);
+    for (const k of ['crafter', 'hunter']) {
+      const sp = e(CANDS[k]);
+      if (!/^Füllt eine Lücke/.test(sp.gap)) continue;
+      if (!(sp.d > blank.d + 1 && sp.d > allround.d)) worse.push({ ph, team: Object.keys(team).length, k, sp: sp.d, blank: blank.d, allround: allround.d });
+    }
+  }
+  check('0) a specialist who fills a gap beats a recruit with no skills (by > 1 Stufe) and a 2/3 all-rounder', !worse.length, worse);
+  // Importance counts: the same researcher in "Ausbau" (Forschung dringend) is worth more than in "Start" (normal).
+  const rA = expect(SEED_W, phaseSettings('ausbau'), {}, CANDS.rolf), rS = expect(SEED_W, phaseSettings('start'), {}, CANDS.rolf);
+  check('0) importance: Forschung dringend (Ausbau) > normal (Start) for the same researcher', rA.d > rS.d + 2, { ausbau: rA.d, start: rS.d });
+  return { rolf, weak, mara };
+}
 
 // ---------- fake server and page stub (lazy collections) ----------
 function makeServer(seed = {}) {
@@ -76,6 +145,11 @@ function makeServer(seed = {}) {
   return srv;
 }
 function STUB(cfg) {
+  if (cfg.blockLs) {   // a browser that blocks storage: every access throws
+    const boom = () => { throw new DOMException('blocked', 'SecurityError'); };
+    try { Object.defineProperty(window, 'localStorage', { configurable: true, get: boom }); } catch (e) { /* ignore */ }
+    return;
+  }
   if (cfg.seedLs && !sessionStorage.getItem('__seeded')) {
     sessionStorage.setItem('__seeded', '1');
     for (const [k, v] of Object.entries(cfg.seedLs)) localStorage.setItem(k, JSON.stringify(v));
@@ -165,6 +239,7 @@ const setStat = async (page, i, a, cur, max) => { await page.fill(`${card(page, 
 const sameResult = (c, e) => c.main === e.main && c.why === e.why && c.gap === e.gap && c.team === e.team && JSON.stringify(c.moves) === JSON.stringify(movesShown(e.moves));
 
 (async () => {
+  try { part0(); } catch (e) { check('0) runs to the end', false, String(e && e.message || e).split('\n')[0]); }
   const browser = await chromium.launch();
   try {
     // ===== 1) Shared list, an owner: check, compare, best candidate, keep, Anwerben + Rückgängig, Alle verwerfen =====
@@ -205,6 +280,7 @@ const sameResult = (c, e) => c.main === e.main && c.why === e.why && c.gap === e
       check('a line without a name fills the values, the name stays empty', r.cards[2].name === '' && JSON.stringify(r.cards[2].stats.cooking) === '["2","3"]' && sameResult(r.cards[2], e3), { got: r.cards[2], want: e3 });
       const best = [e1.d, e2.d, e3.d].indexOf(Math.max(e1.d, e2.d, e3.d));
       check('"Bester Kandidat" on the one with the biggest team effect, only there', r.cards.map(c => c.best).join() === [0, 1, 2].map(i => i === best).join(), { best, ds: [e1.d, e2.d, e3.d], shown: r.cards.map(c => c.best) });
+      check('"Bester Kandidat": Rolf (7/10 researcher), not the 2/3 cook', best === 1 && r.cards[1].best && !r.cards[2].best, { ds: [e1.d, e2.d, e3.d], team: r.cards.map(c => c.team) });
       check('three candidates: "+ Kandidat" disabled', r.add.disabled, r.add);
       check('nothing written to the shared list while checking', !srv.log.length, srv.log);
       const ls = await P.evaluate(k => JSON.parse(localStorage.getItem(k)), REC_KEY);
@@ -234,6 +310,8 @@ const sameResult = (c, e) => c.main === e.main && c.why === e.why && c.gap === e
       const undone = await until(() => !srv.col('workers').has(mid) && !srv.col('stamps').has(mid), 3000);
       r = await R(P);
       check('Rückgängig: Mara gone from the list (and her stamp), back in the panel', undone >= 0 && r.cards.length === 3 && r.cards.some(c => c.name === 'Mara'), { undone, names: r.cards.map(c => c.name) });
+      const fa = await P.evaluate(() => { const e = document.activeElement; return { inDlg: !!e && document.getElementById('recruit').contains(e), dis: !!(e && e.disabled), rk: e && e.dataset && e.dataset.rk, card: !!(e && e.closest('.rk-card')) && e.closest('.rk-card').querySelector('[data-rk="name"]').value }; });
+      check('Rückgängig with three candidates again ("+ Kandidat" disabled): focus on Mara\'s card, inside the panel', fa.inDlg && !fa.dis && fa.card === 'Mara', fa);
       // Verwerfen one, then Alle verwerfen.
       const k3 = r.cards.find(c => c.name === '').k;
       await P.click(`#recruit .rk-card[data-k="${k3}"] [data-rk="drop"]`); await P.waitForTimeout(100);
@@ -309,6 +387,22 @@ const sameResult = (c, e) => c.main === e.main && c.why === e.why && c.gap === e
         await L.ctx.close();
       });
     }
+    // ===== 5) Blocked storage and values out of range =====
+    await section('5) blocked storage', async () => {
+      const X = await phone(browser, null, { name: 'blk', blockLs: true });
+      await X.page.click('#recruit-open'); await X.page.waitForTimeout(250);
+      await fillText(X.page, 0, 'Mara: Kochen 9/10');
+      await X.page.click('#recruit [data-rk="close"]'); await X.page.waitForTimeout(100);
+      await X.page.click('#recruit-open'); await X.page.waitForTimeout(250);
+      const r = await R(X.page);
+      check('blocked storage: after ✕ and reopening, the candidate is still there (held for this page load)', r.cards.length === 1 && r.cards[0].name === 'Mara' && !!r.cards[0].main, r.cards);
+      // A Stufe above the top value: leaving the field shows what the app computes with (15), as in the worker editor.
+      await X.page.fill(`${card(X.page, 0)} [data-rk="cur:farming"]`, '20');
+      await X.page.press(`${card(X.page, 0)} [data-rk="cur:farming"]`, 'Tab'); await X.page.waitForTimeout(80);
+      const v = await X.page.evaluate(() => document.querySelector('#recruit .rk-card [data-rk="cur:farming"]').value);
+      check('Stufe 20 typed: the field shows 15 after leaving it', v === '15', v);
+      await X.ctx.close();
+    });
     for (const lvl of ['voll', 'ruhig', 'aus']) {
       await section('4) motion ' + lvl, async () => {
         const L = await phone(browser, null, { name: 'M' + lvl, seedLs: { [ANIM_KEY]: lvl } });
@@ -317,6 +411,16 @@ const sameResult = (c, e) => c.main === e.main && c.why === e.why && c.gap === e
         const dlg = await L.page.evaluate(() => { const d = document.getElementById('recruit'); return { role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), lb: d.getAttribute('aria-labelledby'), inert: document.querySelector('.wrap').inert }; });
         check(`${lvl}: role=dialog, aria-modal, labelled by the title, page behind inert`, dlg.role === 'dialog' && dlg.modal === 'true' && dlg.lb === 'recruit-title' && dlg.inert, dlg);
         if (lvl === 'voll') check('voll: the sheet slides in (transform + opacity, <= 400 ms)', a.length >= 1 && a.every(x => x.dur <= 400 && x.props.every(p => p === 'transform' || p === 'opacity')) && a.some(x => x.props.includes('transform')), a);
+        if (lvl === 'voll') {
+          // The sheet covers the page like the Eintragen-Modus: the ember loop (the page's one frame loop) waits meanwhile.
+          await L.page.evaluate(() => { window.__raf = 0; const o = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = cb => { window.__raf++; return o(cb); }; });
+          await L.page.waitForTimeout(300);
+          const held = await L.page.evaluate(() => window.__raf);
+          await L.page.click('#recruit [data-rk="close"]'); await L.page.waitForTimeout(300);
+          const after = await L.page.evaluate(() => window.__raf);
+          check('voll: the ember loop waits while the panel is open and runs again after closing', held === 0 && after > 3, { held, after });
+          await L.page.click('#recruit-open'); await L.page.waitForTimeout(100);
+        }
         if (lvl === 'ruhig') check('ruhig: only a fade (opacity, <= 150 ms)', a.length >= 1 && a.every(x => x.dur <= 150 && x.props.join() === 'opacity'), a);
         if (lvl === 'aus') check('aus: no animation', a.length === 0, a);
         await L.page.keyboard.press('Escape'); await L.page.waitForTimeout(100);

@@ -38,8 +38,9 @@ let passes = 0;
 const check = (name, ok, detail) => { if (ok) passes++; else fails.push(name + (detail !== undefined ? ' -> ' + JSON.stringify(detail).slice(0, 700) : '')); };
 const info = [];
 const deq = (a, b) => { try { assert.deepStrictEqual(a, b); return true; } catch (e) { return false; } };
-// The whole result as plain data (team/others/jobs as ids), without the new objective: numbers, flags, why texts, notes.
-const full = p => { const q = clone({ ...p, team: p.team.map(w => w.id), others: p.others.map(w => w.id), jobs: p.jobs.map(j => j.id) }); delete q.objective; return q; };
+// The whole result as plain data (team/others/jobs as ids), without the values added later only to report on the plan
+// (objective; level and worth for the Rekruten-Check): numbers, flags, why texts, notes.
+const full = p => { const q = clone({ ...p, team: p.team.map(w => w.id), others: p.others.map(w => w.id), jobs: p.jobs.map(j => j.id) }); delete q.objective; delete q.level; delete q.worth; return q; };
 const setPhase = (M, s, id) => { const ph = M.PHASES.find(x => x.id === id); s.phase = id; for (const j of M.JOBS) s.jobs[j.id].imp = ph.imp[j.id]; return s; };
 const phaseSettings = (M, id) => setPhase(M, M.defaultSettings(), id);
 const cv = c => (c.off ? 0 : c.p);

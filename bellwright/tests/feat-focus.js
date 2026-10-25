@@ -193,6 +193,12 @@ async function section(name, fn) { try { await fn(); } catch (e) { check(`${name
       await P.click('#wp-w_agnes [data-applied]'); await P.waitForTimeout(200);
       b = await B(P);
       check('count changes 5 -> 4: banner back, "4 Bewohner haben neue Zahlen"', b.shown && b.text.startsWith('4 Bewohner haben neue Zahlen') && !b.headBtn, b);
+      // "until the count changes": once it changed, the "Später" is used up, also when the count comes back (Rückgängig: 5 again).
+      check('count changed: the "Später" is forgotten on this device', (await P.evaluate(k => localStorage.getItem(k), LATER_KEY)) === null);
+      await P.click('#toast .toast-act'); await P.waitForTimeout(200);
+      b = await B(P);
+      check('Rückgängig, 5 open again: the banner stays (the "Später" was used up)', b.shown && b.text.startsWith('5 Bewohner haben neue Zahlen') && !b.headBtn, b);
+      await P.click('#wp-w_agnes [data-applied]'); await P.waitForTimeout(200);
       for (const id of ['w_bertram', 'w_edda', 'w_godric']) { await P.click(`#wp-${id} [data-applied]`); await P.waitForTimeout(150); }
       b = await B(P);
       check('one left: "1 Bewohner hat neue Zahlen"', b.shown && b.text.startsWith('1 Bewohner hat neue Zahlen'), b);
