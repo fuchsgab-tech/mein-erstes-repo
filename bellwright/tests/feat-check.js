@@ -62,6 +62,15 @@ function expectFor(plan, game) {
 const EXP = expectFor(PLAN0, GAME);
 const DIFF_IDS = roster.filter(w => EXP[w.id] && EXP[w.id].lines.length).map(w => w.id);
 const OK_IDS = roster.filter(w => EXP[w.id] && !EXP[w.id].lines.length).map(w => w.id);
+// The plan after "Übernehmen": the game's numbers (switched-on jobs) as the snapshot of every villager written
+// (all but `skip`, who keep their snapshot), plus the Festlegungen from "So lassen".
+const gameSnap = id => Object.fromEntries(PLAN0.jobs.map(j => [j.id, GAME[id][j.id]]));
+const planAfter = (skip = [], prefs = {}) => planOf({ ...anchorOf(F.ingame), ...Object.fromEntries(roster.filter(w => !skip.includes(w.id)).map(w => [w.id, gameSnap(w.id)])) }, prefs);
+// "Dadurch ändert sich auch der Plan": every number that moves against the plan now, except the lines kept with
+// "So lassen" ("wid|jobId"), one entry per villager in roster order.
+const rippleOf = (after, kept = new Set()) => PLAN0.team.map(w => ({ w, parts: PLAN0.jobs.filter(j => !kept.has(w.id + '|' + j.id) && cellVal(after.cells[w.id][j.id]) !== cellVal(PLAN0.cells[w.id][j.id]))
+  .map(j => `${j.label} ${xs(cellVal(after.cells[w.id][j.id]))} statt ${xs(cellVal(PLAN0.cells[w.id][j.id]))}`) })).filter(x => x.parts.length).map(x => `${x.w.name}: ${x.parts.join(', ')}`);
+const rippleNames = list => list.map(s => s.slice(0, s.indexOf(':')));
 
 // The sample's answer: the two photos as the lead transcribed them, names cut off as on screen.
 const PHOTO1 = ['Arnold Dixon', 'Crimson Reid', 'Elyza Gernier', 'Fabian Renard', 'Helene Colley', ['Hubert Gernier', 'Hubert Ger…'], 'Imka Durham', 'Jane Hodge', 'Jane Rhodes',
@@ -197,6 +206,7 @@ const CK = page => page.evaluate(() => {
         return { job: l.dataset.job, txt: t(l.querySelector('.ck-txt')), fix: f && vis(f) ? f.getAttribute('aria-pressed') : null, keep: k && vis(k) ? k.getAttribute('aria-pressed') : null, sel: s ? s.value : null, ok: !!ok && vis(ok), hint: vis(l.querySelector('.ck-hint')) ? t(l.querySelector('.ck-hint')) : null }; }),
     })) : [],
     explain: res ? t(res.querySelector('.ck-explain')) : null,
+    ripple: res && vis(res.querySelector('.ck-ripple')) ? { head: t(res.querySelector('.ck-ripple h4')), text: t(res.querySelector('.ck-ripple p')), items: [...res.querySelectorAll('.ck-ripple li')].map(t) } : null,
     ok: res && vis(res.querySelector('.ck-ok')) ? { sum: t(res.querySelector('.ck-ok summary')), names: t(res.querySelector('.ck-oknames')), open: res.querySelector('.ck-ok').open } : null,
     miss: res && vis(res.querySelector('.ck-miss')) ? t(res.querySelector('.ck-miss')) : null,
     other: res && vis(res.querySelector('.ck-other')) ? t(res.querySelector('.ck-other')) : null,
@@ -307,8 +317,30 @@ async function standIns(browser) {
       check('the unsure cell (Saul Lovell, Forschung under the cursor): "?", the value read in a picker, "stimmt"', sr && sr.txt === 'Forschung: im Spiel ?, Plan 5' && sr.sel === '5' && sr.ok && sr.keep === null, sr);
       check('cards say how many differ / need a look', JSON.stringify(cardOf(r, ID['Crimson Reid']).chips) === '["1 Unterschied"]' && JSON.stringify(joan.chips) === '["2 Unterschiede"]' && JSON.stringify(saul.chips) === '["2 Unterschiede","1 Feld prüfen"]', [cardOf(r, ID['Crimson Reid']).chips, joan.chips, saul.chips]);
       check('the action bar sticks to the bottom: "Verwerfen" and "Übernehmen"', r.bar === 'sticky' && r.discard && r.apply.shown && !r.apply.disabled && r.apply.text === 'Übernehmen', { bar: r.bar, apply: r.apply });
+      // No surprises after Übernehmen (the real data): with the game's numbers as the snapshots the plan stays put.
+      // Before BUILD 16's review a snapshot with two 1s lost its anchored main job: Jane Hodge and Larkin Reinold swapped
+      // Jagen/Tierhaltung, and Jane's one difference became three.
+      const FIX_ALL = planAfter();
+      const todo = (plan, id) => plan.jobs.filter(j => GAME[id][j.id] !== cellVal(plan.cells[id][j.id])).map(j => j.id).join();
+      check('Korrigieren everywhere: the 18 that match stay matching, each of the 10 others keeps exactly its corrections (Jane Hodge: Bau only)',
+        OK_IDS.every(id => todo(FIX_ALL, id) === '') && DIFF_IDS.every(id => todo(FIX_ALL, id) === EXP[id].lines.map(l => l.job).join()) && todo(FIX_ALL, ID['Jane Hodge']) === 'construction',
+        roster.filter(w => todo(FIX_ALL, w.id) !== (EXP[w.id].lines.map(l => l.job).join())).map(w => ({ n: w.name, now: todo(FIX_ALL, w.id) })));
+      check('Korrigieren everywhere: main jobs stay', FIX_ALL.team.every(w => FIX_ALL.main[w.id] === PLAN0.main[w.id]), FIX_ALL.team.filter(w => FIX_ALL.main[w.id] !== PLAN0.main[w.id]).map(w => w.name));
+      check('the only number that moves: Crimson Reid Bau 7 statt 8 (8 was kept because the game supposedly had 8; it has 1)', JSON.stringify(rippleOf(FIX_ALL)) === '["Crimson Reid: Bau 7 statt 8"]', rippleOf(FIX_ALL));
+      // ... and the result says so before Übernehmen (Saul Lovell, with his "?" open, is not written yet).
+      const RIP_HEAD = 'Dadurch ändert sich auch der Plan';
+      const ripText = keeps => `Nach dem Übernehmen rechnet der Plan mit den Zahlen aus dem Spiel${keeps ? ' und euren Festlegungen' : ''}. An diesen Stellen schlägt er dann etwas anderes vor:`;
+      const rip0 = rippleOf(planAfter([ID['Saul Lovell']]));
+      check('"Dadurch ändert sich auch der Plan": the numbers that move after Übernehmen, before it', r.ripple && r.ripple.head === RIP_HEAD && r.ripple.text === ripText(false) && JSON.stringify(r.ripple.items) === JSON.stringify(rip0) && rip0.length >= 1, { got: r.ripple, want: rip0 });
       // So lassen: Joan keeps Bau 1 (one 1, not the main job -> lockMain) and Holzfällen X (pin 0); Phoebe keeps Handwerk X.
       await P.click(lineSel(ID['Joan Reinfred'], 'construction', '[data-ck="keep"]'));
+      await P.waitForTimeout(80);
+      r = await CK(P);
+      const keptJ = new Set([ID['Joan Reinfred'] + '|construction']);
+      const rip1 = rippleOf(planAfter([ID['Saul Lovell']], { [ID['Joan Reinfred']]: { lockMain: 'construction', pins: {} } }), keptJ);
+      const added1 = rippleNames(rip1).filter(n => !rippleNames(rip0).includes(n));
+      check('"So lassen" Bau as main job for Joan: the result lists what it moves', r.ripple && r.ripple.text === ripText(true) && JSON.stringify(r.ripple.items) === JSON.stringify(rip1) && added1.length >= 1, { got: r.ripple && r.ripple.items, want: rip1 });
+      check('... and the action bar says who else changes (announced)', r.actMsg === `Dadurch ändert sich auch der Plan bei ${joinDe(added1)}.`, { msg: r.actMsg, added1 });
       await P.click(lineSel(ID['Joan Reinfred'], 'woodcutting', '[data-ck="keep"]'));
       await P.click(lineSel(ID['Phoebe Graves'], 'crafting', '[data-ck="keep"]'));
       await P.waitForTimeout(80);
@@ -324,7 +356,14 @@ async function standIns(browser) {
       await P.click(lineSel(ID['Saul Lovell'], 'research', '[data-ck="ok"]')); await P.waitForTimeout(80);
       r = await CK(P);
       const sr2 = line(cardOf(r, ID['Saul Lovell']), 'research');
-      check('"stimmt": the cell is confirmed ("wie im Plan"), the guard is off again', sr2 && sr2.txt === 'Forschung: im Spiel 5 – wie im Plan' && !sr2.ok && JSON.stringify(cardOf(r, ID['Saul Lovell']).chips) === '["2 Unterschiede"]' && r.apply.text === 'Übernehmen' && !r.actMsg, { sr2, apply: r.apply, msg: r.actMsg });
+      const PREFS_K = { [ID['Joan Reinfred']]: { lockMain: 'construction', pins: { woodcutting: 0 } }, [ID['Phoebe Graves']]: { lockMain: null, pins: { crafting: 0 } } };
+      const keptAll = new Set([ID['Joan Reinfred'] + '|construction', ID['Joan Reinfred'] + '|woodcutting', ID['Phoebe Graves'] + '|crafting']);
+      const ripAll = rippleOf(planAfter([], PREFS_K), keptAll);
+      const addedS = rippleNames(ripAll).filter(n => !rippleNames(rippleOf(planAfter([ID['Saul Lovell']], PREFS_K), keptAll)).includes(n));
+      check('"stimmt": the cell is confirmed ("wie im Plan"), the guard is off again', sr2 && sr2.txt === 'Forschung: im Spiel 5 – wie im Plan' && !sr2.ok && JSON.stringify(cardOf(r, ID['Saul Lovell']).chips) === '["2 Unterschiede"]' && r.apply.text === 'Übernehmen'
+        && r.actMsg === (addedS.length ? `Dadurch ändert sich auch der Plan bei ${joinDe(addedS)}.` : ''), { sr2, apply: r.apply, msg: r.actMsg, addedS });
+      check('before Übernehmen: the list holds every number the plan will move', r.ripple && JSON.stringify(r.ripple.items) === JSON.stringify(ripAll), { got: r.ripple && r.ripple.items, want: ripAll });
+      const said = r;   // what the result said right before Übernehmen
       const t0 = Date.now();
       await P.click('#check-apply');
       await until(async () => srv.log.filter(x => x.c === 'ingame').length >= 28 && srv.log.filter(x => x.c === 'prefs').length >= 2, 4000);
@@ -361,6 +400,17 @@ async function standIns(browser) {
       check('Eintragen-Modus: exactly the open villagers, each row "von <im Spiel> → <Plan>"', JSON.stringify(seenEntry) === JSON.stringify(wantEntry), { seen: seenEntry.slice(0, 4), want: wantEntry.slice(0, 4) });
       const hcE = seenEntry.find(x => x.name === 'Helene Colley');
       check('Eintragen-Modus: Helene Colley "Bau von 1 → 7"', hcE && hcE.rows.some(x => x.job === 'construction' && x.from === 'von 1' && x.to === '7'), hcE);
+      // No surprises: every number the Eintragen-Modus asks for was in the result (a card line, or the list of what moves).
+      const unsaid = [];
+      for (const v of seenEntry) for (const row of v.rows) {
+        const lab = T.JOB[row.job].label, g = row.from.slice(4), c = said.cards.find(x => x.name === v.name), l = c && line(c, row.job);
+        const item = said.ripple && said.ripple.items.find(s => s.startsWith(v.name + ': '));
+        const parts = item ? item.slice(v.name.length + 2).split(', ') : [];
+        const moved = parts.find(p => p.startsWith(lab + ' '));
+        const ok = moved ? moved.startsWith(`${lab} ${row.to} statt `) : !!l && l.txt === `${lab}: im Spiel ${g}, Plan ${row.to}`;
+        if (!ok) unsaid.push(`${v.name} ${lab} ${row.from} → ${row.to}`);
+      }
+      check('no surprises: every number the Eintragen-Modus asks for was announced in the result', !unsaid.length && seenEntry.length >= 10, unsaid);
       await B.page.keyboard.press('Escape'); await B.page.waitForTimeout(80);
       // Rückgängig: the earlier snapshots and Festlegungen come back for everyone
       check('the toast is still there for Rückgängig', await toastAct(P) === 'Rückgängig');
@@ -432,6 +482,17 @@ async function standIns(browser) {
       await A.ctx.close();
     });
 
+    // ===== 2b) A guard on the photos: matched, but not compared (the plan has no numbers for guards) =====
+    await section('2b) guard', async () => {
+      const W2 = clone(SEED_W); W2[ID['Royce Sykes']].role = 'guard';
+      const srv = makeServer({ workers: W2, settings: { main: F.settings }, ingame: F.ingame });
+      const A = await phone(browser, srv, { name: 'G', inClaude: true, writable: true, user: owner, anim: 'aus' });
+      await readTable(A.page, REPLY);
+      const r = await CK(A.page);
+      check('a guard on the photos: "Nicht verglichen (keine Dorfarbeit): Royce Sykes (Wache)." and no card for him', r.other === 'Nicht verglichen (keine Dorfarbeit): Royce Sykes (Wache).' && !cardOf(r, ID['Royce Sykes']) && !(r.miss || '').includes('Royce'), { other: r.other, miss: r.miss });
+      await A.ctx.close();
+    });
+
     // ===== 3) A read-only viewer may check, but not apply =====
     await section('3) read-only', async () => {
       const srv = makeServer(seedAll());
@@ -443,8 +504,8 @@ async function standIns(browser) {
       check('read-only: the full result (10 cards, 18 match, warnings)', r.result && r.cards.length === 10 && r.ok && r.ok.sum === '✓ 18 stimmen' && cardOf(r, ID['Helene Colley']).warn.length === 1, r.cards.length);
       await V.page.evaluate(() => document.getElementById('check-title').scrollIntoView({ block: 'start' })); await V.page.waitForTimeout(80);
       await V.page.screenshot({ path: path.join(SHOTS, 'check-390-readonly.png') });
-      check('read-only: a note, "Übernehmen" off, no "So lassen" choices', r.ro === 'Nur ansehen: Ihr seht das Ergebnis, übernehmen könnt ihr hier nicht.' && r.apply.disabled
-        && r.cards.every(c => c.lines.every(l => l.keep === null && l.fix === null)), { ro: r.ro, apply: r.apply });
+      check('read-only: a note, "Übernehmen" off, no "So lassen" choices, no list of what Übernehmen would move', r.ro === 'Nur ansehen: Ihr seht das Ergebnis, übernehmen könnt ihr hier nicht.' && r.apply.disabled
+        && r.cards.every(c => c.lines.every(l => l.keep === null && l.fix === null)) && !r.ripple, { ro: r.ro, apply: r.apply, ripple: r.ripple });
       await V.page.click('#check-apply', { force: true }).catch(() => {});
       await V.page.waitForTimeout(200);
       check('read-only: nothing written', !srv.log.length, srv.log.slice(0, 2));
@@ -512,6 +573,12 @@ async function standIns(browser) {
       await P.evaluate(() => { window.__reply = { rows: [{ name: '', values: [] }] }; });
       await P.click('#check-read'); await readDone(P);
       check('no rows without a note: the app\'s own hint', (await CK(P)).msg === 'Auf den Bildern war keine Tabelle mit Arbeitsprioritäten zu erkennen. Fotografiert die Ansicht „Arbeitsprioritäten“ so, dass Namen und Zahlen scharf zu sehen sind.');
+      // Only one row, and its Kochen could not be read: nothing to take yet.
+      await P.evaluate(r => { window.__reply = r; }, { rows: [{ name: 'Arnold Dixon', values: ROWVALS['Arnold Dixon'].map((v, i) => i === 6 ? null : v), unsure: [6] }] });
+      await P.click('#check-read'); await readDone(P);
+      await P.click('#check-apply'); await P.waitForTimeout(80);
+      r = await CK(P);
+      check('nothing ready: "Noch nichts zu übernehmen. … mit „?“." and nothing written', r.actMsg === 'Noch nichts zu übernehmen. Ordnet die Zeilen zu oder bestätigt die Felder mit „?“.' && !srv.log.length, r.actMsg);
       await P.evaluate(() => { window.__wait = 3000; });
       await P.click('#check-read'); await P.waitForTimeout(100);
       await P.click('#check-stop'); await readDone(P);
@@ -543,6 +610,38 @@ async function standIns(browser) {
       const r = await CK(P);
       check('it closes the Eintragen-Modus and opens the check on the Plan tab, focus on its heading', r.open && await P.evaluate(() => document.getElementById('entry').hidden && !document.getElementById('panel-plan').hidden && document.activeElement && document.activeElement.id === 'check-h'), r.open);
       await A.ctx.close();
+    });
+
+    // ===== 5b) Shared data changing while the result is open =====
+    await section('5b) races', async () => {
+      const srv = makeServer(seedAll());
+      const A = await phone(browser, srv, { name: 'RA', inClaude: true, writable: true, user: owner, anim: 'aus' });
+      const B = await phone(browser, srv, { name: 'RB', inClaude: true, writable: true, user: lena, anim: 'aus' });
+      await readTable(A.page, REPLY);
+      await readTable(B.page, REPLY);
+      // Jane Hodge is deleted on another phone: her row has to be placed by hand again, nobody gets her numbers.
+      srv.col('workers').delete(ID['Jane Hodge']); srv.broadcast('workers');
+      await until(() => A.page.evaluate(() => document.querySelectorAll('#check-result .ck-assign .ck-row').length === 1), 3000);
+      let r = await CK(A.page);
+      check('a villager deleted meanwhile: her row goes to "Wer ist das?" (she is not offered), no card for her', r.assign.length === 1 && r.assign[0].read.startsWith('„Jane Hodge“') && r.assign[0].val === ''
+        && !r.assign[0].opts.some(o => o.v === ID['Jane Hodge']) && !cardOf(r, ID['Jane Hodge']), r.assign);
+      // Phone B takes its result first (two taps: Jane's row is open there too), then A, then A's Rückgängig.
+      await B.page.click(lineSel(ID['Saul Lovell'], 'research', '[data-ck="ok"]'));
+      await B.page.click('#check-apply'); await B.page.waitForTimeout(600); await B.page.click('#check-apply');
+      await until(async () => srv.log.filter(x => x.c === 'ingame' && x.who === 'RB').length >= 27, 4000);
+      await until(() => A.page.evaluate(() => !document.querySelector('#check-result .ck-ripple')), 3000);
+      r = await CK(A.page);
+      check('the other phone took the same result: A\'s result follows (nothing moves any more), still open', r.result && !r.ripple && r.apply.text === 'Übernehmen', { ripple: r.ripple, apply: r.apply });
+      const n0 = srv.log.length;
+      await A.page.click('#check-apply'); await A.page.waitForTimeout(600); await A.page.click('#check-apply');
+      await until(async () => srv.log.slice(n0).filter(x => x.who === 'RA').length >= 26, 4000);
+      const aw = srv.log.slice(n0).filter(x => x.who === 'RA');
+      check('A writes 26 (not Jane, not Saul with his open "?")', aw.length === 26 && !aw.some(x => x.id === ID['Jane Hodge'] || x.id === ID['Saul Lovell']), aw.length);
+      await A.page.click('#toast .toast-act');
+      const byB = () => { const ing = srv.obj('ingame'); return roster.every(w => w.id === ID['Jane Hodge'] || (ing[w.id] && ing[w.id].by === 'u_b')); };
+      await until(async () => byB(), 4000);
+      check('A\'s Rückgängig brings back what B had written (not the older snapshots)', byB());
+      await A.ctx.close(); await B.ctx.close();
     });
 
     // ===== 6) Motion per the bellwright-animations skill =====

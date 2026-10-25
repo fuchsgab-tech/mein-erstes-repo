@@ -426,6 +426,9 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
 .ck-ok summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--good); font-weight: 700; }
 .ck-oknames { padding-bottom: 10px; font-size: 0.9375rem; overflow-wrap: anywhere; }
 .ck-miss, .ck-other { font-size: 0.9375rem; color: var(--muted); overflow-wrap: anywhere; }
+/* "Dadurch ändert sich auch der Plan": what Übernehmen moves besides the lines above, said before it happens */
+.ck-ripple { display: grid; gap: 6px; min-width: 0; padding: 10px 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); }
+.ck-rip { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; font-size: 0.9375rem; font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; }
 .entry-finale [data-e="check"] { min-height: 48px; }
 @media (max-width: 480px) {
   .check { padding: 12px; }
@@ -1706,15 +1709,21 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const pinned = (w, id) => pinOf(w, id) !== undefined;
     // What is entered in the game for w (null = never entered).
     const snapOf = w => { const s = anchor[w.id]; return s && typeof s === "object" && !Array.isArray(s) ? s : null; };
-    // (a) The anchored main job: the single switched-on job on 1 in the game. None for 0 or 2+ such jobs.
+    // (a) The anchored main job: the single switched-on job on 1 in the game. None for 0 such jobs.
     //     A locked main counts as the anchor; a pinned job never is one (a pin is never 1).
-    const anchorMain = {};
+    //     Two or more on 1 (the game then picks one at random; "Spiel prüfen" stores such snapshots): keeping any of
+    //     them saves a trip to the game, so each gets the head start (anchorOnes), and the one the assignment keeps
+    //     counts as the anchor from then on. Without it a stray 1 cost the real main job its head start and flipped
+    //     main jobs across the team.
+    const anchorMain = {}, anchorOnes = {};
     if (calm) for (const w of team) {
       if (lockOf(w)) { anchorMain[w.id] = lockOf(w); continue; }
       const s = snapOf(w);
       const ones = s ? jobs.filter(j => s[j.id] === 1) : [];
       if (ones.length === 1 && !pinned(w, ones[0].id)) anchorMain[w.id] = ones[0].id;
+      else if (ones.length >= 2) { const o = ones.filter(j => !pinned(w, j.id)).map(j => j.id); if (o.length) anchorOnes[w.id] = new Set(o); }
     }
+    const sticks = (w, j) => j.id === anchorMain[w.id] || (!!anchorOnes[w.id] && anchorOnes[w.id].has(j.id));
 
     const tr = new Map(team.map(w => [w.id, traitInfo(w)]));
     const cur = (w, a) => w.stats[a].cur;
@@ -1799,7 +1808,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (free.length && cols.length >= free.length) {
       // (b) calm: the main job that is already entered in the game gets a small head start (STICK).
       const cost = calm
-        ? free.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0) + (j.id === anchorMain[w.id] ? STICK : 0))))
+        ? free.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0) + (sticks(w, j) ? STICK : 0))))
         : free.map(w => cols.map(j => -(score(w, j) + (must.has(j.id) ? 1000 : 0))));
       if (hasPrefs) free.forEach((w, i) => cols.forEach((j, k) => { if (pinned(w, j.id)) cost[i][k] += 1e6; }));
       const asg = hungarian(cost);
@@ -1817,6 +1826,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     //     If more of them have the same job of the group entered than it has places, the assignment above is a tie
     //     between them: the better worker keeps it, so the result never flips when someone else gets ticked off.
     // Festlegungen: a locked main, or a pin on a job of the group, keeps that worker out of the re-sort.
+    for (const id of Object.keys(anchorOnes)) if (main[id] && anchorOnes[id].has(main[id])) anchorMain[id] = main[id];   // (a): the 1 kept
     const frozen = (w, grp) => hasPrefs && (!!lockOf(w) || grp.some(id => pinned(w, id)));
     for (const grp of [["crafting", "smelting"], ["harvesting", "woodcutting"], ["animals", "hunting"]]) {
       let ws = team.filter(w => grp.includes(main[w.id]) && !frozen(w, grp));
@@ -5404,7 +5414,7 @@ Reply with only this JSON:
   const TABLE_ICONS = { crafting: "anvil", smelting: "furnace", harvesting: "berries", farming: "sprout", woodcutting: "axe", delivery: "chest",
     cooking: "bowl", hunting: "bow", construction: "hammer", animals: "rabbit", research: "paper", caravan: "cart", caravanguard: "shield" };
   const ck = { open: false, files: [], reading: [], ctl: null, busy: false, rows: null, conf: new Map(), keep: new Set(), shown: new Set(),
-    seq: 0, html: "", fresh: false, okOpen: false, armed: 0, armT: null, msg: "", nOpen: 0 };
+    seq: 0, html: "", fresh: false, okOpen: false, armed: 0, armT: null, msg: "", nOpen: 0, rip: [] };
   const CHECK_ERR = { ...PHOTO_ERR, rate_limited: "Euer Claude-Limit ist gerade erreicht. Versucht es später noch einmal oder vergleicht die Zahlen von Hand." };
   const ckX = v => v === null || v === undefined ? "?" : v === 0 ? "X" : String(v);
   function tablePrompt(names = rosterNames()) {
@@ -5493,7 +5503,7 @@ Reply with only this JSON:
       byKey.set(key, row);
       rows.push(row);
     }
-    Object.assign(ck, { rows, conf: new Map(), keep: new Set(), shown: new Set(), fresh: true, okOpen: false, msg: "" });
+    Object.assign(ck, { rows, conf: new Map(), keep: new Set(), shown: new Set(), fresh: true, okOpen: false, msg: "", rip: [] });
     ckDisarm();
   }
   const ckTarget = r => r.auto || (r.pick && r.pick !== "-" ? r.pick : "");
@@ -5537,6 +5547,47 @@ Reply with only this JSON:
       open: unplaced.filter(r => !r.pick).length + items.reduce((n, it) => n + it.nOpen, 0),
     };
   }
+  // What "Übernehmen" writes, for the villagers whose numbers are all known: ing = {wid: the game's numbers}, pf = {wid:
+  // Festlegungen} where "So lassen" changes them (a 1 off the main job -> lockMain, any other value -> pin), kept =
+  // Set("wid|jobId") of those lines. The same for the preview and for Übernehmen, so they never disagree.
+  function ckWrites(m) {
+    const ing = {}, pf = {}, kept = new Set();
+    for (const it of m.items) {
+      if (it.nOpen) continue;
+      const wid = it.w.id;
+      ing[wid] = Object.fromEntries(it.lines.map(l => [l.j.id, l.g]));
+      const keeps = it.lines.filter(l => ckCanKeep(it, l) && ck.keep.has(l.key));
+      if (!keeps.length) continue;
+      const prev = prefsCopy(wid), next = prev ? JSON.parse(JSON.stringify(prev)) : { lockMain: null, pins: {} };
+      for (const l of keeps) {
+        kept.add(wid + "|" + l.j.id);
+        if (l.g === 1) { next.lockMain = l.j.id; delete next.pins[l.j.id]; }
+        else { if (next.lockMain === l.j.id) next.lockMain = null; next.pins[l.j.id] = l.g; }
+      }
+      if (JSON.stringify(cleanPrefs(next)) !== JSON.stringify(cleanPrefs(prev))) pf[wid] = next;
+    }
+    return { ing, pf, kept };
+  }
+  // The plan after "Übernehmen" against the plan now: numbers that move although nobody chose them here (the game's real
+  // numbers end a "ruhig gehalten", a "So lassen" moves a main job to someone else). Shown before Übernehmen, so nothing
+  // in the Eintragen-Modus comes as a surprise. [{w, parts: [{j, from, to}]}] in roster order; one plan run per change.
+  let ckRipMemo = { plan: null, key: "", out: [] };
+  function ckRipple(wr) {
+    const plan = lastPlan, key = JSON.stringify([wr.ing, wr.pf, [...wr.kept]]);
+    if (ckRipMemo.plan === plan && ckRipMemo.key === key) return ckRipMemo.out;
+    const out = [];
+    if (Object.keys(wr.ing).length) {
+      const after = compute(activeWorkers(), state.settings, { ...planOpts(state.settings), anchor: { ...applied, ...wr.ing }, prefs: { ...prefs, ...wr.pf }, explain: false });
+      for (const w of plan.team) {
+        const ac = after.cells[w.id];
+        const parts = ac ? plan.jobs.filter(j => ac[j.id] && !wr.kept.has(w.id + "|" + j.id) && cellVal(ac[j.id]) !== cellVal(plan.cells[w.id][j.id]))
+          .map(j => ({ j, from: cellVal(plan.cells[w.id][j.id]), to: cellVal(ac[j.id]) })) : [];
+        if (parts.length) out.push({ w, parts });
+      }
+    }
+    ckRipMemo = { plan, key, out };
+    return out;
+  }
   function ckLineHtml(it, l, ro) {
     const lab = l.j.label, name = it.w.name || "Ohne Namen", f = esc(l.key);
     const txt = l.open ? `${lab}: im Spiel ?, Plan ${ckX(l.p)}` : !l.diff ? `${lab}: im Spiel ${ckX(l.g)} – wie im Plan` : `${lab}: im Spiel ${ckX(l.g)}, Plan ${ckX(l.p)}`;
@@ -5561,7 +5612,7 @@ Reply with only this JSON:
     return `<article class="ck-card${fine ? " fine" : ""}" data-wid="${esc(it.w.id)}"><div class="ck-head"><h4>${esc(name)}</h4>${chips.map(c => `<span class="chip ck-chip">${esc(c)}</span>`).join("")}</div>`
       + warn + it.lines.filter(l => l.diff || l.asked).map(l => ckLineHtml(it, l, ro)).join("") + (fine ? `<p class="ck-fine">Stimmt jetzt alles.</p>` : "") + `</article>`;
   }
-  function ckHtml(m, ro) {
+  function ckHtml(m, ro, wr, rip) {
     const all = sortedWorkers(), counts = nameCounts(all), nm = w => w.name || "Ohne Namen";
     let h = `<h3 id="check-title" tabindex="-1" data-focus="title">Ergebnis</h3><p class="ck-sum">${ck.rows.length === 1 ? "1 Bewohner" : ck.rows.length + " Bewohner"} auf den Fotos erkannt.${ro ? "" : " Gespeichert wird erst mit „Übernehmen“."}</p>`;
     if (ro) h += `<p class="ck-ro">Nur ansehen: Ihr seht das Ergebnis, übernehmen könnt ihr hier nicht.</p>`;
@@ -5581,9 +5632,12 @@ Reply with only this JSON:
     const cards = m.items.filter(it => ck.shown.has(it.r.k)), fine = m.items.filter(it => !ck.shown.has(it.r.k));
     if (cards.length && !ro) h += `<p class="ck-explain muted small">„Korrigieren“: ihr stellt die Zahl im Spiel um, danach zeigt sie der Eintragen-Modus. „So lassen“: die Zahl bleibt im Spiel, der Plan rechnet damit (Festlegung).</p>`;
     if (cards.length) h += `<div class="ck-cards">${cards.map(it => ckCardHtml(it, ro)).join("")}</div>`;
+    if (rip.length) h += `<section class="ck-ripple" aria-labelledby="ck-ripple-h"><h4 id="ck-ripple-h">Dadurch ändert sich auch der Plan</h4>`
+      + `<p class="muted small">Nach dem Übernehmen rechnet der Plan mit den Zahlen aus dem Spiel${wr.kept.size ? " und euren Festlegungen" : ""}. An diesen Stellen schlägt er dann etwas anderes vor:</p>`
+      + `<ul class="ck-rip">${rip.map(x => `<li>${esc(`${nm(x.w)}: ${x.parts.map(q => `${q.j.label} ${ckX(q.to)} statt ${ckX(q.from)}`).join(", ")}`)}</li>`).join("")}</ul></section>`;
     if (fine.length) h += `<details class="ck-ok"${ck.okOpen ? " open" : ""}><summary data-focus="oksum">✓ ${fine.length} ${fine.length === 1 ? "stimmt" : "stimmen"}</summary><p class="ck-oknames">${esc(joinDe(fine.map(it => nm(it.w))))}.</p></details>`;
     if (m.missing.length) h += `<p class="ck-miss">Nicht auf den Fotos: ${esc(joinDe(m.missing.map(nm)))}.</p>`;
-    if (m.others.length) h += `<p class="ck-other">Nicht verglichen, weil sie keine Arbeiter sind: ${esc(joinDe(m.others.map(nm)))}.</p>`;
+    if (m.others.length) h += `<p class="ck-other">Nicht verglichen (keine Dorfarbeit): ${esc(joinDe(m.others.map(w => `${nm(w)} (${ROLE_LABEL[w.role] || w.role})`)))}.</p>`;   // as under the plan
     return h;
   }
   // The result follows the plan (another phone, a Festlegung) while it is open. Drawing only, nothing is saved.
@@ -5594,7 +5648,8 @@ Reply with only this JSON:
       if (!res.hidden) { res.hidden = true; body.innerHTML = ""; ck.html = ""; syncSticky(); }
       return;
     }
-    const m = ckModel(), html = ckHtml(m, locked());
+    const m = ckModel(), ro = locked(), wr = ckWrites(m), rip = ro ? [] : ckRipple(wr), html = ckHtml(m, ro, wr, rip);
+    ck.rip = rip.map(x => x.w.id);
     ck.nOpen = m.open;
     if (html !== ck.html) {
       const act = document.activeElement;
@@ -5607,7 +5662,7 @@ Reply with only this JSON:
       }
       if (ck.fresh) {   // a new result: card by card (CSS per animation level), at most 10 apart
         ck.fresh = false;
-        [...body.querySelectorAll(".ck-row, .ck-card, .ck-ok, .ck-miss")].forEach((el, i) => { el.style.setProperty("--i", Math.min(i, 10)); el.classList.add("ck-in"); });
+        [...body.querySelectorAll(".ck-row, .ck-card, .ck-ripple, .ck-ok, .ck-miss")].forEach((el, i) => { el.style.setProperty("--i", Math.min(i, 10)); el.classList.add("ck-in"); });
       }
     }
     if (res.hidden) { res.hidden = false; syncSticky(); }
@@ -5689,7 +5744,7 @@ Reply with only this JSON:
   function ckClose(focus) {
     if (ck.busy && ck.ctl) ck.ctl.abort();
     ck.ctl = null;
-    Object.assign(ck, { open: false, rows: null, conf: new Map(), keep: new Set(), shown: new Set(), html: "", okOpen: false, msg: "" });
+    Object.assign(ck, { open: false, rows: null, conf: new Map(), keep: new Set(), shown: new Set(), html: "", okOpen: false, msg: "", rip: [] });
     ckDisarm();
     const old = ck.files;
     ck.files = [];
@@ -5752,7 +5807,7 @@ Reply with only this JSON:
   function ckApply() {
     if (locked() || !ck.rows || !ckAvail()) return;
     const m = ckModel(), ready = m.items.filter(it => !it.nOpen);
-    if (!ready.length) { ck.msg = "Noch nichts zu übernehmen. Ordnet die Zeilen zu oder bestätigt die Felder mit ?."; ckPaintBar(); shake($("#check-act-msg")); return; }
+    if (!ready.length) { ck.msg = "Noch nichts zu übernehmen. Ordnet die Zeilen zu oder bestätigt die Felder mit „?“."; ckPaintBar(); shake($("#check-act-msg")); return; }
     if (m.open && !ck.armed) {
       ck.armed = Date.now();
       ck.msg = `${m.open === 1 ? "Eine Stelle ist" : m.open + " Stellen sind"} noch offen (mit ? oder ohne Zuordnung). Diese Bewohner bleiben, wie sie sind. Tippt noch einmal, um den Rest zu übernehmen.`;
@@ -5761,20 +5816,13 @@ Reply with only this JSON:
     }
     if (m.open && Date.now() - ck.armed < 450) return;   // a double tap is not a second decision
     if (state.mode === "local") reloadApplied();   // another tab may have changed it
-    const at = Date.now(), prevIng = {}, prevPf = {}, ids = [];
+    const at = Date.now(), prevIng = {}, prevPf = {}, ids = [], wr = ckWrites(m);
     for (const it of ready) {
       const wid = it.w.id;
       ids.push(wid);
       prevIng[wid] = ingameDoc(wid);
-      putIngame(wid, { vals: Object.fromEntries(it.lines.map(l => [l.j.id, l.g])), by: myId, at });
-      const keeps = it.lines.filter(l => ckCanKeep(it, l) && ck.keep.has(l.key));
-      if (!keeps.length) continue;
-      const prev = prefsCopy(wid), next = prev ? JSON.parse(JSON.stringify(prev)) : { lockMain: null, pins: {} };
-      for (const l of keeps) {
-        if (l.g === 1) { next.lockMain = l.j.id; delete next.pins[l.j.id]; }
-        else { if (next.lockMain === l.j.id) next.lockMain = null; next.pins[l.j.id] = l.g; }
-      }
-      if (JSON.stringify(cleanPrefs(next)) !== JSON.stringify(cleanPrefs(prev))) { prevPf[wid] = prev; putPrefs(wid, next, 0); }
+      putIngame(wid, { vals: wr.ing[wid], by: myId, at });
+      if (wr.pf[wid]) { prevPf[wid] = prefsCopy(wid); putPrefs(wid, wr.pf[wid], 0); }
     }
     justApplied.clear();
     for (const id of ids) justApplied.add(id);   // the ones that are ticked off now get the seal
@@ -5834,7 +5882,11 @@ Reply with only this JSON:
     } else return;
     ck.msg = "";
     if (ck.armed) ckArm();   // still deciding: the "Trotzdem" question waits a little longer
+    const was = new Set(ck.rip);
     ckRender();
+    // Somebody new in "Dadurch ändert sich auch der Plan" (a So lassen moved a main job): said in the bar, which is in view.
+    const add = ck.rip.filter(id => !was.has(id)).map(id => (state.workers.get(id) || {}).name || "Ohne Namen");
+    if (add.length) { ck.msg = `Dadurch ändert sich auch der Plan bei ${joinDe(add)}.`; ckPaintBar(); }
     // A confirmed number stamps (voll) or fades in (ruhig), like a raised Stufe.
     const el = stamp && $("#check-body").querySelector(`.ck-line[data-key="${CSS.escape(stamp)}"] .ck-txt`);
     if (el) play(el, FOKUS_STAMP, FOKUS_FADE);

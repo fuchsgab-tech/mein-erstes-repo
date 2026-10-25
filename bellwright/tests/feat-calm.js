@@ -178,11 +178,20 @@ function partA() {
     check('(e) "Bleibt Hauptjob …" only on the main rows that STICK kept', JSON.stringify(kept) === JSON.stringify(['Godric', 'Wulfric']), kept);
     const quiet = T.compute(ws, s0, { calm: true, anchor: snapStart, explain: false });
     check('(e) explain:false: same numbers, no extra text', deq(flat(quiet), flat(calmP)) && !quiet.team.some(w => quiet.cells[w.id][quiet.main[w.id]].why.includes('Bleibt Hauptjob')));
-    // Two jobs on 1 in the game: no anchored main, so the plan moves like today.
+    // Two jobs on 1 in the game (the game then picks one of them at random; "Spiel prüfen" writes such snapshots):
+    // keeping either of them as main job saves a trip to the game, so each gets the head start, and the main job that
+    // was entered stays. Since BUILD 16 (before: no head start at all, so a stray 1 flipped main jobs across the team).
     const two = clone(snapStart);
     two[god.id].construction = 1; two[wul.id].cooking = 1;
     const pTwo = T.compute(ws, s0, { calm: true, anchor: two });
-    check('(a) two jobs on 1: no head start, main jobs as today', pTwo.main[god.id] === plain.main[god.id] && pTwo.main[wul.id] === plain.main[wul.id], { god: pTwo.main[god.id], wul: pTwo.main[wul.id] });
+    check('(a) two jobs on 1: each gets the head start, the main job entered stays (no flip as today)', pTwo.main[god.id] === 'woodcutting' && pTwo.main[wul.id] === 'research', { god: pTwo.main[god.id], wul: pTwo.main[wul.id] });
+    const vTwo = vals(pTwo), vOne = vals(calmP);
+    const strayOnly = [[god.id, 'construction'], [wul.id, 'cooking']].every(([id, stray]) => Object.keys(vOne[id]).every(j => j === stray || vTwo[id][j] === vOne[id][j]))
+      && pTwo.team.every(w => w.id === god.id || w.id === wul.id || deq(vTwo[w.id], vOne[w.id]));
+    check('(a) two jobs on 1: only the stray 1 needs a change, nobody else\'s numbers move', strayOnly, { god: vTwo[god.id], wul: vTwo[wul.id] });
+    check('(e) two jobs on 1: "Bleibt Hauptjob …" on the main job the head start kept', [god, wul].every(w => pTwo.cells[w.id][pTwo.main[w.id]].why.endsWith(BLEIBT)));
+    const pTwoPin = T.compute(ws, s0, { calm: true, anchor: two, prefs: { [god.id]: { lockMain: null, pins: { construction: 3 } } } });
+    check('(a) two jobs on 1, one of them pinned: the other one keeps the head start', pTwoPin.main[god.id] === 'woodcutting', pTwoPin.main[god.id]);
     // A second 1 on a switched-off job does not count: still exactly one switched-on job on 1.
     const offOne = clone(snapStart);
     offOne[god.id].caravan = 1; offOne[wul.id].caravan = 1;   // Karawane is off by default
@@ -244,6 +253,44 @@ function partA() {
       }
     }
     check(`sequential ticking: nobody who is done reopens (${ticks} ticks)`, reopen === 0, where);
+  }
+  // Stray 1s, as "Spiel prüfen" writes them (BUILD 16): a team entered a calm plan after a phase switch (main jobs held
+  // by the head start), then the photo shows an extra 1 for some villagers (e.g. Bau). Planning with those snapshots
+  // must not flip main jobs or reopen villagers whose game matches the plan. Compared with the copy before BUILD 16.
+  {
+    const OLD16 = path.resolve(__dirname, '../versions/before-check.html');
+    if (!require('fs').existsSync(OLD16)) info.push('stray 1s: versions/before-check.html missing, comparison skipped');
+    else {
+      const B16 = load(OLD16);
+      const run = M => {
+        let seed = 99; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+        let reopen = 0, moved = 0, others = 0, strays = 0;
+        for (let it = 0; it < 200; it++) {
+          const N = 6 + Math.floor(rnd() * 24), ws = [];
+          for (let i = 0; i < N; i++) {
+            const stats = {};
+            for (const a of M.ATTRS) { const c = Math.floor(rnd() * 8); stats[a.id] = { cur: c, max: Math.min(10, c + Math.floor(rnd() * 5)) }; }
+            ws.push(M.normWorker('w' + i, { name: 'W' + i, role: 'worker', traits: ['', '', 'Prodigy', 'Slacker', 'Tireless'][Math.floor(rnd() * 5)], stats, order: i }));
+          }
+          const sB = phaseSettings(M, M.PHASES[it % 4].id), sA = phaseSettings(M, M.PHASES[(it + 1 + (it >> 2)) % 4].id);
+          const P = M.compute(ws, sB, { calm: true, anchor: vals(M.compute(ws, sB, { calm: true, anchor: vals(M.compute(ws, sA, { calm: true, anchor: {} })) })) });
+          const G = vals(P), stray = new Map();
+          for (const w of P.team) if (rnd() < 0.3) { const o = P.jobs.filter(j => j.id !== P.main[w.id]); const e = o[Math.floor(rnd() * o.length)]; G[w.id][e.id] = 1; stray.set(w.id, e.id); }
+          const Q = M.compute(ws, sB, { calm: true, anchor: G, explain: false });
+          for (const w of P.team) {
+            const moves = P.jobs.filter(j => cv(P.cells[w.id][j.id]) !== cv(Q.cells[w.id][j.id]) && j.id !== stray.get(w.id));
+            if (!stray.has(w.id)) { if (moves.length) reopen++; continue; }
+            strays++;
+            if (Q.main[w.id] !== P.main[w.id]) moved++;
+            if (moves.length) others++;
+          }
+        }
+        return { reopen, moved, others, strays };
+      };
+      const now = run(T), before = run(B16);
+      info.push(`stray 1s (${now.strays} villagers with one): matching villagers reopen ${now.reopen} (before ${before.reopen}), main jobs move ${now.moved} (before ${before.moved})`);
+      check('stray 1s: far fewer main jobs move and fewer matching villagers reopen than before BUILD 16', now.moved * 5 < before.moved && now.reopen < before.reopen && now.strays === before.strays, { now, before });
+    }
   }
 
   // ---- (d) hysteresis texts and rules, (f) the note ----
