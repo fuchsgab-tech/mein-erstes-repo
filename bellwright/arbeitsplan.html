@@ -86,7 +86,7 @@ small { font-size: var(--step--1); }
 ::selection { background: rgb(217 164 65 / 0.45); color: var(--fg); }
 
 /* Panels: oak boards with an iron edge */
-.wcard, .wp-card, .photo, .import, .review, .opts, .jobrows, .matrix-wrap, .ktable-wrap, .reason, .notes li, .empty, .banner {
+.wcard, .wp-card, .photo, .check, .import, .review, .opts, .jobrows, .matrix-wrap, .ktable-wrap, .reason, .notes li, .empty, .banner {
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -372,22 +372,69 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
 .rc-more select { flex: 0 0 auto; }
 .rc-traits { flex: 1 1 160px; min-width: 0; }
 .review .btn.small { min-height: 32px; }
-.review-act { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-inline: -16px; padding: 10px 16px max(12px, env(safe-area-inset-bottom, 0px)); background: linear-gradient(180deg, color-mix(in oklab, var(--surface-2) 96%, transparent), var(--surface) 60%); border-top: 1px solid var(--line-strong); border-radius: 0 0 var(--radius) var(--radius); box-shadow: 0 -8px 18px rgb(0 0 0 / 0.35); }
-.review-msg { flex: 1 1 100%; order: -1; min-width: 0; font-size: 0.9375rem; color: var(--fg); overflow-wrap: anywhere; }
-.review-msg:empty { display: none; }
+.review-act, .ck-act { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-inline: -16px; padding: 10px 16px max(12px, env(safe-area-inset-bottom, 0px)); background: linear-gradient(180deg, color-mix(in oklab, var(--surface-2) 96%, transparent), var(--surface) 60%); border-top: 1px solid var(--line-strong); border-radius: 0 0 var(--radius) var(--radius); box-shadow: 0 -8px 18px rgb(0 0 0 / 0.35); }
+.review-msg, .ck-msg { flex: 1 1 100%; order: -1; min-width: 0; font-size: 0.9375rem; color: var(--fg); overflow-wrap: anywhere; }
+:is(.review-msg, .ck-msg):empty { display: none; }
 @media (max-width: 480px) {
   .review { padding: 12px 12px 0; }
-  .review-act { margin-inline: -12px; padding-inline: 12px; }
+  .review-act, .ck-act { margin-inline: -12px; padding-inline: 12px; }
   .rcard { padding: 10px; }
   /* one row on a phone: "Verwerfen" left, the main button right under the thumb (wraps when "Trotzdem …" is longer) */
-  .review-act { gap: 8px; }
-  .review-act .btn { flex: 1 0 auto; padding-inline: 12px; }
+  .review-act, .ck-act { gap: 8px; }
+  :is(.review-act, .ck-act) .btn { flex: 1 0 auto; padding-inline: 12px; }
   .review-act #review-apply { flex-grow: 2; order: 2; }
   .review-act #review-discard { order: 1; }
 }
 @media (pointer: coarse) {
   .review .btn.small, .cost-info .btn.small, .zoom .btn.small, .rc-take, .rc-target select, .rc-name, .rc-more select, .rc-traits { min-height: 44px; }
   .rc-stat input[type="number"] { min-height: 44px; }
+}
+/* Spiel prüfen per Foto: the photos as in the photo import (.drop, .thumbs), the result like its review (.review, the sticky
+   .ck-act styled as .review-act). Per villager with differences a card: "Bau: im Spiel 1, Plan 7" lines with Korrigieren / So lassen. */
+.check { display: grid; gap: 14px; padding: 16px; scroll-margin: 16px; min-width: 0; }
+.check-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.check-head h3 { color: var(--accent-hi); }
+.check h3:focus, .check-result h3:focus { outline: none; }
+.check-howto { max-width: 70ch; }
+.ck-body { display: grid; gap: 12px; min-width: 0; }
+.ck-sum, .ck-explain { max-width: 72ch; }
+.ck-ro { font-size: 0.875rem; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); padding: 6px 10px; }
+.check-result h4 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: var(--step-1); line-height: 1.15; color: var(--accent-hi); overflow-wrap: anywhere; }
+.ck-assign { display: grid; gap: 8px; min-width: 0; }
+.ck-row { display: grid; gap: 6px; min-width: 0; padding: 10px 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); }
+.ck-row.done { border-left-color: var(--good); }
+.ck-read { font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; }
+.ck-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--step--1); color: var(--muted); }
+.ck-pick select { flex: 1 1 180px; max-width: 100%; min-height: 40px; font-weight: 700; }
+.ck-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; align-items: start; min-width: 0; }
+.ck-card { display: grid; gap: 6px; min-width: 0; padding: 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--ember); border-radius: var(--radius); }
+.ck-card.fine { border-left-color: var(--good); }
+.ck-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.chip.ck-chip, .chip.ck-chip:hover { cursor: default; display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border-color: var(--ember); color: var(--ember); }
+.ck-warn { font-size: 0.9375rem; color: var(--warn); border-left: 3px solid var(--warn); padding: 2px 0 2px 8px; }
+.ck-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 6px; border-top: 1px solid var(--line); min-width: 0; }
+.ck-txt { flex: 1 1 170px; min-width: 0; font-weight: 700; font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; }
+.ck-line.same .ck-txt { font-weight: 500; color: var(--good); }
+.ck-line.open .ck-txt { color: var(--warn); }
+.ck-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.ck-ctl select { min-height: 40px; min-width: 4.5em; font-weight: 700; }
+.seg.ck-seg { box-shadow: var(--edge); }
+.ck-seg button { padding: 6px 12px; }
+.ck-hint { flex-basis: 100%; font-size: var(--step--1); color: var(--accent-hi); }
+.ck-fine { color: var(--good); font-size: 0.9375rem; }
+.ck-ok { border: 1px solid var(--line); border-radius: var(--radius); background: var(--field); padding: 0 12px; min-width: 0; }
+.ck-ok summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--good); font-weight: 700; }
+.ck-oknames { padding-bottom: 10px; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.ck-miss, .ck-other { font-size: 0.9375rem; color: var(--muted); overflow-wrap: anywhere; }
+.entry-finale [data-e="check"] { min-height: 48px; }
+@media (max-width: 480px) {
+  .check { padding: 12px; }
+  .ck-act #check-apply { flex-grow: 2; order: 2; }
+  .ck-act #check-discard { order: 1; }
+}
+@media (pointer: coarse) {
+  #check-open, .check .btn, .check-result .btn, .ck-pick select, .ck-ctl select, .ck-seg button { min-height: 44px; }
+  #check-thumbs .thumb button { min-width: 44px; height: 44px; }
 }
 /* Zoom on the photo a card was read from: full width, "Größer" doubles it inside a scroll box (pinch works there too). */
 .zoom { width: min(960px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); max-width: none; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: linear-gradient(180deg, var(--surface-2), var(--surface)); color: var(--fg); box-shadow: var(--shadow); overflow: hidden; }
@@ -892,6 +939,9 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
    pre-drawn ring whose opacity fades (voll); the zoom fades in. */
 [data-anim="voll"] .rcard.rc-in { animation: rise 0.22s ease-out backwards; animation-delay: calc(min(var(--i, 0), 10) * 30ms); }
 [data-anim="voll"] .rc-stat.cleared::after { animation: okflash 0.4s ease-out; }
+/* Spiel prüfen: the result comes in card by card (voll: 220 ms, 30 ms apart, at most 10 apart; ruhig: a 150 ms fade). */
+[data-anim="voll"] .ck-in { animation: rise 0.22s ease-out backwards; animation-delay: calc(min(var(--i, 0), 10) * 30ms); }
+[data-anim="ruhig"] .ck-in { animation: calmIn 0.15s ease-out both; }
 @keyframes okflash { from { opacity: 1; } to { opacity: 0; } }
 [data-anim="voll"] .zoom[open] { animation: calmIn 0.2s ease-out both; }
 
@@ -954,6 +1004,43 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       </div>
     </div>
 
+    <!-- Spiel prüfen per Foto: photos of the game's table view ("Arbeitsprioritäten"), compared with the plan.
+         The result below has its own sticky bar; nothing is saved before "Übernehmen". -->
+    <section class="check" id="check" aria-labelledby="check-h" hidden>
+      <div class="check-head">
+        <h3 id="check-h" tabindex="-1">Spiel prüfen per Foto</h3>
+        <button class="btn small" type="button" id="check-close">Schließen</button>
+      </div>
+      <p class="muted check-howto" id="check-howto">Im Spiel: Bevölkerung → oben rechts „Arbeitsprioritäten“. Fotografiert die Tabelle so, dass links die Namen und alle Spalten zu sehen sind. Bei vielen Bewohnern 2–3 Fotos, jeweils weiter gescrollt.</p>
+      <div class="drop">
+        <div class="row">
+          <input class="vh" type="file" id="check-cam" accept="image/*" capture="environment">
+          <label class="btn primary" for="check-cam" id="check-cam-btn">Foto machen</label>
+          <input class="vh" type="file" id="check-file" accept="image/*" multiple>
+          <label class="btn" for="check-file">Bilder auswählen</label>
+        </div>
+        <p class="muted small">Gerade vor den Fernseher, Licht aus gegen Spiegelungen. Die App liest nur und vergleicht, gespeichert wird erst mit „Übernehmen“.</p>
+      </div>
+      <div class="thumbs" id="check-thumbs"></div>
+      <div class="cost-info" id="check-cost" hidden>
+        <p>Fotos lesen nutzt euer eigenes Claude-Kontingent, ähnlich wie eine Chat-Nachricht mit Bild. Beim ersten Mal fragt Claude um Erlaubnis.</p>
+        <button class="btn small" type="button" id="check-cost-ok">Verstanden</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="button" id="check-read" disabled>Tabelle prüfen</button>
+        <button class="btn" type="button" id="check-stop" hidden>Stopp</button>
+        <span class="muted" id="check-msg" aria-live="polite"></span>
+      </div>
+    </section>
+    <div class="review check-result" id="check-result" role="region" aria-labelledby="check-title" hidden>
+      <div class="ck-body" id="check-body"></div>
+      <div class="ck-act">
+        <span class="ck-msg" id="check-act-msg" aria-live="polite"></span>
+        <button class="btn" type="button" id="check-discard">Verwerfen</button>
+        <button class="btn primary" type="button" id="check-apply">Übernehmen</button>
+      </div>
+    </div>
+
     <div class="phase reveal" style="--i:2">
       <span class="eyebrow">Wo steht euer Dorf gerade?</span>
       <div class="seg phase-seg" role="group" aria-label="Spielphase"></div>
@@ -983,6 +1070,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         <div class="grid-title">
           <h2 id="plan-title" tabindex="-1">Prioritäten pro Arbeiter</h2>
           <button class="btn primary" type="button" id="entry-open" data-entry-open hidden>Im Spiel eintragen</button>
+          <button class="btn" type="button" id="check-open" aria-controls="check" aria-expanded="false" hidden>Spiel prüfen (Foto)</button>
         </div>
         <div class="viewseg" role="group" aria-label="Ansicht">
           <button type="button" data-view="cards">Pro Arbeiter</button>
@@ -2285,6 +2373,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       hideAll();
       renderEntryTriggers(null, false);
       entryRefresh();
+      ckRefresh();
       return;
     }
     const plan = compute(activeWorkers(), state.settings, planOpts(state.settings));
@@ -2355,6 +2444,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (fokusPending && hasGrid && !$("#panel-plan").hidden) { fokusPending = false; fokusScroll(); }
     renderReason();
     entryRefresh();
+    ckRefresh();   // "Spiel prüfen (Foto)" and an open check follow the plan
   }
 
   function tableHtml(plan, track, canTick) {
@@ -2691,13 +2781,15 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const f = $("#entry-finale");
     const live = entry.ids.filter(id => entryWorker(id));
     const open = live.filter(id => !entryDone(id));
+    // Spiel prüfen per Foto: what is entered can be checked right away (closes the mode, opens the check on the Plan tab).
+    const chk = ckAvail() ? `<button type="button" class="btn" data-e="check" data-focus="check">Jetzt mit Foto prüfen</button>` : "";
     const html = open.length
       ? `<h2 id="entry-name" tabindex="-1">${live.length - open.length} von ${live.length} eingetragen.</h2>`
-        + `<p>Noch offen: ${esc(joinDe(open.map(id => entryWorker(id).name || "Ohne Namen")))}.</p><button type="button" class="btn" data-e="first-open" data-focus="first-open">Noch offene ansehen</button>`
+        + `<p>Noch offen: ${esc(joinDe(open.map(id => entryWorker(id).name || "Ohne Namen")))}.</p><button type="button" class="btn" data-e="first-open" data-focus="first-open">Noch offene ansehen</button>${chk}`
       : `<div class="fin-fx" aria-hidden="true"><i class="fin-glow"></i></div><div class="fin-banner">${FIN_BELL}<span class="fin-rod" aria-hidden="true"></span>`
         + `<i class="fin-tail l" aria-hidden="true"></i><i class="fin-tail r" aria-hidden="true"></i>`
         + `<div class="fin-cloth"><h2 id="entry-name" tabindex="-1">Alle ${live.length} eingetragen.</h2></div></div>`
-        + `<p>Ändert sich der Plan später, zeigen Punkte im Plan, was ihr nachziehen müsst.</p>`;
+        + `<p>Ändert sich der Plan später, zeigen Punkte im Plan, was ihr nachziehen müsst.</p>${chk}`;
     if (entry.finHtml !== html) {
       const act = document.activeElement;
       const fk = f.contains(act) ? act.dataset.focus || "name" : null;   // the heading has no data-focus: back to it
@@ -3036,7 +3128,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   function syncSticky() {
     let seen = false;
     if (trig.on) { const r = $("#entry-banner").getBoundingClientRect(); seen = r.height > 0 && r.bottom > 0 && r.top < innerHeight; }
-    const hide = !trig.n || (trig.on && seen);
+    const hide = !trig.n || (trig.on && seen) || !$("#check-result").hidden;   // the check's result has its own bar
     if ($("#entry-sticky").hidden !== hide) $("#entry-sticky").hidden = hide;
   }
   try { new IntersectionObserver(syncSticky).observe($("#entry-banner")); }
@@ -3052,6 +3144,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     else if (a === "skip") entryGo(entry.i + 1, 1);
     else if (a === "undo") entryUndo();
     else if (a === "first-open") { const k = entryFirstOpen(lastPlan, entry.ids, 0); if (k >= 0) entryGo(k, -1); }
+    else if (a === "check") { entryClose(); ckOpen(); }
     else if (a === "row" && entry.shown && !entry.stamping) {
       const wid = entry.ids[entry.i], job = t.dataset.job;
       const m = entry.checks.get(wid) || new Map();
@@ -4496,6 +4589,7 @@ Reply with only this JSON:
     $("#photo-cam-btn").hidden = $("#photo-cam").hidden = !coarse;
     $("#photo-read").disabled = !photo.files.length || photo.busy || locked();
     $("#cost-info").hidden = costSeen;
+    ckRefresh();   // the check uses the same photo reading (read-only viewers may check too)
   }
   function openPhoto() {
     if (!photoUsable()) return;
@@ -4517,18 +4611,21 @@ Reply with only this JSON:
     c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
     return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("toBlob")), "image/jpeg", 0.9));
   }
+  // A picture as Claude gets it: as it is when this view takes its type and size, otherwise as a JPEG; null if it cannot be opened.
+  async function photoBlob(f, lim) {
+    const type = String(f.type || ""), types = Array.isArray(lim.mediaTypes) ? lim.mediaTypes : [];
+    return types.includes(type) && f.size <= lim.maxInputBytes ? f : toJpeg(f).catch(() => null);
+  }
   async function addFiles(list) {
     if (!photoUsable()) return;
     const lim = photo.limits.images;
-    const types = Array.isArray(lim.mediaTypes) ? lim.mediaTypes : [];
     let bad = 0;
     for (const f of [...list]) {
       if (!f) continue;
       const type = String(f.type || "");
       if (type && !type.startsWith("image/")) { bad++; continue; }
       if (photo.files.length >= lim.maxCount) { setPhotoMsg(`Höchstens ${lim.maxCount} Bilder auf einmal.`); break; }
-      let blob = f;
-      if (!types.includes(type) || f.size > lim.maxInputBytes) blob = await toJpeg(f).catch(() => null);
+      const blob = await photoBlob(f, lim);
       if (!blob) { bad++; continue; }
       if (photo.files.length >= lim.maxCount) break;
       photo.files.push({ blob, url: URL.createObjectURL(blob) });
@@ -5120,6 +5217,17 @@ Reply with only this JSON:
   });
   $("#zoom").addEventListener("click", e => { if (e.target === e.currentTarget) closeZoom(); });   // a tap on the dark backdrop
 
+  // What a failed read says (sample error codes; PHOTO_OFF ones switch photos off instead).
+  const PHOTO_ERR = {
+    cancelled: "Abgebrochen.",
+    rate_limited: "Euer Claude-Limit ist gerade erreicht. Tragt die Werte von Hand oder als Text ein oder versucht es später.",
+    image_rejected: "Ein Bild konnte nicht verarbeitet werden. Nehmt einen Screenshot als PNG oder JPG.",
+    invalid_json: "Die Antwort war nicht lesbar. Versucht es noch einmal, am besten mit einem schärferen Bild.",
+    empty_completion: "Es kam keine Antwort. Versucht es mit weniger oder schärferen Bildern.",
+    refused: "Die Bilder wurden nicht ausgewertet. Versucht es mit anderen Bildern.",
+    session_expired: "Ihr seid nicht mehr angemeldet. Meldet euch neu an und versucht es noch einmal.",
+    prompt_too_large: "Zu viel auf einmal. Versucht es mit weniger Bildern.",
+  };
   async function readPhotos() {
     if (!photoUsable() || !photo.files.length || photo.busy) return;
     photo.busy = true;
@@ -5143,23 +5251,13 @@ Reply with only this JSON:
       if (added) { const a = document.activeElement; if (!a || a === document.body || $("#photo").contains(a)) focusReview(); }
     } catch (e) {
       const code = e && e.code;
-      const msgs = {
-        cancelled: "Abgebrochen.",
-        rate_limited: "Euer Claude-Limit ist gerade erreicht. Tragt die Werte von Hand oder als Text ein oder versucht es später.",
-        image_rejected: "Ein Bild konnte nicht verarbeitet werden. Nehmt einen Screenshot als PNG oder JPG.",
-        invalid_json: "Die Antwort war nicht lesbar. Versucht es noch einmal, am besten mit einem schärferen Bild.",
-        empty_completion: "Es kam keine Antwort. Versucht es mit weniger oder schärferen Bildern.",
-        refused: "Die Bilder wurden nicht ausgewertet. Versucht es mit anderen Bildern.",
-        session_expired: "Ihr seid nicht mehr angemeldet. Meldet euch neu an und versucht es noch einmal.",
-        prompt_too_large: "Zu viel auf einmal. Versucht es mit weniger Bildern.",
-      };
       if (PHOTO_OFF[code]) {
         photo.offReason = PHOTO_OFF[code];
         photo.limits = null;
         renderPhotoAvail();
         toast(PHOTO_OFF[code]);
       } else {
-        setPhotoMsg(msgs[code] || "Die Verbindung wurde unterbrochen. Versucht es noch einmal.");
+        setPhotoMsg(PHOTO_ERR[code] || "Die Verbindung wurde unterbrochen. Versucht es noch einmal.");
         if (code !== "cancelled") shake($("#photo-msg"));
         // Never tried again by itself: the players decide, and typing the values in always works.
         if (code === "rate_limited") $("#photo-astext").hidden = false;
@@ -5275,19 +5373,476 @@ Reply with only this JSON:
     if (!hasFiles(e)) return;
     e.preventDefault();
     photoBox.classList.remove("over");
+    if (ckTakes()) { ckAddFiles(e.dataTransfer.files); return; }   // into the open "Spiel prüfen" instead
     if (photoUsable()) { openPhoto(); addFiles(e.dataTransfer.files); }
   });
   document.addEventListener("paste", e => {
-    if (!photoUsable()) return;
+    const toCheck = ckTakes();
+    if (!photoUsable() && !toCheck) return;
     const t = e.target;
     const textField = t && (t.isContentEditable || (t.matches && t.matches("textarea, input:not([type=number]):not([type=file]):not([type=checkbox]):not([type=range])")));
     if (textField && e.clipboardData && e.clipboardData.getData("text/plain").trim()) return;
     const files = [...((e.clipboardData && e.clipboardData.files) || [])].filter(f => String(f.type).startsWith("image/"));
     if (!files.length) return;
     e.preventDefault();
+    if (toCheck) { ckAddFiles(files); return; }
     openPhoto();
     addFiles(files);
   });
+
+  // ---------- Spiel prüfen per Foto: the game's table view against the plan ----------
+  // The players photograph Bevölkerung -> "Arbeitsprioritäten" (one row per villager, the 13 job columns in GAME_ORDER)
+  // and Claude reads the numbers in one call (the same sample capability, image prep and error handling as the photo
+  // import). Each row is matched to a villager (a cut-off name by its beginning; a row that fits nobody or more than one
+  // villager is picked by hand, never assigned silently) and compared with the CURRENT plan (switched-on jobs only).
+  // Nothing is written before "Übernehmen": then the game's numbers become each villager's shared snapshot ('ingame',
+  // through putIngame like the tick-off), and "So lassen" turns a difference into a Festlegung (prefs). One Rückgängig.
+  // ck.rows = [{k, name, vals: 13 × (0..9 | null), unsure: Set(column), auto: wid | "", pick: wid | "-" | ""}] in read
+  // order (auto = matched, pick = chosen by hand, "-" = nobody). conf = {"k|jobId" -> value the players confirmed},
+  // keep = Set("k|jobId") with "So lassen", shown = rows with a card (a card stays once it is there). Drawing never writes.
+  const CK_MAX = 3;
+  const TABLE_ICONS = { crafting: "anvil", smelting: "furnace", harvesting: "berries", farming: "sprout", woodcutting: "axe", delivery: "chest",
+    cooking: "bowl", hunting: "bow", construction: "hammer", animals: "rabbit", research: "paper", caravan: "cart", caravanguard: "shield" };
+  const ck = { open: false, files: [], reading: [], ctl: null, busy: false, rows: null, conf: new Map(), keep: new Set(), shown: new Set(),
+    seq: 0, html: "", fresh: false, okOpen: false, armed: 0, armT: null, msg: "", nOpen: 0 };
+  const CHECK_ERR = { ...PHOTO_ERR, rate_limited: "Euer Claude-Limit ist gerade erreicht. Versucht es später noch einmal oder vergleicht die Zahlen von Hand." };
+  const ckX = v => v === null || v === undefined ? "?" : v === 0 ? "X" : String(v);
+  function tablePrompt(names = rosterNames()) {
+    const cols = GAME_ORDER.map((id, i) => `${i} ${JOB[id].label} / ${JOB[id].game} (${TABLE_ICONS[id]})`).join(", ");
+    return `These images are phone photos or screenshots of the video game Bellwright (a medieval settlement builder), usually a TV screen photographed from the couch. They show the population window ("Bevölkerung") in the work priorities view ("Arbeitsprioritäten"): a table with one row per villager, the name on the left and 13 job columns with an icon above each. The images are numbered from 0 in the order they are attached. They can overlap, because the list was scrolled between the photos. Photos of a TV can be tilted, blurry or show glare and moiré stripes: read every digit carefully.
+
+The 13 columns from left to right (number, job, icon): ${cols}.
+
+For every villager row whose name you can read, give:
+- "name": the name as shown. A name that is cut off stays cut off, with its "…" (for example "Oswin Far…"). Some rows have a second, smaller line under the name with a profession such as "Zimmermann", "Weber", "Holzfäller" or "Bauer": that is not part of the name, leave it out.
+- "values": exactly 13 entries, one per column in the order above: the number in the cell (1 to 9), "X" for a crossed-out circle (⊘, the job is locked for this villager), or null if you cannot read the cell. Bright and dark cells mean nothing, only the number counts. A cell inside a coloured frame (the game's cursor) is read like the others.
+- "unsure": the column numbers (0 to 12) whose value you are not sure about: a digit that could be another one (1/7, 3/8, 5/6, 6/8), glare, blur, stripes, or a cell partly hidden by the cursor frame. Every null column belongs in "unsure" too. An empty list if every cell is clear.
+List every villager only once, even if the row is in several images. Ignore the column icons, the small status icons left of the names, the tabs and filters, and everything outside the table. Never guess a number you cannot read.
+${names.length ? `
+Known villagers in this village: ${names.map(n => JSON.stringify(n)).join(", ")}. They help you read the letters, but write each name only as far as the image shows it.
+` : ""}
+Reply with only this JSON:
+{"rows":[{"name":"Oswin Far…","values":[5,5,1,"X",2,5,7,5,9,5,3,5,5],"unsure":[]},{"name":"Mira Holt","values":[2,5,7,1,7,5,5,7,null,7,7,7,7],"unsure":[8]}],"note":""}
+"note": if no such table is visible, one short German sentence saying what the images show instead; otherwise "".`;
+  }
+  // One cell as read: 1–9, X (= 0, locked; also "⊘" or a 0), anything else null (unreadable).
+  function tableCell(v) {
+    if (typeof v === "number") return Number.isInteger(v) && v >= 0 && v <= 9 ? v : null;
+    if (typeof v !== "string") return null;
+    const s = v.trim();
+    return /^[0-9]$/.test(s) ? +s : /^(x|⊘|ø|aus)$/i.test(s) ? 0 : null;
+  }
+  // Claude's answer, cleaned: rows with a name and at least one number; an unreadable cell is always unsure.
+  function cleanTableResult(data) {
+    const arr = Array.isArray(data) ? data : data && Array.isArray(data.rows) ? data.rows : [];
+    return arr.slice(0, 120).map(o => {
+      o = o && typeof o === "object" ? o : {};
+      const src = Array.isArray(o.values) ? o.values : [];
+      const vals = GAME_ORDER.map((_, i) => tableCell(src[i]));
+      const unsure = new Set();
+      for (const x of Array.isArray(o.unsure) ? o.unsure : []) {
+        const i = typeof x === "string" && /^\s*\d+\s*$/.test(x) ? +x : x;
+        if (Number.isInteger(i) && i >= 0 && i < GAME_ORDER.length) unsure.add(i);
+      }
+      vals.forEach((v, i) => { if (v === null) unsure.add(i); });
+      return { name: typeof o.name === "string" ? o.name.trim().slice(0, 40) : "", vals, unsure };
+    }).filter(r => normName(r.name) && r.vals.some(v => v !== null));
+  }
+  // How well a name from the table fits a villager (1 = the same after normName, as in the photo review). A cut-off name
+  // ("Hubert Ger…", or one that is just the beginning of a longer name) is compared with as many letters of the villager's
+  // name (one more or less for a misread letter).
+  const cutOff = s => /(…|\.{2,})\s*$/.test(s);
+  function tableScore(read, w) {
+    const x = normName(read), y = normName(w.name);
+    if (!x || !y) return 0;
+    let s = 1 - lev(x, y) / Math.max(x.length, y.length);
+    if (x.length >= 3 && x.length < y.length && (cutOff(read) || y.startsWith(x)))
+      for (const n of [x.length - 1, x.length, x.length + 1]) if (n >= 3) s = Math.max(s, 1 - lev(x, y.slice(0, n)) / Math.max(x.length, n));
+    return s;
+  }
+  // Named villagers, best first; auto = the one clear match (from MATCH_OK on, with nobody else that close), else "".
+  function tableMatch(name) {
+    const ranked = sortedWorkers().map((w, i) => ({ w, i, s: normName(w.name) ? tableScore(name, w) : -1 })).filter(x => x.s >= 0)
+      .sort((a, b) => b.s - a.s || a.i - b.i);
+    const [a, b] = ranked;
+    return { ranked, auto: a && a.s >= MATCH_OK && !(b && b.s >= MATCH_OK) ? a.w.id : "" };
+  }
+  // The same villager on two photos (they overlap): a readable value beats null, a sure one an unsure one; two
+  // different sure values stay unsure, so the players decide.
+  function mergeRow(a, b) {
+    a.vals.forEach((va, i) => {
+      const vb = b.vals[i], ua = a.unsure.has(i), ub = b.unsure.has(i);
+      let v = va, u = ua;
+      if (va === null) { v = vb; u = ub; }
+      else if (vb !== null) {
+        if (va === vb) u = ua && ub;
+        else if (ua !== ub) { v = ua ? vb : va; u = false; }
+        else u = true;
+      }
+      a.vals[i] = v;
+      if (u || v === null) a.unsure.add(i); else a.unsure.delete(i);
+    });
+  }
+  function ckSetRows(list) {
+    const rows = [], byKey = new Map();
+    for (const r of list) {
+      const m = tableMatch(r.name), key = m.auto || "?" + normName(r.name);
+      const old = byKey.get(key);
+      if (old) { mergeRow(old, r); continue; }
+      const row = { k: ++ck.seq, name: r.name, vals: r.vals.slice(), unsure: new Set(r.unsure), auto: m.auto, pick: "" };
+      byKey.set(key, row);
+      rows.push(row);
+    }
+    Object.assign(ck, { rows, conf: new Map(), keep: new Set(), shown: new Set(), fresh: true, okOpen: false, msg: "" });
+    ckDisarm();
+  }
+  const ckTarget = r => r.auto || (r.pick && r.pick !== "-" ? r.pick : "");
+  // Pictures dropped or pasted (PC: Strg+V) go into the check while it is open on the Plan tab.
+  const ckTakes = () => ck.open && !$("#panel-plan").hidden && ckAvail();
+  const ckAvail = () => photoOk() && tracking() && !!lastPlan && lastPlan.team.length > 0 && lastPlan.jobs.length > 0;
+  // The comparison of one placed row with the plan, per switched-on job: g = the game's value (confirmed, else as read),
+  // asked = it was unsure or unreadable, open = still unconfirmed, p = the plan's number.
+  function ckLines(r, plan, wid) {
+    return plan.jobs.map(j => {
+      const i = GAME_ORDER.indexOf(j.id), key = `${r.k}|${j.id}`;
+      const read = r.vals[i], asked = read === null || r.unsure.has(i);
+      const has = ck.conf.has(key), g = has ? ck.conf.get(key) : read;
+      const open = asked && !has, p = cellVal(plan.cells[wid][j.id]);
+      return { j, key, g, asked, open, p, diff: !open && g !== p };
+    });
+  }
+  // "So lassen" is offered on a difference, except for a 1 when the villager has two or more 1s (the warning says why).
+  const ckCanKeep = (it, l) => l.diff && !(l.g === 1 && it.ones.length >= 2);
+  function ckModel() {
+    const plan = lastPlan, team = new Set(plan.team.map(w => w.id));
+    for (const r of ck.rows) {   // a villager deleted meanwhile (another phone): that row is placed by hand again
+      if (r.auto && !state.workers.has(r.auto)) r.auto = "";
+      if (r.pick && r.pick !== "-" && !state.workers.has(r.pick)) r.pick = "";
+    }
+    const placed = new Map();
+    for (const r of ck.rows) { const t = ckTarget(r); if (t) placed.set(t, r); }
+    const items = [];
+    for (const w of plan.team) {
+      const r = placed.get(w.id);
+      if (!r) continue;
+      const lines = ckLines(r, plan, w.id);
+      items.push({ w, r, lines, ones: lines.filter(l => l.g === 1).map(l => l.j), nDiff: lines.filter(l => l.diff).length, nOpen: lines.filter(l => l.open).length });
+    }
+    for (const it of items) if (it.nDiff || it.lines.some(l => l.asked)) ck.shown.add(it.r.k);
+    const unplaced = ck.rows.filter(r => !r.auto);
+    return {
+      items, unplaced, placed,
+      missing: plan.team.filter(w => !placed.has(w.id)),
+      others: [...placed.keys()].filter(id => !team.has(id)).map(id => state.workers.get(id)),
+      open: unplaced.filter(r => !r.pick).length + items.reduce((n, it) => n + it.nOpen, 0),
+    };
+  }
+  function ckLineHtml(it, l, ro) {
+    const lab = l.j.label, name = it.w.name || "Ohne Namen", f = esc(l.key);
+    const txt = l.open ? `${lab}: im Spiel ?, Plan ${ckX(l.p)}` : !l.diff ? `${lab}: im Spiel ${ckX(l.g)} – wie im Plan` : `${lab}: im Spiel ${ckX(l.g)}, Plan ${ckX(l.p)}`;
+    let ctl = "";
+    if (l.asked) {
+      const cur = l.g === null ? "" : String(l.g);
+      ctl += `<select data-ck="val" data-focus="val:${f}" aria-label="${esc(`${lab} bei ${name}: was steht im Spiel?`)}"><option value=""${cur ? "" : " selected"}>?</option>`
+        + [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(v => `<option value="${v}"${cur === String(v) ? " selected" : ""}>${ckX(v)}</option>`).join("") + `</select>`;
+      if (l.open && l.g !== null) ctl += `<button type="button" class="btn small" data-ck="ok" data-focus="ok:${f}" aria-label="${esc(`${lab} bei ${name}: ${ckX(l.g)} stimmt`)}">stimmt</button>`;
+    }
+    const can = !ro && ckCanKeep(it, l), keep = can && ck.keep.has(l.key);
+    if (can) ctl += `<div class="seg ck-seg" role="group" aria-label="${esc(`${lab} bei ${name}`)}"><button type="button" data-ck="fix" data-focus="fix:${f}" aria-pressed="${!keep}">Korrigieren</button>`
+      + `<button type="button" data-ck="keep" data-focus="keep:${f}" aria-pressed="${keep}">So lassen</button></div>`;
+    const hint = keep ? `<p class="ck-hint">${esc(l.g === 1 ? `Wird festgelegt: ${lab} als Hauptjob.` : `Wird festgelegt: ${lab} bleibt ${ckX(l.g)}.`)}</p>` : "";
+    return `<div class="ck-line ${l.open ? "open" : l.diff ? "diff" : "same"}" data-job="${esc(l.j.id)}" data-key="${f}"><span class="ck-txt">${esc(txt)}</span>${ctl ? `<div class="ck-ctl">${ctl}</div>` : ""}${hint}</div>`;
+  }
+  function ckCardHtml(it, ro) {
+    const name = it.w.name || "Ohne Namen", fine = !it.nDiff && !it.nOpen;
+    const chips = [it.nDiff ? `${it.nDiff} ${it.nDiff === 1 ? "Unterschied" : "Unterschiede"}` : "", it.nOpen ? `${it.nOpen} ${it.nOpen === 1 ? "Feld" : "Felder"} prüfen` : ""].filter(Boolean);
+    const n1 = it.ones.length;
+    const warn = n1 >= 2 ? `<p class="ck-warn">${esc(`${name} hat ${joinDe(it.ones.map(j => j.label))} auf 1 – das Spiel wählt dann zufällig. ${n1 === 2 ? "Stellt einen davon auf 2." : "Stellt alle bis auf einen auf 2."}`)}</p>` : "";
+    return `<article class="ck-card${fine ? " fine" : ""}" data-wid="${esc(it.w.id)}"><div class="ck-head"><h4>${esc(name)}</h4>${chips.map(c => `<span class="chip ck-chip">${esc(c)}</span>`).join("")}</div>`
+      + warn + it.lines.filter(l => l.diff || l.asked).map(l => ckLineHtml(it, l, ro)).join("") + (fine ? `<p class="ck-fine">Stimmt jetzt alles.</p>` : "") + `</article>`;
+  }
+  function ckHtml(m, ro) {
+    const all = sortedWorkers(), counts = nameCounts(all), nm = w => w.name || "Ohne Namen";
+    let h = `<h3 id="check-title" tabindex="-1" data-focus="title">Ergebnis</h3><p class="ck-sum">${ck.rows.length === 1 ? "1 Bewohner" : ck.rows.length + " Bewohner"} auf den Fotos erkannt.${ro ? "" : " Gespeichert wird erst mit „Übernehmen“."}</p>`;
+    if (ro) h += `<p class="ck-ro">Nur ansehen: Ihr seht das Ergebnis, übernehmen könnt ihr hier nicht.</p>`;
+    if (m.unplaced.length) {
+      const taken = new Map([...m.placed].map(([wid, r]) => [wid, r.k]));
+      h += `<section class="ck-assign" aria-labelledby="ck-assign-h"><h4 id="ck-assign-h">Wer ist das?</h4><p class="muted small">Diese Zeilen passen zu keinem oder zu mehreren Bewohnern. Wählt aus, wer es ist.</p>`
+        + m.unplaced.map(r => {
+          const opts = tableMatch(r.name).ranked.map(({ w }) => {
+            const busy = taken.has(w.id) && taken.get(w.id) !== r.k;
+            return `<option value="${esc(w.id)}"${busy ? " disabled" : ""}${r.pick === w.id ? " selected" : ""}>${esc(workerLabel(w, all, counts))}${busy ? " (schon zugeordnet)" : ""}</option>`;
+          }).join("");
+          return `<div class="ck-row${r.pick ? " done" : ""}" data-row="${r.k}"><p class="ck-read">„${esc(r.name)}“: ${esc(r.vals.map(ckX).join(" "))}</p>`
+            + `<div class="ck-pick"><span aria-hidden="true">Wer ist das?</span><select data-ck="pick" data-focus="pick:${r.k}" aria-label="${esc(`Wer ist „${r.name}“?`)}">`
+            + `<option value=""${r.pick ? "" : " selected"}>bitte wählen</option><option value="-"${r.pick === "-" ? " selected" : ""}>Niemand (nicht übernehmen)</option>${opts}</select></div></div>`;
+        }).join("") + `</section>`;
+    }
+    const cards = m.items.filter(it => ck.shown.has(it.r.k)), fine = m.items.filter(it => !ck.shown.has(it.r.k));
+    if (cards.length && !ro) h += `<p class="ck-explain muted small">„Korrigieren“: ihr stellt die Zahl im Spiel um, danach zeigt sie der Eintragen-Modus. „So lassen“: die Zahl bleibt im Spiel, der Plan rechnet damit (Festlegung).</p>`;
+    if (cards.length) h += `<div class="ck-cards">${cards.map(it => ckCardHtml(it, ro)).join("")}</div>`;
+    if (fine.length) h += `<details class="ck-ok"${ck.okOpen ? " open" : ""}><summary data-focus="oksum">✓ ${fine.length} ${fine.length === 1 ? "stimmt" : "stimmen"}</summary><p class="ck-oknames">${esc(joinDe(fine.map(it => nm(it.w))))}.</p></details>`;
+    if (m.missing.length) h += `<p class="ck-miss">Nicht auf den Fotos: ${esc(joinDe(m.missing.map(nm)))}.</p>`;
+    if (m.others.length) h += `<p class="ck-other">Nicht verglichen, weil sie keine Arbeiter sind: ${esc(joinDe(m.others.map(nm)))}.</p>`;
+    return h;
+  }
+  // The result follows the plan (another phone, a Festlegung) while it is open. Drawing only, nothing is saved.
+  function ckRender() {
+    const res = $("#check-result"), body = $("#check-body");
+    const on = ck.open && !!ck.rows && ckAvail();
+    if (!on) {
+      if (!res.hidden) { res.hidden = true; body.innerHTML = ""; ck.html = ""; syncSticky(); }
+      return;
+    }
+    const m = ckModel(), html = ckHtml(m, locked());
+    ck.nOpen = m.open;
+    if (html !== ck.html) {
+      const act = document.activeElement;
+      const fk = act && body.contains(act) ? act.dataset.focus : null;
+      body.innerHTML = html;
+      ck.html = html;
+      if (fk) {   // the same control again, or its neighbour when it went ("stimmt" -> the picker)
+        const el = body.querySelector(`[data-focus="${CSS.escape(fk)}"]`) || (fk.startsWith("ok:") && body.querySelector(`[data-focus="${CSS.escape("val:" + fk.slice(3))}"]`)) || $("#check-title");
+        if (el) el.focus({ preventScroll: true });
+      }
+      if (ck.fresh) {   // a new result: card by card (CSS per animation level), at most 10 apart
+        ck.fresh = false;
+        [...body.querySelectorAll(".ck-row, .ck-card, .ck-ok, .ck-miss")].forEach((el, i) => { el.style.setProperty("--i", Math.min(i, 10)); el.classList.add("ck-in"); });
+      }
+    }
+    if (res.hidden) { res.hidden = false; syncSticky(); }
+    ckPaintBar();
+  }
+  function ckArm() { clearTimeout(ck.armT); ck.armT = setTimeout(ckDisarm, 4000); }
+  function ckDisarm() { clearTimeout(ck.armT); ck.armT = null; if (ck.armed) ck.msg = ""; ck.armed = 0; ckPaintBar(); }
+  function ckPaintBar() {
+    const b = $("#check-apply");
+    if (ck.armed && !ck.nOpen) { clearTimeout(ck.armT); ck.armT = null; ck.armed = 0; ck.msg = ""; }
+    const t = ck.armed ? `Trotzdem übernehmen (${ck.nOpen} offen)` : "Übernehmen";
+    if (b.textContent !== t) b.textContent = t;
+    b.classList.toggle("armed", !!ck.armed);
+    b.disabled = locked();
+    if ($("#check-act-msg").textContent !== ck.msg) $("#check-act-msg").textContent = ck.msg;
+  }
+  // Panel controls: the camera button on touch screens, the one-time cost note, read and stop.
+  function ckPaintAvail() {
+    let coarse = true;
+    try { coarse = matchMedia("(pointer: coarse)").matches; } catch (e) { /* keep */ }
+    $("#check-cam-btn").hidden = $("#check-cam").hidden = !coarse;
+    $("#check-read").disabled = !ck.files.length || ck.busy;
+    $("#check-stop").hidden = !ck.busy;
+    $("#check-cost").hidden = costSeen;
+  }
+  // Part of renderPlan and renderPhotoAvail: the button (tracking, workers, photos possible), the open check follows.
+  function ckRefresh() {
+    const ok = ckAvail(), b = $("#check-open");
+    if (b.hidden === ok) b.hidden = !ok;
+    if (!ok && ck.open) { ckClose(false); return; }   // e.g. Claude was not allowed, or there is no plan any more
+    if (!ck.open) return;
+    ckPaintAvail();
+    ckRender();
+  }
+  function setCkMsg(text, working) {
+    const m = $("#check-msg");
+    m.textContent = text || "";
+    m.classList.toggle("working", !!working);
+  }
+  function ckThumbs() {
+    $("#check-thumbs").innerHTML = ck.files.map((f, i) =>
+      `<div class="thumb"><img src="${esc(f.url)}" alt="Foto ${i + 1}"><button type="button" data-ckrm="${i}" aria-label="Foto ${i + 1} entfernen">×</button></div>`).join("");
+    $("#check-read").disabled = !ck.files.length || ck.busy;
+  }
+  function ckRelease(list) {
+    for (const f of list) if (f && !ck.files.includes(f) && !ck.reading.includes(f)) { try { URL.revokeObjectURL(f.url); } catch (e) { /* ignore */ } }
+  }
+  async function ckAddFiles(list) {
+    if (!ckAvail()) return;
+    const lim = photo.limits.images, max = Math.min(CK_MAX, lim.maxCount || CK_MAX);
+    let bad = 0, full = false;
+    for (const f of [...list]) {
+      if (!f) continue;
+      const type = String(f.type || "");
+      if (type && !type.startsWith("image/")) { bad++; continue; }
+      if (ck.files.length >= max) { full = true; break; }
+      const blob = await photoBlob(f, lim);
+      if (!blob) { bad++; continue; }
+      if (ck.files.length >= max) { full = true; break; }
+      ck.files.push({ blob, url: URL.createObjectURL(blob) });
+    }
+    if (full) setCkMsg(`Höchstens ${max} Bilder auf einmal.`);
+    else if (bad) { setCkMsg(bad > 1 ? `${bad} Dateien konnten nicht geöffnet werden. Nehmt bitte PNG oder JPG.` : "Eine Datei konnte nicht geöffnet werden. Nehmt bitte PNG oder JPG."); shake($("#check-msg")); }
+    else setCkMsg("");
+    ckThumbs();
+  }
+  function ckOpen() {
+    if (!ckAvail()) return;
+    if ($("#panel-plan").hidden) showTab("plan", true);
+    ck.open = true;
+    $("#check").hidden = false;
+    $("#check-open").setAttribute("aria-expanded", "true");
+    ckPaintAvail();
+    ckRender();
+    $("#check").scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#check-h").focus({ preventScroll: true });
+  }
+  // Closes the check and forgets the photos and the result (nothing was saved unless "Übernehmen" did it).
+  function ckClose(focus) {
+    if (ck.busy && ck.ctl) ck.ctl.abort();
+    ck.ctl = null;
+    Object.assign(ck, { open: false, rows: null, conf: new Map(), keep: new Set(), shown: new Set(), html: "", okOpen: false, msg: "" });
+    ckDisarm();
+    const old = ck.files;
+    ck.files = [];
+    ckRelease(old);
+    $("#check").hidden = true;
+    $("#check-result").hidden = true;
+    $("#check-body").innerHTML = "";
+    setCkMsg("");
+    $("#check-open").setAttribute("aria-expanded", "false");
+    ckThumbs();
+    syncSticky();
+    if (focus) ($("#check-open").hidden ? $("#plan-title") : $("#check-open")).focus({ preventScroll: true });
+  }
+  async function ckRead() {
+    if (!ckAvail() || !ck.files.length || ck.busy) return;
+    ck.busy = true;
+    const ctl = ck.ctl = new AbortController();
+    setCkMsg("Claude liest die Tabelle. Das dauert meist 10 bis 60 Sekunden.", true);
+    ckPaintAvail();
+    try {
+      if (typeof photo.sample.json !== "function") throw { code: "capability_removed" };
+      const files = ck.reading = ck.files.slice();
+      const data = await photo.sample.json(tablePrompt(), { images: files.map(f => f.blob), signal: ctl.signal, cache: false });
+      if (!ck.open || ck.ctl !== ctl) return;
+      const rows = cleanTableResult(data);
+      if (!rows.length) {
+        setCkMsg((data && typeof data.note === "string" && data.note.trim().slice(0, 300))
+          || "Auf den Bildern war keine Tabelle mit Arbeitsprioritäten zu erkennen. Fotografiert die Ansicht „Arbeitsprioritäten“ so, dass Namen und Zahlen scharf zu sehen sind.");
+        return;
+      }
+      ckSetRows(rows);
+      ckRender();
+      setCkMsg(`${ck.rows.length === 1 ? "1 Bewohner" : ck.rows.length + " Bewohner"} erkannt. Prüft das Ergebnis unten.`);
+      const a = document.activeElement, t = $("#check-title");
+      if (t && (!a || a === document.body || $("#check").contains(a))) { t.scrollIntoView({ block: "start", behavior: scrollMode() }); t.focus({ preventScroll: true }); }
+    } catch (e) {
+      const code = e && e.code;
+      if (ck.ctl !== ctl && code === "cancelled") return;   // stopped by closing the check
+      if (PHOTO_OFF[code]) {
+        photo.offReason = PHOTO_OFF[code];
+        photo.limits = null;
+        renderPhotoAvail();   // photos are off for this view: the photo import goes, and the check closes
+        toast(PHOTO_OFF[code].replace(/ Tragt die Werte bitte von Hand oder als Text ein\.$/, ""));
+      } else {
+        setCkMsg(CHECK_ERR[code] || "Die Verbindung wurde unterbrochen. Versucht es noch einmal.");
+        if (code !== "cancelled") shake($("#check-msg"));   // never tried again by itself
+      }
+    } finally {
+      ck.busy = false;
+      const sent = ck.reading;
+      ck.reading = [];
+      ckRelease(sent);
+      if (ck.open) ckPaintAvail(); else $("#check-stop").hidden = true;
+      ckThumbs();
+    }
+  }
+  // "Übernehmen": per villager whose numbers are all known, the game's numbers become the shared snapshot (so the ones that
+  // match are ticked off, the others are open with "von 1 → 7"), and "So lassen" becomes a Festlegung: a 1 off the main
+  // job (the only 1) locks that main job, any other value is pinned. Open rows and "?" cells stay out (asked once).
+  function ckApply() {
+    if (locked() || !ck.rows || !ckAvail()) return;
+    const m = ckModel(), ready = m.items.filter(it => !it.nOpen);
+    if (!ready.length) { ck.msg = "Noch nichts zu übernehmen. Ordnet die Zeilen zu oder bestätigt die Felder mit ?."; ckPaintBar(); shake($("#check-act-msg")); return; }
+    if (m.open && !ck.armed) {
+      ck.armed = Date.now();
+      ck.msg = `${m.open === 1 ? "Eine Stelle ist" : m.open + " Stellen sind"} noch offen (mit ? oder ohne Zuordnung). Diese Bewohner bleiben, wie sie sind. Tippt noch einmal, um den Rest zu übernehmen.`;
+      ckArm(); ckPaintBar();
+      return;
+    }
+    if (m.open && Date.now() - ck.armed < 450) return;   // a double tap is not a second decision
+    if (state.mode === "local") reloadApplied();   // another tab may have changed it
+    const at = Date.now(), prevIng = {}, prevPf = {}, ids = [];
+    for (const it of ready) {
+      const wid = it.w.id;
+      ids.push(wid);
+      prevIng[wid] = ingameDoc(wid);
+      putIngame(wid, { vals: Object.fromEntries(it.lines.map(l => [l.j.id, l.g])), by: myId, at });
+      const keeps = it.lines.filter(l => ckCanKeep(it, l) && ck.keep.has(l.key));
+      if (!keeps.length) continue;
+      const prev = prefsCopy(wid), next = prev ? JSON.parse(JSON.stringify(prev)) : { lockMain: null, pins: {} };
+      for (const l of keeps) {
+        if (l.g === 1) { next.lockMain = l.j.id; delete next.pins[l.j.id]; }
+        else { if (next.lockMain === l.j.id) next.lockMain = null; next.pins[l.j.id] = l.g; }
+      }
+      if (JSON.stringify(cleanPrefs(next)) !== JSON.stringify(cleanPrefs(prev))) { prevPf[wid] = prev; putPrefs(wid, next, 0); }
+    }
+    justApplied.clear();
+    for (const id of ids) justApplied.add(id);   // the ones that are ticked off now get the seal
+    ckClose(false);
+    renderPlan();
+    ring();
+    setTimeout(() => justApplied.clear(), 900);
+    const open = lastPlan ? lastPlan.team.filter(w => ids.includes(w.id) && entryOpenFor(lastPlan, w)).length : 0;
+    toast(`Spielstand von ${ids.length === 1 ? "1 Bewohner" : ids.length + " Bewohnern"} übernommen.` + (open ? ` ${open} ${open === 1 ? "hat" : "haben"} Zahlen zum Nachziehen.` : " Alles stimmt."), { label: "Rückgängig", fn: () => {
+      if (locked() || !tracking()) { toast("Rückgängig geht gerade nicht."); return null; }
+      for (const [wid, doc] of Object.entries(prevIng)) if (state.workers.has(wid)) putIngame(wid, doc);
+      for (const [wid, p] of Object.entries(prevPf)) if (state.workers.has(wid)) putPrefs(wid, p, 0);
+      renderPlan();
+      toast("Rückgängig gemacht.");
+      return $("#check-open");
+    } });
+    (!$("#entry-banner").hidden ? $("#entry-banner-go") : $("#check-open").hidden ? $("#plan-title") : $("#check-open")).focus({ preventScroll: true });
+  }
+  $("#check-open").addEventListener("click", () => {
+    if (!ck.open) { ckOpen(); return; }
+    $("#check").scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#check-h").focus({ preventScroll: true });
+  });
+  $("#check-close").addEventListener("click", () => ckClose(true));
+  $("#check-discard").addEventListener("click", () => ckClose(true));
+  $("#check-apply").addEventListener("click", ckApply);
+  $("#check-read").addEventListener("click", ckRead);
+  $("#check-stop").addEventListener("click", () => { if (ck.ctl) ck.ctl.abort(); });
+  for (const id of ["#check-cam", "#check-file"]) $(id).addEventListener("change", e => { const fl = [...e.target.files]; e.target.value = ""; ckAddFiles(fl); });
+  $("#check-thumbs").addEventListener("click", e => {
+    const b = e.target.closest("[data-ckrm]");
+    if (!b || ck.busy) return;
+    const [f] = ck.files.splice(+b.dataset.ckrm, 1);
+    if (f) ckRelease([f]);
+    ckThumbs();
+  });
+  $("#check-cost-ok").addEventListener("click", () => {
+    costSeen = true;
+    lsSet(COST_KEY, true);
+    $("#check-cost").hidden = $("#cost-info").hidden = true;
+    ($("#check-read").disabled ? $("#check-file") : $("#check-read")).focus();
+  });
+  // Korrigieren / So lassen, "stimmt" (buttons); the picker of a "?" cell and of a row's villager (selects).
+  function ckEdit(t) {
+    const a = t.dataset.ck, ln = t.closest(".ck-line"), key = ln && ln.dataset.key;
+    let stamp = null;
+    if (a === "pick") {
+      const r = ck.rows && ck.rows.find(x => String(x.k) === t.closest(".ck-row").dataset.row);
+      if (!r) return;
+      r.pick = t.value;
+    } else if (!key) return;
+    else if (a === "fix") ck.keep.delete(key);
+    else if (a === "keep") ck.keep.add(key);
+    else if (a === "ok" || a === "val") {
+      const v = ln.querySelector("select").value;
+      if (v === "") ck.conf.delete(key); else { ck.conf.set(key, +v); stamp = key; }
+    } else return;
+    ck.msg = "";
+    if (ck.armed) ckArm();   // still deciding: the "Trotzdem" question waits a little longer
+    ckRender();
+    // A confirmed number stamps (voll) or fades in (ruhig), like a raised Stufe.
+    const el = stamp && $("#check-body").querySelector(`.ck-line[data-key="${CSS.escape(stamp)}"] .ck-txt`);
+    if (el) play(el, FOKUS_STAMP, FOKUS_FADE);
+  }
+  $("#check-body").addEventListener("click", e => { const t = e.target.closest("[data-ck]"); if (t && t.tagName === "BUTTON") ckEdit(t); });
+  $("#check-body").addEventListener("change", e => { const t = e.target; if (t.tagName === "SELECT" && t.dataset.ck) ckEdit(t); });
+  $("#check-body").addEventListener("toggle", e => { if (e.target.classList && e.target.classList.contains("ck-ok")) ck.okOpen = e.target.open; }, true);
+  $("#check-body").addEventListener("animationend", e => { if (e.target.classList) e.target.classList.remove("ck-in"); });
 
   // ---------- Boot ----------
   // Old tabs keep writing AP_KEY; only local mode reads it.
@@ -5372,7 +5927,7 @@ Reply with only this JSON:
       for (const el of $$(".reveal")) el.classList.remove("reveal");
       for (const el of $$(".panel.enter")) el.classList.remove("enter");
       for (const el of $$(".bump, .wrap .stamp")) el.classList.remove("bump", "stamp");
-      for (const el of $$(".rc-in, .cleared")) el.classList.remove("rc-in", "cleared");
+      for (const el of $$(".rc-in, .cleared, .ck-in")) el.classList.remove("rc-in", "cleared", "ck-in");
       if (bellEl) bellEl.classList.remove("ring");
       if (entry.open) entryTurnEnd();
     }

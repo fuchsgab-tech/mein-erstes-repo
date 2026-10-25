@@ -1,0 +1,1609 @@
+{
+ "workers": [
+  {
+   "id": "wmva1am7vfq551",
+   "name": "Arnold Dixon",
+   "order": 1792098699259,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 2,
+     "max": 3
+    },
+    "crafting": {
+     "cur": 2,
+     "max": 4
+    },
+    "farming": {
+     "cur": 2,
+     "max": 3
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 4
+    },
+    "hunting": {
+     "cur": 4,
+     "max": 4
+    },
+    "labourer": {
+     "cur": 2,
+     "max": 3
+    },
+    "researching": {
+     "cur": 1,
+     "max": 4
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7w049ym",
+   "name": "Jocelyn Fresin",
+   "order": 1792098699268,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 6,
+     "max": 6
+    },
+    "crafting": {
+     "cur": 5,
+     "max": 5
+    },
+    "farming": {
+     "cur": 5,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 6,
+     "max": 8
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 6,
+     "max": 8
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7w613wn",
+   "name": "Helene Colley",
+   "order": 1792098699263,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 7,
+     "max": 7
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 5
+    },
+    "farming": {
+     "cur": 3,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 2,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 2,
+     "max": 5
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7w9fq2i",
+   "name": "Leopold Edgeworth",
+   "order": 1792098699271,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 2,
+     "max": 4
+    },
+    "crafting": {
+     "cur": 2,
+     "max": 4
+    },
+    "farming": {
+     "cur": 2,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 2,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 2,
+     "max": 4
+    },
+    "labourer": {
+     "cur": 3,
+     "max": 4
+    },
+    "researching": {
+     "cur": 2,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7w9voht",
+   "name": "Nell Terrin",
+   "order": 1792098699275,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 3,
+     "max": 3
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 4
+    },
+    "farming": {
+     "cur": 3,
+     "max": 3
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 3
+    },
+    "hunting": {
+     "cur": 2,
+     "max": 3
+    },
+    "labourer": {
+     "cur": 2,
+     "max": 3
+    },
+    "researching": {
+     "cur": 5,
+     "max": 6
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wb3514",
+   "name": "Lubomir Netterby",
+   "order": 1792098699272,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 7,
+     "max": 7
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 6
+    },
+    "farming": {
+     "cur": 2,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 5,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 6
+    },
+    "labourer": {
+     "cur": 4,
+     "max": 5
+    },
+    "researching": {
+     "cur": 3,
+     "max": 6
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wbrruo",
+   "name": "Michel Warwick",
+   "order": 1792098699273,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 4,
+     "max": 4
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 4
+    },
+    "farming": {
+     "cur": 5,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 4
+    },
+    "labourer": {
+     "cur": 3,
+     "max": 4
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wdtd55",
+   "name": "Fabian Renard",
+   "order": 1792098699262,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 0,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 4
+    },
+    "farming": {
+     "cur": 3,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 2,
+     "max": 4
+    },
+    "hunting": {
+     "cur": 1,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 0,
+     "max": 4
+    },
+    "researching": {
+     "cur": 0,
+     "max": 4
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wfaci3",
+   "name": "Hubert Gernier",
+   "order": 1792098699264,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 5,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 4
+    },
+    "farming": {
+     "cur": 3,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 4
+    },
+    "hunting": {
+     "cur": 4,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 3,
+     "max": 5
+    },
+    "researching": {
+     "cur": 2,
+     "max": 4
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wjw0nr",
+   "name": "Crimson Reid",
+   "order": 1792098699260,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 2,
+     "max": 2
+    },
+    "crafting": {
+     "cur": 1,
+     "max": 2
+    },
+    "farming": {
+     "cur": 2,
+     "max": 2
+    },
+    "harvesting": {
+     "cur": 2,
+     "max": 3
+    },
+    "hunting": {
+     "cur": 1,
+     "max": 3
+    },
+    "labourer": {
+     "cur": 2,
+     "max": 3
+    },
+    "researching": {
+     "cur": 1,
+     "max": 3
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wkwsdp",
+   "name": "Joan Reinfred",
+   "order": 1792098699267,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 4,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 4
+    },
+    "farming": {
+     "cur": 3,
+     "max": 4
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 6
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 4
+    },
+    "labourer": {
+     "cur": 6,
+     "max": 7
+    },
+    "researching": {
+     "cur": 2,
+     "max": 4
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wn4qao",
+   "name": "Elyza Gernier",
+   "order": 1792098699261,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 6,
+     "max": 6
+    },
+    "crafting": {
+     "cur": 8,
+     "max": 10
+    },
+    "farming": {
+     "cur": 4,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 4,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 5,
+     "max": 5
+    },
+    "researching": {
+     "cur": 5,
+     "max": 9
+    }
+   },
+   "traits": "Zimmermann"
+  },
+  {
+   "id": "wmva1am7wnrv6l",
+   "name": "Larkin Reinold",
+   "order": 1792098699270,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 5,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 4
+    },
+    "farming": {
+     "cur": 3,
+     "max": 4
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 2,
+     "max": 4
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wt0ma6",
+   "name": "Krystoffer Blavier",
+   "order": 1792098699269,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 5,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 6
+    },
+    "farming": {
+     "cur": 3,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 7,
+     "max": 10
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 4,
+     "max": 5
+    },
+    "researching": {
+     "cur": 4,
+     "max": 6
+    }
+   },
+   "traits": "Holzfäller"
+  },
+  {
+   "id": "wmva1am7wurkrh",
+   "name": "Jane Hodge",
+   "order": 1792098699265,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 4,
+     "max": 4
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 4
+    },
+    "farming": {
+     "cur": 4,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 4
+    },
+    "hunting": {
+     "cur": 6,
+     "max": 7
+    },
+    "labourer": {
+     "cur": 3,
+     "max": 5
+    },
+    "researching": {
+     "cur": 3,
+     "max": 4
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wv81il",
+   "name": "Jane Rhodes",
+   "order": 1792098699266,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 7,
+     "max": 8
+    },
+    "crafting": {
+     "cur": 5,
+     "max": 5
+    },
+    "farming": {
+     "cur": 4,
+     "max": 6
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 6
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 6,
+     "max": 9
+    },
+    "researching": {
+     "cur": 7,
+     "max": 9
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wwk451",
+   "name": "Milon Hamnet",
+   "order": 1792098699274,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 4,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 5,
+     "max": 5
+    },
+    "farming": {
+     "cur": 6,
+     "max": 6
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 4
+    },
+    "labourer": {
+     "cur": 4,
+     "max": 5
+    },
+    "researching": {
+     "cur": 2,
+     "max": 4
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7wzqu05",
+   "name": "Nuttel",
+   "order": 1792098699276,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 4,
+     "max": 4
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 4
+    },
+    "farming": {
+     "cur": 3,
+     "max": 4
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 4
+    },
+    "hunting": {
+     "cur": 6,
+     "max": 6
+    },
+    "labourer": {
+     "cur": 3,
+     "max": 5
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7x45j6w",
+   "name": "Ondrej Barrington",
+   "order": 1792098699277,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 7,
+     "max": 8
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 5
+    },
+    "farming": {
+     "cur": 5,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 6
+    },
+    "labourer": {
+     "cur": 6,
+     "max": 8
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7x57job",
+   "name": "Phoebe Graves",
+   "order": 1792098699278,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 5,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 6,
+     "max": 10
+    },
+    "farming": {
+     "cur": 4,
+     "max": 6
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 4,
+     "max": 6
+    },
+    "labourer": {
+     "cur": 6,
+     "max": 9
+    },
+    "researching": {
+     "cur": 3,
+     "max": 6
+    }
+   },
+   "traits": "Zimmermann "
+  },
+  {
+   "id": "wmva1am7x78j79",
+   "name": "Robert Adelard",
+   "order": 1792098699279,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 6,
+     "max": 6
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 4
+    },
+    "farming": {
+     "cur": 3,
+     "max": 4
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 4
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 4
+    },
+    "labourer": {
+     "cur": 4,
+     "max": 6
+    },
+    "researching": {
+     "cur": 2,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7xapw5k",
+   "name": "Royce Sykes",
+   "order": 1792098699280,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 5,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 6
+    },
+    "farming": {
+     "cur": 5,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 6
+    },
+    "labourer": {
+     "cur": 5,
+     "max": 5
+    },
+    "researching": {
+     "cur": 3,
+     "max": 6
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7xdipjj",
+   "name": "Sam Kinborough",
+   "order": 1792098699283,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 6,
+     "max": 6
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 6
+    },
+    "farming": {
+     "cur": 4,
+     "max": 6
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 6
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 5,
+     "max": 10
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7xfu6j9",
+   "name": "Rudy Kemper",
+   "order": 1792098699281,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 4,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 5
+    },
+    "farming": {
+     "cur": 4,
+     "max": 7
+    },
+    "harvesting": {
+     "cur": 6,
+     "max": 8
+    },
+    "hunting": {
+     "cur": 2,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 4,
+     "max": 4
+    },
+    "researching": {
+     "cur": 3,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7xo3f1n",
+   "name": "Saul Belsante",
+   "order": 1792098699284,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 5,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 5
+    },
+    "farming": {
+     "cur": 4,
+     "max": 6
+    },
+    "harvesting": {
+     "cur": 6,
+     "max": 10
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 5
+    },
+    "labourer": {
+     "cur": 4,
+     "max": 6
+    },
+    "researching": {
+     "cur": 4,
+     "max": 6
+    }
+   },
+   "traits": "Holzfäller"
+  },
+  {
+   "id": "wmva1am7xp02uo",
+   "name": "Sal Farman",
+   "order": 1792098699282,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 2,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 3,
+     "max": 5
+    },
+    "farming": {
+     "cur": 5,
+     "max": 5
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 4
+    },
+    "hunting": {
+     "cur": 3,
+     "max": 4
+    },
+    "labourer": {
+     "cur": 3,
+     "max": 5
+    },
+    "researching": {
+     "cur": 2,
+     "max": 5
+    }
+   },
+   "traits": ""
+  },
+  {
+   "id": "wmva1am7xw4j44",
+   "name": "Saul Lovell",
+   "order": 1792098699285,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 5,
+     "max": 6
+    },
+    "crafting": {
+     "cur": 4,
+     "max": 5
+    },
+    "farming": {
+     "cur": 6,
+     "max": 10
+    },
+    "harvesting": {
+     "cur": 4,
+     "max": 5
+    },
+    "hunting": {
+     "cur": 4,
+     "max": 6
+    },
+    "labourer": {
+     "cur": 3,
+     "max": 6
+    },
+    "researching": {
+     "cur": 4,
+     "max": 5
+    }
+   },
+   "traits": "Bauer"
+  },
+  {
+   "id": "wmvo4aisjpbftm",
+   "name": "Imka Durham",
+   "order": 1792950260133,
+   "role": "worker",
+   "stats": {
+    "cooking": {
+     "cur": 4,
+     "max": 5
+    },
+    "crafting": {
+     "cur": 7,
+     "max": 10
+    },
+    "farming": {
+     "cur": 3,
+     "max": 6
+    },
+    "harvesting": {
+     "cur": 3,
+     "max": 6
+    },
+    "hunting": {
+     "cur": 4,
+     "max": 6
+    },
+    "labourer": {
+     "cur": 6,
+     "max": 9
+    },
+    "researching": {
+     "cur": 5,
+     "max": 9
+    }
+   },
+   "traits": "Weber"
+  }
+ ],
+ "settings": {
+  "calm": true,
+  "disableWeak": true,
+  "growth": 0.35,
+  "jobs": {
+   "animals": {
+    "imp": 3,
+    "on": true
+   },
+   "caravan": {
+    "imp": 2,
+    "on": false
+   },
+   "caravanguard": {
+    "imp": 2,
+    "on": false
+   },
+   "construction": {
+    "imp": 3,
+    "on": true
+   },
+   "cooking": {
+    "imp": 4,
+    "on": true
+   },
+   "crafting": {
+    "imp": 3,
+    "on": true
+   },
+   "delivery": {
+    "imp": 5,
+    "on": true
+   },
+   "farming": {
+    "imp": 3,
+    "on": true
+   },
+   "harvesting": {
+    "imp": 4,
+    "on": true
+   },
+   "hunting": {
+    "imp": 3,
+    "on": true
+   },
+   "research": {
+    "imp": 3,
+    "on": true
+   },
+   "smelting": {
+    "imp": 2,
+    "on": true
+   },
+   "woodcutting": {
+    "imp": 4,
+    "on": true
+   }
+  },
+  "phase": "eigene"
+ },
+ "ingame": {
+  "wmva1am7vfq551": {
+   "at": 1792951277567,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 8,
+    "cooking": 7,
+    "crafting": 7,
+    "delivery": 5,
+    "farming": 0,
+    "harvesting": 2,
+    "hunting": 5,
+    "research": 8,
+    "smelting": 7,
+    "woodcutting": 1
+   }
+  },
+  "wmva1am7w049ym": {
+   "at": 1792951554026,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 3,
+    "cooking": 3,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 1,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 5,
+    "woodcutting": 2
+   }
+  },
+  "wmva1am7w613wn": {
+   "at": 1792099156293,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 7,
+    "cooking": 1,
+    "crafting": 7,
+    "delivery": 5,
+    "farming": 2,
+    "harvesting": 9,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 7,
+    "woodcutting": 9
+   }
+  },
+  "wmva1am7w9fq2i": {
+   "at": 1792951656560,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 0,
+    "construction": 2,
+    "cooking": 7,
+    "crafting": 7,
+    "delivery": 1,
+    "farming": 7,
+    "harvesting": 9,
+    "hunting": 0,
+    "research": 7,
+    "smelting": 7,
+    "woodcutting": 9
+   }
+  },
+  "wmva1am7w9voht": {
+   "at": 1792951836729,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 0,
+    "construction": 8,
+    "cooking": 7,
+    "crafting": 2,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 7,
+    "hunting": 0,
+    "research": 1,
+    "smelting": 7,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7wb3514": {
+   "at": 1792951711202,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 5,
+    "cooking": 1,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 5,
+    "hunting": 5,
+    "research": 5,
+    "smelting": 5,
+    "woodcutting": 2
+   }
+  },
+  "wmva1am7wbrruo": {
+   "at": 1792951754487,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 7,
+    "cooking": 5,
+    "crafting": 5,
+    "delivery": 1,
+    "farming": 2,
+    "harvesting": 7,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 6,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7wdtd55": {
+   "at": 1792951427352,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 0,
+    "construction": 8,
+    "cooking": 8,
+    "crafting": 7,
+    "delivery": 1,
+    "farming": 2,
+    "harvesting": 9,
+    "hunting": 0,
+    "research": 8,
+    "smelting": 7,
+    "woodcutting": 9
+   }
+  },
+  "wmva1am7wfaci3": {
+   "at": 1792951474798,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 1,
+    "construction": 7,
+    "cooking": 2,
+    "crafting": 7,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 7,
+    "hunting": 5,
+    "research": 7,
+    "smelting": 7,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7wjw0nr": {
+   "at": 1792099041446,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 0,
+    "construction": 8,
+    "cooking": 7,
+    "crafting": 8,
+    "delivery": 1,
+    "farming": 0,
+    "harvesting": 9,
+    "hunting": 0,
+    "research": 8,
+    "smelting": 8,
+    "woodcutting": 9
+   }
+  },
+  "wmva1am7wkwsdp": {
+   "at": 1792101138718,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 2,
+    "cooking": 5,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 5,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 5,
+    "woodcutting": 1
+   }
+  },
+  "wmva1am7wn4qao": {
+   "at": 1792951382922,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 5,
+    "cooking": 3,
+    "crafting": 1,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 5,
+    "hunting": 5,
+    "research": 3,
+    "smelting": 2,
+    "woodcutting": 5
+   }
+  },
+  "wmva1am7wnrv6l": {
+   "at": 1792101285340,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 1,
+    "construction": 7,
+    "cooking": 2,
+    "crafting": 7,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 7,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 7,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7wt0ma6": {
+   "at": 1792951617500,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 5,
+    "cooking": 5,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 1,
+    "hunting": 7,
+    "research": 5,
+    "smelting": 5,
+    "woodcutting": 2
+   }
+  },
+  "wmva1am7wurkrh": {
+   "at": 1792100971099,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 2,
+    "construction": 7,
+    "cooking": 5,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 7,
+    "hunting": 1,
+    "research": 7,
+    "smelting": 5,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7wv81il": {
+   "at": 1792951511910,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 3,
+    "cooking": 2,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 5,
+    "hunting": 7,
+    "research": 1,
+    "smelting": 5,
+    "woodcutting": 5
+   }
+  },
+  "wmva1am7wwk451": {
+   "at": 1792951780785,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 5,
+    "cooking": 5,
+    "crafting": 2,
+    "delivery": 5,
+    "farming": 1,
+    "harvesting": 7,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 5,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7wzqu05": {
+   "at": 1792101571729,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 2,
+    "construction": 7,
+    "cooking": 5,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 7,
+    "hunting": 1,
+    "research": 7,
+    "smelting": 5,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7x45j6w": {
+   "at": 1792951897919,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 1,
+    "cooking": 2,
+    "crafting": 7,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 5,
+    "hunting": 5,
+    "research": 7,
+    "smelting": 7,
+    "woodcutting": 5
+   }
+  },
+  "wmva1am7x57job": {
+   "at": 1792101692818,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 3,
+    "cooking": 5,
+    "crafting": 1,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 7,
+    "hunting": 5,
+    "research": 5,
+    "smelting": 2,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7x78j79": {
+   "at": 1792101743702,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 2,
+    "cooking": 1,
+    "crafting": 7,
+    "delivery": 5,
+    "farming": 7,
+    "harvesting": 7,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 7,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7xapw5k": {
+   "at": 1792951962280,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 5,
+    "cooking": 2,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 5,
+    "hunting": 5,
+    "research": 5,
+    "smelting": 6,
+    "woodcutting": 1
+   }
+  },
+  "wmva1am7xdipjj": {
+   "at": 1792102019841,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 1,
+    "cooking": 2,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 5,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 5,
+    "woodcutting": 5
+   }
+  },
+  "wmva1am7xfu6j9": {
+   "at": 1792952000827,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 5,
+    "cooking": 5,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 2,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 5,
+    "woodcutting": 1
+   }
+  },
+  "wmva1am7xo3f1n": {
+   "at": 1792952091617,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 5,
+    "cooking": 5,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 1,
+    "hunting": 7,
+    "research": 5,
+    "smelting": 7,
+    "woodcutting": 2
+   }
+  },
+  "wmva1am7xp02uo": {
+   "at": 1792952037523,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 7,
+    "construction": 7,
+    "cooking": 7,
+    "crafting": 7,
+    "delivery": 1,
+    "farming": 2,
+    "harvesting": 7,
+    "hunting": 7,
+    "research": 7,
+    "smelting": 7,
+    "woodcutting": 7
+   }
+  },
+  "wmva1am7xw4j44": {
+   "at": 1792102177246,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 5,
+    "cooking": 2,
+    "crafting": 5,
+    "delivery": 5,
+    "farming": 1,
+    "harvesting": 5,
+    "hunting": 5,
+    "research": 5,
+    "smelting": 5,
+    "woodcutting": 5
+   }
+  },
+  "wmvo4aisjpbftm": {
+   "at": 1792952142147,
+   "by": "u_PmK_0HIpZ9MupOqhMUsdWQ",
+   "vals": {
+    "animals": 5,
+    "construction": 3,
+    "cooking": 5,
+    "crafting": 2,
+    "delivery": 5,
+    "farming": 5,
+    "harvesting": 5,
+    "hunting": 5,
+    "research": 3,
+    "smelting": 1,
+    "woodcutting": 5
+   }
+  }
+ },
+ "photoRows": {
+  "Arnold Dixon": "7 7 2 X 1 5 7 5 8 5 8 5 5",
+  "Crimson Reid": "8 8 9 X 9 1 7 X 1 X 8 5 5",
+  "Elyza Gernier": "1 2 5 5 5 5 3 5 5 5 3 5 5",
+  "Fabian Renard": "7 7 9 2 9 1 8 X 8 X 8 5 5",
+  "Helene Colley": "7 7 9 2 9 5 1 7 1 7 7 5 5",
+  "Hubert Gernier": "7 7 7 7 7 5 2 5 7 1 7 5 5",
+  "Imka Durham": "2 1 5 5 5 5 5 5 3 5 3 5 5",
+  "Jane Hodge": "5 5 7 5 7 5 5 1 1 2 7 7 7",
+  "Jane Rhodes": "5 5 5 5 5 5 2 7 3 7 1 7 7",
+  "Joan Reinfred": "5 5 5 7 X 5 5 7 1 7 7 5 5",
+  "Jocelyn Fresin": "5 5 1 5 2 5 3 7 3 7 7 7 7",
+  "Krystoffer Blavier": "5 5 1 7 2 5 5 7 5 7 5 5 5",
+  "Larkin Reinold": "7 7 7 7 7 5 2 7 1 1 7 7 7",
+  "Leopold Edgeworth": "7 7 9 7 9 1 7 X 2 X 7 7 7",
+  "Lubomir Netterby": "5 5 5 7 2 5 1 5 5 5 5 7 7",
+  "Michel Warwick": "5 6 7 2 7 1 5 7 7 7 7 7 7",
+  "Milon Hamnet": "2 5 7 1 7 5 5 7 5 7 7 7 7",
+  "Nell Terrin": "2 7 7 7 7 5 7 X 8 X 1 7 7",
+  "Nuttel": "5 5 7 7 7 5 5 1 1 2 7 7 7",
+  "Ondrej Barrington": "7 7 5 5 5 5 2 5 1 5 7 7 7",
+  "Phoebe Graves": "X 2 7 5 7 5 5 5 1 5 5 7 7",
+  "Robert Adelard": "7 7 7 7 7 5 1 7 1 7 7 7 7",
+  "Royce Sykes": "5 6 5 5 1 5 2 5 1 5 5 7 7",
+  "Rudy Kemper": "5 5 2 5 1 5 5 7 5 7 7 7 7",
+  "Sal Farman": "7 7 7 2 7 1 7 7 7 7 7 7 7",
+  "Sam Kinborough": "5 5 5 5 5 5 2 7 1 7 7 7 7",
+  "Saul Belsante": "5 7 1 5 2 5 5 7 5 7 5 7 7",
+  "Saul Lovell": "5 5 5 X 5 5 2 5 1 5 5 7 7"
+ },
+ "note": "Real data of the group (2026-10-25) + the lead's manual transcription of their two table photos. Columns: Handwerk, Schmelzen, Ernte, Landwirtschaft, Holzfällen, Lieferung, Kochen, Jagen, Bau, Tierhaltung, Forschung, Karawanenträger, Karawanenwache; X = gesperrt."
+}
