@@ -605,3 +605,52 @@ Before recruiting someone in the game, the group enters the candidate's values a
 - Buttons per candidate: "Anwerben" (adds them as a normal worker with these values, stamp now, toast with Rückgängig)
   and "Verwerfen". The panel remembers its candidates per device until closed with "Alle verwerfen" (localStorage).
 - Copy in "ihr" form; works at 360 px one-handed.
+
+====================================================================================================
+BUILD 16. Spiel prüfen per Foto (approved by the user 2026-10-25: "Ja passt so bau los") | effort M-L
+WHY: after entering numbers on the Xbox the group photographs the game's table view (Bevölkerung -> top right
+"Arbeitsprioritäten": one row per villager, 13 icon columns) and wants the app to check that everything was entered
+correctly. A lead spike proved it works: both real photos (t2/fixtures/tabelle-1.jpg, tabelle-2.jpg) could be read
+completely (28 villagers x 13 numbers, truncated names like "Hubert Ger…", ⊘ cells, one cell with a red cursor box).
+t2/fixtures/check-live.json holds the group's real roster, settings, ingame snapshots and the lead's transcription of
+the photos (photoRows). The relocation case is NOT needed (the user said the move is finished).
+COLUMNS in the game table (left to right): Handwerk, Schmelzen, Ernte, Landwirtschaft, Holzfällen, Lieferung, Kochen,
+Jagen, Bau, Tierhaltung, Forschung, Karawanenträger, Karawanenwache (= GAME_ORDER / JOBS_SHOWN). Icons: anvil, furnace,
+berries, sprout, axe, chest, bowl, bow, hammer, rabbit, paper, cart, shield. ⊘ = gesperrt (= app value 0 / "aus").
+Numbers are 1-9; bright/dark tiles mean nothing. Rows may repeat across overlapping photos (scrolled) – merge them.
+A name may have a second muted line (profession title like "Zimmermann", "Weber", "Holzfäller", "Bauer") – ignore it.
+UI:
+- Button "Spiel prüfen (Foto)" on the Plan tab (next to the entry banner/grid head, only when tracking() and there are
+  workers) and on the Eintragen-Modus finale ("Jetzt mit Foto prüfen"). Short how-to: "Im Spiel: Bevölkerung → oben
+  rechts „Arbeitsprioritäten“. Fotografiert die Tabelle so, dass links die Namen und alle Spalten zu sehen sind. Bei
+  vielen Bewohnern 2–3 Fotos, jeweils weiter gescrollt."
+- 1-3 images (file input, same downscale/prep as the existing photo path), read with the existing sample capability
+  (images) using a NEW prompt for the table (roster names in the prompt for matching; strict JSON: rows [{name, values:
+  13 entries of 1-9 or "X" or null when unreadable, unsure: [column indexes]}]). Same error handling as the existing
+  photo flow (sample null, consent refused, rate limit, limits()).
+- Matching rows to villagers: reuse the BUILD 5 matching (normName, prefix match for truncated names, nameSim); a row
+  that matches nobody or matches ambiguously is shown with a select to pick the villager (never silently assigned).
+- Compare each matched row with the CURRENT plan targets (cellVal of plan.cells for switched-on jobs; switched-off app
+  jobs are not compared; the two caravan columns only if those jobs are on).
+- Result view (in the same style as the photo review, sticky action bar, 360 px one-handed):
+  * "✓ {n} stimmen" (collapsed list),
+  * per villager with differences: "Bau: im Spiel 1, Plan 7" lines, buttons "Korrigieren" and "So lassen",
+  * cells read unsure/null: shown with "?" and an input to confirm the game value before saving,
+  * villagers not found on any photo: "Nicht auf den Fotos: …",
+  * warning when a villager has two or more jobs on 1 in the game: "{Name} hat {Job A} und {Job B} auf 1 – das Spiel
+    wählt dann zufällig. Stellt einen davon auf 2."
+- "Übernehmen" (one tap at the bottom) applies the result:
+  * For every confirmed villager row, write the ACTUAL game values as that villager's shared 'ingame' snapshot
+    (setIngame/putIngame, by/at as usual). Matching villagers are thereby ticked off; villagers with differences are
+    open again and the Eintragen-Modus shows exactly "von 1 → 7" for them ("Korrigieren" = this default).
+  * "So lassen" on a difference instead adopts the game value as a Festlegung (prefs pins, BUILD 7) so the plan
+    plans around it: a value 0 or 2-9 becomes a pin; a game 1 on a job that is not the plan's main job becomes
+    lockMain on that job when the villager has exactly one 1 in the game; with two or more 1s "So lassen" is not
+    offered for the 1s (show the two-1s warning instead).
+  * Toast with Rückgängig restoring the previous ingame docs and prefs.
+- Nothing is written before "Übernehmen". Read-only viewers can check and see the result but cannot apply.
+TEST (feat-check.js): stub sample to return the lead's transcription (photoRows, with a duplicated row across two
+"photos", one truncated name, one unsure cell) for the real roster in check-live.json; assert matching (all 28),
+comparison against the computed plan, two-1s warnings (e.g. Helene Colley Kochen + Bau), apply writes game values to
+ingame and ticks matching villagers, "So lassen" creates the right pins/lockMain, Rückgängig, read-only, errors,
+360 px, animations per the skill.
