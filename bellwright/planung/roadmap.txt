@@ -688,3 +688,7 @@ TEST (feat-mismatch.js): from the check-live fixture: apply a photo check (stubb
 marks with correct game/target values, badge counts, banner count, filter, "Jetzt korrigieren" queue = only them;
 ticking one in the Eintragen-Modus clears its marks; a plan-only change (phase switch) shows the ember dot, not red;
 worker delete + Rückgängig; second viewer sees the marks live; read-only; 360/390/1280 no overflow; voll/ruhig/aus.
+BUILD 17 WORDING CORRECTION (user 2026-10-25): not the villagers "don't match", the PRIORITIES do. Banner counts wrong
+priorities: "13 Prioritäten stehen im Spiel falsch (bei 10 Bewohnern)" / "1 Priorität steht im Spiel falsch (bei 1
+Bewohner)"; badge "⚠ 2 Prioritäten falsch im Spiel" / "⚠ 1 Priorität falsch im Spiel"; Eintragen-Modus line "Laut Foto
+stehen diese Prioritäten im Spiel falsch" (singular "steht diese Priorität …"). Never "Bewohner passen nicht zum Spiel".
