@@ -4,7 +4,7 @@
 // Data: the new collection 'checks' (doc id = worker id) written by the check's "Übernehmen" for every villager it took:
 // {at, by, vals, want}: vals = the game's numbers (the same object as the 'ingame' snapshot), want = what the check asked
 // for (the plan's number; the game's number where "So lassen" kept it). A priority is marked red while the villager's
-// snapshot is still the one the check wrote (ingame.at <= checks.at, or the same vals), the photo showed it wrong
+// snapshot is still the one the check wrote (the same vals; review: not "ingame.at <= checks.at" alone, see 10), the photo showed it wrong
 // (vals != want) and it still differs from the plan now. A number that only moved in the plan since then keeps the ember dot.
 // Data: fixtures/check-live.json (the group's roster, settings, tick-off and the lead's transcription of their table photos).
 const { chromium } = require('playwright');
@@ -68,7 +68,9 @@ function expectNow(srv) {
   const marks = {}, chg = [];
   for (const w of P.team) {
     const c = chk[w.id], s = ing[w.id];
-    const holds = !!c && !!s && ((s.at > 0 && s.at <= c.at) || canon(s.vals) === canon(c.vals));
+    // The snapshot is still the one the check wrote: the same numbers. An older or newer snapshot with other numbers (a
+    // write of the check that did not land, a tick from a phone whose clock is behind) is not: the plan follows it.
+    const holds = !!c && !!s && canon(s.vals) === canon(c.vals);
     for (const j of P.jobs) {
       const cell = P.cells[w.id][j.id], t = cellVal(cell), k = w.id + '|' + j.id;
       if (holds && c.vals[j.id] !== undefined && c.vals[j.id] !== t && c.vals[j.id] !== c.want[j.id]) marks[k] = { g: c.vals[j.id], t, main: !!cell.main, fixed: !!(cell.fixed || cell.locked), at: c.at };
@@ -302,6 +304,7 @@ async function same(label, page, e) {
       await applyCheck(P);
       await until(async () => srv.log.filter(x => x.c === 'ingame').length >= 28 && srv.log.filter(x => x.c === 'checks').length >= 28, 5000);
       await P.waitForTimeout(200);
+      check('after Übernehmen the focus is on "Jetzt korrigieren" (the one next step)', await P.evaluate(() => document.activeElement && document.activeElement.id === 'mm-go'), await P.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName)));
       // the data
       const ing = srv.obj('ingame'), chk = srv.obj('checks');
       const bad = roster.filter(w => { const c = chk[w.id], d = ing[w.id];
@@ -438,7 +441,8 @@ async function same(label, page, e) {
       let r = await MM(A.page);
       check('one villager with one wrong priority: "1 Priorität steht im Spiel falsch (bei 1 Bewohner)", "⚠ 1 Priorität falsch im Spiel"', r.banner && r.banner.lead === LEAD(1, 1) && r.badges[hel] === BADGE(1), { banner: r.banner, badges: r.badges });
       await A.page.click('#mm-only'); await A.page.waitForTimeout(80);
-      check('filtered to her', canon((await MM(A.page)).ids) === canon([hel]));
+      const fr = await MM(A.page);
+      check('filtered to her, "Gezeigt: nur der Bewohner mit der falschen Priorität." (one priority: singular)', canon(fr.ids) === canon([hel]) && fr.filter && fr.filter.text === 'Gezeigt: nur der Bewohner mit der falschen Priorität.', fr.filter);
       await A.page.click('#mm-go'); await A.page.waitForTimeout(150);
       const x = await ENTRY(A.page);
       check('Eintragen-Modus: "Laut Foto steht diese Priorität im Spiel falsch", "1 / 1"', x.line === ELINE(1) && x.count === '1 / 1', x);
@@ -604,6 +608,168 @@ async function same(label, page, e) {
         await A.ctx.close();
       });
     }
+
+    // ===== 9) One big button at a time (review): the crimson banner stands in for the entry banner =====
+    // While priorities stand wrong in the game, "Jetzt korrigieren" is the one primary call to action on the Plan tab: no
+    // entry banner, no title button, the sticky bar (touch) only once the crimson banner is scrolled away, a resume banner's
+    // "Weiter" is a plain button. Villagers with new numbers that are not red get one small line in the crimson banner with
+    // a plain "Im Spiel eintragen (n offen)". Without red marks the entry banner is back as before.
+    const CTA = page => page.evaluate(() => {
+      const vis = el => !!el && !el.closest('[hidden]') && el.getClientRects().length > 0;
+      const t = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : null;
+      const panel = document.getElementById('panel-plan'), more = document.getElementById('mm-more'), mb = more && more.querySelector('button');
+      return {
+        prim: [...panel.querySelectorAll('.btn.primary')].filter(vis).filter(b => !b.closest('#entry-sticky')).map(b => b.id || t(b)),
+        entryBanner: vis(document.getElementById('entry-banner')), titleBtn: vis(document.getElementById('entry-open')),
+        sticky: vis(document.getElementById('entry-sticky')) ? t(document.querySelector('#entry-sticky .btn')) : null,
+        more: vis(more) ? { text: t(document.getElementById('mm-more-text')), btn: t(mb), primary: mb.classList.contains('primary'), h: Math.round(mb.getBoundingClientRect().height) } : null,
+        resume: vis(document.getElementById('entry-resume')) ? { text: t(document.getElementById('entry-resume-text')), primary: document.getElementById('entry-resume-go').classList.contains('primary') } : null,
+      };
+    });
+    await section('9) one primary call to action', async () => {
+      // a) everybody open is red (the check's own 10): only "Jetzt korrigieren"
+      let srv = makeServer(seedChecked());
+      let A = await phone(browser, srv, { name: 'Q1', inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: 360, height: 780 });
+      let c = await CTA(A.page);
+      check('9a: red only: one primary button ("Jetzt korrigieren"), no entry banner, no title button, no extra line, no sticky bar under the banner',
+        canon(c.prim) === canon(['mm-go']) && !c.entryBanner && !c.titleBtn && !c.more && c.sticky === null, c);
+      await A.page.screenshot({ path: path.join(SHOTS, 'cta-360-red-only.png') });
+      await A.page.evaluate(() => window.scrollTo(0, 1600)); await A.page.waitForTimeout(250);
+      c = await CTA(A.page);
+      check('9a: the crimson banner scrolled away: the sticky bar "Im Spiel eintragen (10 offen)" comes', c.sticky === 'Im Spiel eintragen (10 offen)', c.sticky);
+      await A.page.evaluate(() => window.scrollTo(0, 0)); await A.page.waitForTimeout(250);
+      check('9a: back at the top: the sticky bar goes again', (await CTA(A.page)).sticky === null);
+      await A.ctx.close();
+      // b) one more villager open who is not red (never entered): the small line in the crimson banner
+      const arnold = ID['Arnold Dixon'];
+      const seedB = seedChecked(roster.map(w => w.id).filter(id => id !== arnold));
+      delete seedB.ingame[arnold];
+      srv = makeServer(seedB);
+      A = await phone(browser, srv, { name: 'Q2', inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: 360, height: 780 });
+      c = await CTA(A.page);
+      check('9b: others open too: still one primary button; the crimson banner says "Außerdem hat 1 weiterer Bewohner neue Zahlen." with a plain "Im Spiel eintragen (11 offen)" (>= 44 px)',
+        canon(c.prim) === canon(['mm-go']) && !c.entryBanner && !c.titleBtn && c.more && c.more.text === 'Außerdem hat 1 weiterer Bewohner neue Zahlen.' && c.more.btn === 'Im Spiel eintragen (11 offen)' && !c.more.primary && c.more.h >= 44, c);
+      await A.page.screenshot({ path: path.join(SHOTS, 'cta-360-red-and-more.png') });
+      check('9b: nothing sticks out at 360', await A.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#mm-banner *')].every(e => e.getBoundingClientRect().right <= innerWidth + 0.5)));
+      await A.page.click('#mm-more-go'); await A.page.waitForTimeout(150);
+      let x = await ENTRY(A.page);
+      check('9b: that button opens the Eintragen-Modus with everybody open ("1 / 11")', x.open && x.count === '1 / 11', x);
+      await A.page.keyboard.press('Escape'); await A.page.waitForTimeout(100);
+      await A.ctx.close();
+      // c) the red ones corrected: the entry banner is back, as before
+      const hel = ID['Helene Colley'];
+      const seedC = seedChecked([hel]);
+      delete seedC.ingame[arnold];
+      srv = makeServer(seedC);
+      A = await phone(browser, srv, { name: 'Q3', inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: 360, height: 780 });
+      c = await CTA(A.page);
+      check('9c: one red villager and one more open: "Jetzt korrigieren" + "Außerdem hat 1 weiterer Bewohner neue Zahlen."', canon(c.prim) === canon(['mm-go']) && c.more && c.more.text === 'Außerdem hat 1 weiterer Bewohner neue Zahlen.' && c.more.btn === 'Im Spiel eintragen (2 offen)', c);
+      await A.page.click('#mm-go'); await A.page.waitForTimeout(150);
+      await A.page.click('#entry-next');
+      await until(async () => srv.obj('ingame')[hel].at > AT_CHECK, 3000);
+      await A.page.waitForTimeout(450);
+      await A.page.keyboard.press('Escape'); await A.page.waitForTimeout(150);
+      c = await CTA(A.page);
+      check('9c: nothing red any more: the entry banner "1 Bewohner hat neue Zahlen" with its primary button is back, the crimson line gone',
+        canon(c.prim) === canon(['entry-banner-go']) && c.entryBanner && !c.more && await A.page.evaluate(() => document.getElementById('entry-banner-text').textContent.startsWith('1 Bewohner hat neue Zahlen') && document.getElementById('mm-banner').hidden), c);
+      check('9c: closing the mode put the focus on a visible button', await A.page.evaluate(() => { const a = document.activeElement; return !!a && a !== document.body && !a.closest('[hidden]') && a.getClientRects().length > 0; }));
+      await A.ctx.close();
+      // d) a resume banner from an earlier Eintragen-Modus: its "Weiter" is a plain button while the crimson banner shows
+      srv = makeServer(seedChecked());
+      A = await phone(browser, srv, { name: 'Q4', inClaude: true, writable: true, user: owner, anim: 'aus', seedLs: { 'bellwright-eintragen-v1': { ids: DIFF_IDS, i: 2, at: Date.now() } } }, { width: 360, height: 780 });
+      c = await CTA(A.page);
+      check('9d: resume banner and crimson banner: "Weiter" is no second primary button', c.resume && /^Weitermachen bei /.test(c.resume.text) && !c.resume.primary && canon(c.prim) === canon(['mm-go']), c);
+      await A.page.click('#entry-resume-go'); await A.page.waitForTimeout(150);
+      x = await ENTRY(A.page);
+      check('9d: "Weiter" still picks up there ("3 / 10")', x.open && x.count === '3 / 10', x);
+      await A.ctx.close();
+      // e) without red marks the resume banner keeps its primary "Weiter"
+      const ingE = clone(F.ingame);
+      delete ingE[arnold];
+      srv = makeServer(seedAll(ingE));
+      A = await phone(browser, srv, { name: 'Q5', inClaude: true, writable: true, user: owner, anim: 'aus', seedLs: { 'bellwright-eintragen-v1': { ids: [arnold], i: 0, at: Date.now() } } }, { width: 360, height: 780 });
+      c = await CTA(A.page);
+      check('9e: no red marks: the resume banner keeps its primary "Weiter" (and stands in for the entry banner, as before)', c.resume && c.resume.primary === true && c.prim.includes('entry-resume-go') && !c.entryBanner && !c.more, c);
+      await A.ctx.close();
+    });
+
+    // ===== 10) The marks never contradict the tick-off (review) =====
+    // Red only while the villager's snapshot is the one the check wrote (the same numbers). Otherwise the cards would show
+    // "~~1~~ → 7" while the Eintragen-Modus says "von 7" or nothing, and "Jetzt korrigieren" could open nothing.
+    await section('10) snapshot and check agree', async () => {
+      const hel = ID['Helene Colley'];
+      // a) a tick-off from a phone whose clock is a minute behind: the snapshot looks older than the check
+      let seed = seedChecked([hel]);
+      seed.ingame[hel] = { vals: planNow(hel), by: 'u_b', at: AT_CHECK - 60000 };
+      let srv = makeServer(seed);
+      let A = await phone(browser, srv, { name: 'S1', inClaude: true, writable: true, user: owner, anim: 'aus' });
+      let r = await MM(A.page);
+      check('10a: ticked on a phone with a slow clock (snapshot = plan, "older" than the check): no red marks, no banner, no badge', !Object.keys(r.marks).length && !r.banner && !Object.keys(r.badges).length, { banner: r.banner, marks: Object.keys(r.marks) });
+      await same('10a', A.page, expectNow(srv));
+      await A.ctx.close();
+      // b) the check's snapshot did not land (an older tick-off with other numbers is still there)
+      seed = seedChecked([hel]);
+      seed.ingame[hel] = clone(F.ingame[hel]);
+      srv = makeServer(seed);
+      A = await phone(browser, srv, { name: 'S2', inClaude: true, writable: true, user: owner, anim: 'aus' });
+      const e = expectNow(srv);
+      r = await same('10b: the snapshot is older than the check, with other numbers', A.page, e);
+      if (r.banner) {   // whatever is red must be what the Eintragen-Modus asks for
+        await A.page.click('#mm-go'); await A.page.waitForTimeout(150);
+        const x = await ENTRY(A.page);
+        check('10b: "Jetzt korrigieren" opens the mode', x.open, x);
+        await A.page.keyboard.press('Escape');
+      } else check('10b: no red marks from a check whose snapshot is not there', !Object.keys(r.marks).length);
+      await A.ctx.close();
+      // c) two phones took the same photo at once: A's snapshot (later) and B's check (earlier) have the same numbers
+      seed = seedChecked([hel]);
+      seed.ingame[hel] = { vals: gameSnap(hel), by: 'u_a', at: AT_CHECK + 5000 };
+      seed.checks[hel].by = 'u_b';
+      srv = makeServer(seed);
+      A = await phone(browser, srv, { name: 'S3', inClaude: true, writable: true, user: owner, anim: 'aus' });
+      r = await MM(A.page);
+      check('10c: the same numbers from a second phone a moment later: still "1 → 7" for Helene Colley', r.marks[hel + '|construction'] && r.marks[hel + '|construction'].was === '1' && r.marks[hel + '|construction'].to === '7' && r.banner && r.banner.lead === LEAD(1, 1), { banner: r.banner, m: r.marks[hel + '|construction'] });
+      await A.ctx.close();
+    });
+
+    // ===== 11) The struck game value still reads as its digit (review): a thin, light strike, not a "+" =====
+    await section('11) struck value legible', async () => {
+      const srv = makeServer(seedChecked());
+      const A = await phone(browser, srv, { name: 'G', inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: 360, height: 780 });
+      const look = await A.page.evaluate(() => [...document.querySelectorAll('#plan-view .mm')].slice(0, 1).map(el => {
+        const w = getComputedStyle(el.querySelector('.mm-was')), to = getComputedStyle(el.querySelector('.mm-to'));
+        return { line: w.textDecorationLine, thick: w.textDecorationThickness, color: w.textDecorationColor, ratio: parseFloat(w.fontSize) / parseFloat(to.fontSize) };
+      })[0]);
+      const alpha = s => { const m = /rgba?\(([^)]+)\)/.exec(s); if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean); return p.length > 3 ? +p[3] : 1; } const n = /\/\s*([\d.]+)\s*\)/.exec(s); return n ? +n[1] : 1; };
+      check('11: struck through with a 1 px line that lets the digit show through (a thick red bar turns "1" into "+")', look && look.line === 'line-through' && look.thick === '1px' && alpha(look.color) < 1, look);
+      check('11: the game value smaller than the target, but not tiny (0.8 to 0.9 of it)', look && look.ratio >= 0.8 && look.ratio < 0.95, look && look.ratio);
+      const hk = ID['Helene Colley'] + '|construction';
+      await A.page.evaluate(k => document.querySelector(`[data-k="${k}"]`).scrollIntoView({ block: 'center' }), hk); await A.page.waitForTimeout(80);
+      const b = await A.page.evaluate(k => { const r = document.querySelector(`[data-k="${k}"]`).getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }, hk);
+      await A.page.screenshot({ path: path.join(SHOTS, 'mark-360-zoom.png'), clip: { x: Math.max(0, b.x - 220), y: b.y - 16, width: 280, height: b.h + 32 } });
+      await A.ctx.close();
+    });
+
+    // ===== 12) Table: the sticky name column stays solid in every row (review; also before BUILD 17) =====
+    // A row under the finger (sticky :hover on phones) had a see-through name cell: the numbers scrolled under it showed
+    // through "Helene Colley", right where the badge now sits.
+    await section('12) sticky name column', async () => {
+      const srv = makeServer(seedChecked());
+      const A = await phone(browser, srv, { name: 'T', inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: 360, height: 780 });
+      await A.page.click('[data-view="table"]'); await A.page.waitForTimeout(120);
+      const alphaOf = s => { const m = /rgba?\(([^)]+)\)/.exec(s); if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean); return p.length > 3 ? +p[3] : 1; } const n = /\/\s*([\d.]+)\s*\)/.exec(s); return n ? +n[1] : 1; };
+      const seeThrough = [];
+      for (let i = 0; i < 6; i++) {
+        const id = roster[i].id;
+        await A.page.evaluate(id => { const tr = document.querySelector(`tr[data-fokus="${id}"]`); tr.scrollIntoView({ block: 'center' }); document.querySelector('.matrix-wrap').scrollLeft = 300; }, id);
+        await A.page.waitForTimeout(40);
+        await A.page.hover(`tr[data-fokus="${id}"] td:nth-child(8) .cell`);
+        const bg = await A.page.evaluate(id => { const th = document.querySelector(`tr[data-fokus="${id}"] > th`); return { hover: th.parentNode.matches(':hover'), bg: getComputedStyle(th).backgroundColor }; }, id);
+        if (!bg.hover || alphaOf(bg.bg) < 1) seeThrough.push({ n: NAME[id], ...bg });
+      }
+      check('12: the name cell is opaque in every row, also the one under the finger', !seeThrough.length, seeThrough);
+      await A.ctx.close();
+    });
   } finally { await browser.close(); }
   check('no page errors', !errs.length, errs.slice(0, 5));
   for (const f of fails) console.log('FAIL ' + f);

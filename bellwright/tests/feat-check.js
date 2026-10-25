@@ -384,13 +384,15 @@ async function standIns(browser) {
       check('toast: what was taken, with Rückgängig', tm === `Spielstand von 28 Bewohnern übernommen. ${open1.length} haben Zahlen zum Nachziehen.` && await toastAct(P) === 'Rückgängig', { tm, open: open1.length });
       await P.hover('#toast');   // holds the toast while the second phone looks
       // the other phone: matching villagers ticked off, the others open in the Eintragen-Modus with exactly "von <game> → <plan>"
-      await until(() => B.page.evaluate(n => { const b = document.getElementById('entry-banner'); return b && !b.hidden && b.textContent.includes(n + ' Bewohner'); }, open1.length), 3000);
-      const ban = await B.page.evaluate(() => document.getElementById('entry-banner-text').textContent);
-      check(`phone B: the banner counts the ${open1.length} villagers with numbers to change`, ban.startsWith(`${open1.length} Bewohner ${open1.length === 1 ? 'hat' : 'haben'} neue Zahlen`), ban);
+      // BUILD 17: priorities stand wrong in the game, so the crimson banner stands in for the entry banner (one big button at
+      // a time); its plain line opens everybody with numbers to change.
+      await until(() => B.page.evaluate(n => { const b = document.getElementById('mm-more-go'); return b && !b.closest('[hidden]') && b.textContent === `Im Spiel eintragen (${n} offen)`; }, open1.length), 3000);
+      const ban = await B.page.evaluate(() => ({ red: !document.getElementById('mm-banner').hidden, entry: !document.getElementById('entry-banner').hidden, more: document.getElementById('mm-more-go').textContent }));
+      check(`phone B: the ${open1.length} villagers with numbers to change: the crimson banner stands in for the entry banner, "Im Spiel eintragen (${open1.length} offen)"`, ban.red && !ban.entry && ban.more === `Im Spiel eintragen (${open1.length} offen)`, ban);
       const ticked = await B.page.evaluate(() => [...document.querySelectorAll('#plan-view tr[data-fokus]')].filter(tr => tr.querySelector('.tick.done')).map(tr => tr.dataset.fokus));
       const wantTicked = roster.filter(w => !open1.includes(w.id)).map(w => w.id);
       check('phone B: every villager whose game now equals the plan is ticked off (all 18 that matched among them)', JSON.stringify(ticked) === JSON.stringify(wantTicked) && OK_IDS.filter(id => !open1.includes(id)).every(id => ticked.includes(id)), { ticked: ticked.map(i => NAME[i]), want: wantTicked.map(i => NAME[i]) });
-      await B.page.click('#entry-banner-go'); await B.page.waitForTimeout(150);
+      await B.page.click('#mm-more-go'); await B.page.waitForTimeout(150);
       const seenEntry = [];
       for (let k = 0; k < open1.length; k++) {
         seenEntry.push(await B.page.evaluate(() => ({ name: document.getElementById('entry-name').textContent, rows: [...document.querySelectorAll('#entry-stage .entry-card .er-row.diff')].map(r => ({ job: r.dataset.job, from: r.querySelector('.er-from').firstChild.textContent.trim(), to: r.querySelector('.er-to').textContent.trim() })) })));
