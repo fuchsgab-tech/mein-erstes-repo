@@ -654,3 +654,37 @@ TEST (feat-check.js): stub sample to return the lead's transcription (photoRows,
 comparison against the computed plan, two-1s warnings (e.g. Helene Colley Kochen + Bau), apply writes game values to
 ingame and ticks matching villagers, "So lassen" creates the right pins/lockMain, Rückgängig, read-only, errors,
 360 px, animations per the skill.
+
+====================================================================================================
+BUILD 17. Abweichungen zum Spiel deutlich markieren (approved by the user 2026-10-25) | effort M
+User's words: if after the photo check something in the game is wrong (game table differs from the app), mark it in the
+app so that one sees at once (1) that something does not match, (2) what is in the game and (3) what it should be.
+Example: Helene Colley – game Bau 1, app Bau 7.
+Today the plan only shows a small ember "●" next to a value that differs from the tick-off snapshot – easy to miss.
+DATA: new collection 'checks', doc id = worker id: {at, by, vals} written by the photo check's "Übernehmen" for every
+villager it applied (vals = the game values read, the same object written to 'ingame'). Do NOT add fields to existing
+docs. Deleted with the worker, restored by its Rückgängig, and the check's own Rückgängig restores/removes them. Local
+mode: inside the LS payload.
+A cell is a CONFIRMED MISMATCH ("rot") when checks[wid] exists, the villager's current ingame snapshot is still the one
+the check wrote (ingame.at <= checks.at, or the same vals), and the game value differs from the current plan target.
+A later tick-off in the Eintragen-Modus (new snapshot) or a new photo check where it matches clears it automatically.
+Differences that are only plan changes since the last tick (no confirmed check) keep today's ember "●" ("neue Zahl").
+UI:
+- Cards and table view: a confirmed-mismatch cell gets a clear crimson frame/background (tokens: --crimson/--bad), the
+  target number big and the game value small and struck through before it ("~~1~~ → 7"; aria-label "Im Spiel 1, soll 7").
+  Tapping/focusing the cell opens its reason row with the line "Laut Foto-Prüfung vom {Datum} steht im Spiel {x}.
+  Soll: {y}." on top. Locked/X values read "X"/"aus".
+- The villager's card header / table name cell gets a crimson badge "⚠ passt nicht zum Spiel ({n})".
+- Plan tab banner (above the entry banner, same style family, crimson accent) when >= 1 villager has a confirmed
+  mismatch: "{n} Bewohner passen laut Foto nicht zum Spiel" + "Jetzt korrigieren" (opens the Eintragen-Modus with ONLY
+  these villagers in the queue) + "Nur diese zeigen" (filters cards and table to these villagers; a chip "Alle zeigen"
+  switches back; per device, cleared when nothing is left).
+- The Eintragen-Modus card of such a villager shows a small crimson line "Laut Foto falsch im Spiel" above the rows;
+  its rows already show "von 1 → 7".
+- Example team / no checks: nothing changes. Read-only viewers see the marks and the filter but "Jetzt korrigieren"
+  works in its usual read-only way.
+- Animations per the bellwright-animations skill (a one-time stamp/fade when marks appear; no pulsing).
+TEST (feat-mismatch.js): from the check-live fixture: apply a photo check (stubbed sample) -> the 10 villagers get red
+marks with correct game/target values, badge counts, banner count, filter, "Jetzt korrigieren" queue = only them;
+ticking one in the Eintragen-Modus clears its marks; a plan-only change (phase switch) shows the ember dot, not red;
+worker delete + Rückgängig; second viewer sees the marks live; read-only; 360/390/1280 no overflow; voll/ruhig/aus.
