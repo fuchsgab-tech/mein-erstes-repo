@@ -1,13 +1,13 @@
 const { chromium } = require('playwright');
 // Fake db: set() resolves after 350ms, then echoes a snapshot; another viewer writes every 500ms; periodic refresh.
 const STUB = () => {
-  // One map and one listener list per collection (workers, settings, ingame, prefs, stamps), so each listener gets only its own docs.
-  const docs = { workers: new Map(), settings: new Map(), ingame: new Map(), prefs: new Map(), stamps: new Map() };
-  const listeners = { workers: [], settings: [], ingame: [], prefs: [], stamps: [] };
+  // One map and one listener list per collection (workers, settings, ingame, prefs, stamps, checks), so each listener gets only its own docs.
+  const docs = { workers: new Map(), settings: new Map(), ingame: new Map(), prefs: new Map(), stamps: new Map(), checks: new Map() };
+  const listeners = { workers: [], settings: [], ingame: [], prefs: [], stamps: [], checks: [] };
   window.__server = docs;
   const snapC = c => ({ docs: [...docs[c].entries()].map(([id, d]) => ({ id, exists: true, data: () => JSON.parse(JSON.stringify(d)), metadata: {} })), size: docs[c].size, empty: !docs[c].size, metadata: {}, docChanges: () => [] });
   const snapS = () => { const d = docs.settings.get('main'); return { id: 'main', exists: !!d, data: () => d && JSON.parse(JSON.stringify(d)), metadata: {} }; };
-  const fire = () => { listeners.workers.forEach(f => f(snapC('workers'))); listeners.ingame.forEach(f => f(snapC('ingame'))); listeners.prefs.forEach(f => f(snapC('prefs'))); listeners.stamps.forEach(f => f(snapC('stamps'))); listeners.settings.forEach(f => f(snapS())); };
+  const fire = () => { listeners.workers.forEach(f => f(snapC('workers'))); listeners.ingame.forEach(f => f(snapC('ingame'))); listeners.prefs.forEach(f => f(snapC('prefs'))); listeners.stamps.forEach(f => f(snapC('stamps'))); listeners.checks.forEach(f => f(snapC('checks'))); listeners.settings.forEach(f => f(snapS())); };
   window.__fire = fire;
   const ref = (coll, id) => ({
     set: d => new Promise(r => setTimeout(() => { docs[coll].set(id, JSON.parse(JSON.stringify(d))); r(); setTimeout(fire, 20); }, 350)),

@@ -375,7 +375,7 @@ async function standIns(browser) {
       const pf = srv.obj('prefs');
       const PREFS1 = { [ID['Joan Reinfred']]: { lockMain: 'construction', pins: { woodcutting: 0 } }, [ID['Phoebe Graves']]: { lockMain: null, pins: { crafting: 0 } } };
       check('"So lassen" became Festlegungen: Joan Bau as main job + Holzfällen X, Phoebe Handwerk X; nobody else', canon(pf) === canon(PREFS1), pf);
-      check('only ingame and prefs were written (no worker or settings docs)', srv.log.every(x => x.c === 'ingame' || x.c === 'prefs'), [...new Set(srv.log.map(x => x.c))]);
+      check('only ingame, prefs and (BUILD 17) checks were written (no worker or settings docs)', srv.log.every(x => x.c === 'ingame' || x.c === 'prefs' || x.c === 'checks'), [...new Set(srv.log.map(x => x.c))]);
       r = await CK(P);
       check('the check closes after Übernehmen', !r.open && !r.result && r.btn.expanded === 'false', r);
       const PLAN1 = planOf(Object.fromEntries(roster.map(w => [w.id, ing[w.id].vals])), PREFS1);
@@ -634,8 +634,8 @@ async function standIns(browser) {
       check('the other phone took the same result: A\'s result follows (nothing moves any more), still open', r.result && !r.ripple && r.apply.text === 'Übernehmen', { ripple: r.ripple, apply: r.apply });
       const n0 = srv.log.length;
       await A.page.click('#check-apply'); await A.page.waitForTimeout(600); await A.page.click('#check-apply');
-      await until(async () => srv.log.slice(n0).filter(x => x.who === 'RA').length >= 26, 4000);
-      const aw = srv.log.slice(n0).filter(x => x.who === 'RA');
+      await until(async () => srv.log.slice(n0).filter(x => x.who === 'RA' && x.c === 'ingame').length >= 26, 4000);
+      const aw = srv.log.slice(n0).filter(x => x.who === 'RA' && x.c === 'ingame');   // BUILD 17: plus one 'checks' doc each
       check('A writes 26 (not Jane, not Saul with his open "?")', aw.length === 26 && !aw.some(x => x.id === ID['Jane Hodge'] || x.id === ID['Saul Lovell']), aw.length);
       await A.page.click('#toast .toast-act');
       const byB = () => { const ing = srv.obj('ingame'); return roster.every(w => w.id === ID['Jane Hodge'] || (ing[w.id] && ing[w.id].by === 'u_b')); };

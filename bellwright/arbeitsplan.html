@@ -724,6 +724,32 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 @media (max-width: 560px), (pointer: coarse) { .matrix tbody th, .matrix tbody td { padding-block: 9px; } }
 @media (pointer: coarse) { .matrix .cell { height: 44px; } }
 
+/* Abweichungen zum Spiel: a priority the photo check found wrong in the game gets a crimson frame on a crimson ground, what
+   is in the game small and struck through, then what it should be ("1 → 7"). The villager gets "⚠ 2 Prioritäten falsch
+   im Spiel", the Plan tab a crimson banner above the entry banner ("Jetzt korrigieren", "Nur diese zeigen"). */
+.pbadge.mm, .cell.mm { padding: 0 2px; color: var(--fg); background: color-mix(in oklab, var(--crimson) 40%, var(--surface)); box-shadow: inset 0 0 0 2px var(--bad); }
+.pbadge.mm.main, .cell.mm.main { box-shadow: inset 0 0 0 2px var(--bad), 0 0 0 2px var(--surface), 0 0 0 4px var(--crimson), 0 0 12px color-mix(in oklab, var(--crimson) 55%, transparent); }
+.mm-in { display: inline-flex; align-items: baseline; justify-content: center; gap: 2px; white-space: nowrap; }
+.mm-was { font-size: 0.8em; font-weight: 700; color: var(--on-crimson); text-decoration: line-through 1.5px var(--bad); }
+.mm-arr { font-size: 0.62em; font-weight: 700; color: var(--on-crimson); opacity: 0.75; }
+.mm-to { font-weight: 800; }
+.mm-say { color: var(--bad); font-weight: 700; }
+.mm-why { font-size: 0.875rem; font-weight: 700; color: var(--fg); background: color-mix(in oklab, var(--crimson) 22%, transparent); border-left: 3px solid var(--bad); border-radius: 0 var(--radius) var(--radius) 0; padding: 4px 8px; margin: 0 0 6px; }
+.mm-badge { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; font-family: var(--font-body); font-size: 0.8125rem; font-weight: 700; line-height: 1.3; color: var(--on-crimson); background: var(--crimson); border-radius: 999px; padding: 2px 10px; box-shadow: 0 1px 2px rgb(0 0 0 / 0.45); }
+.matrix .mm-badge { display: inline-block; margin-top: 4px; padding: 1px 8px; font-size: 0.75rem; white-space: normal; }
+.key-mm { display: inline-block; width: 18px; height: 18px; border-radius: 3px; background: color-mix(in oklab, var(--crimson) 40%, var(--surface)); box-shadow: inset 0 0 0 2px var(--bad); margin-right: 6px; vertical-align: middle; }
+.chip .mm-dot { color: var(--bad); font-weight: 700; }
+.mm-banner { border-left-color: var(--crimson); }
+.mm-banner p { display: grid; gap: 2px; }
+.mm-banner-lead { font-family: var(--font-display); font-size: var(--step-1); color: var(--bad); line-height: 1.2; }
+.mm-banner .btn.mm-go { min-height: 48px; padding-inline: 18px; font-size: 1.0625rem; }
+@media (pointer: coarse) { .mm-banner .btn { min-height: 48px; } .chip.mm-all { min-height: 44px; min-width: 44px; } }
+@media (max-width: 560px) { .mm-banner .row { width: 100%; } .mm-banner .row .btn { flex: 1 1 auto; } }
+.mm-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 0.9375rem; color: var(--fg); scroll-margin: 16px; }
+.mm-filter .chip.mm-all { border-color: var(--bad); color: var(--fg); font-weight: 700; }
+.ep-mm { color: var(--bad); font-weight: 700; font-size: 0.9375rem; margin: 2px 0 6px; }
+.er-row.diff.mm { border-left-color: var(--crimson); background: linear-gradient(90deg, color-mix(in oklab, var(--crimson) 22%, transparent), transparent 70%); }
+
 /* Werte aktuell halten: "+1" between Stufe and Max, how old the values are under the main job, the Plan hint and the
    Arbeiter chip "Älteste zuerst". On narrow cards the inputs and the bar give the skill names their room. */
 .st-row, .st-head { grid-template-columns: minmax(0, 1fr) 3.2em 2.5rem 3.2em 44px; }
@@ -952,6 +978,12 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
    by script (play: voll scale 1.25 -> 0.95 -> 1 in 320 ms, ruhig a 150 ms fade). */
 [data-anim="voll"] .entry-banner { animation: rise 0.22s ease-out backwards; }
 [data-anim="ruhig"] .entry-banner { animation: calmIn 0.15s ease-out both; }
+/* Abweichungen zum Spiel: the banner comes in once like the entry banner; new marks stamp once by script (play: voll scale
+   1.25 -> 0.95 -> 1 in 320 ms, ruhig a 150 ms fade, aus nothing); the photo line of an opened row drops in with its why. */
+[data-anim="voll"] .mm-banner { animation: rise 0.22s ease-out backwards; }
+[data-anim="ruhig"] .mm-banner { animation: calmIn 0.15s ease-out both; }
+[data-anim="voll"] .wp-row[open] .mm-why { animation: drop 0.25s ease-out both; }
+[data-anim="ruhig"] .wp-row[open] .mm-why { animation: calmIn 0.15s ease-out both; }
 /* Rekruten-Check: the shade fades, the sheet comes up 24 px (voll); ruhig: the sheet only fades (150 ms). */
 [data-anim="voll"] .recruit:not([hidden]) { animation: calmIn 0.2s ease-out both; }
 [data-anim="voll"] .recruit:not([hidden]) .recruit-sheet { animation: sheetIn 0.26s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
@@ -991,6 +1023,15 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
 
   <!-- PLAN -->
   <div class="panel" id="panel-plan" role="tabpanel" aria-labelledby="tab-plan" tabindex="-1">
+    <!-- Priorities the photo check found wrong in the game: the way to correct them (the Eintragen-Modus with only these
+         villagers) and a filter to see only them. -->
+    <div class="banner mm-banner" id="mm-banner" hidden>
+      <p id="mm-banner-text"></p>
+      <div class="row">
+        <button class="btn primary mm-go" type="button" id="mm-go">Jetzt korrigieren</button>
+        <button class="btn mm-only" type="button" id="mm-only">Nur diese zeigen</button>
+      </div>
+    </div>
     <!-- Villagers with open numbers: the way into the Eintragen-Modus. Stands in for the button next to the plan title. -->
     <div class="banner entry-banner" id="entry-banner" hidden>
       <p id="entry-banner-text"></p>
@@ -1086,8 +1127,13 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         <span>1 = zuerst · 9 = zuletzt</span>
         <span><span class="key-main" aria-hidden="true"></span>Hauptjob</span>
         <span id="legend-chg" hidden><span class="key-chg" aria-hidden="true"></span>geändert seit dem letzten Eintragen</span>
+        <span id="legend-mm" hidden><span class="key-mm" aria-hidden="true"></span>steht laut Foto falsch im Spiel</span>
       </div>
       <p class="muted small" id="card-hint" hidden>Tippt auf eine Zeile, dann seht ihr den Grund für die Zahl.</p>
+      <div class="mm-filter" id="mm-filter" hidden>
+        <span id="mm-filter-text"></span>
+        <button type="button" class="chip mm-all" id="mm-all">Alle zeigen</button>
+      </div>
       <div class="chips" id="chips" hidden></div>
       <div id="plan-view"></div>
       <div class="reason" id="reason" hidden>
@@ -1587,6 +1633,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     prefsDenied: false,     // db: the prefs never come (refused or connection lost): the plan shows without them
     stampsReady: false,     // when the values were last checked ('stamps') has arrived; the Plan hint waits for it
     stampsDenied: false,    // db: the stamps never come: the hint counts from this device's first sight
+    checksReady: false,     // what the photo check found ('checks') has arrived; the "Nur diese zeigen" filter waits for it
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -1646,6 +1693,17 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   function cleanStamp(d) {
     if (!d || typeof d !== "object" || Array.isArray(d) || typeof d.at !== "number" || !isFinite(d.at) || d.at <= 0) return null;
     return { at: d.at, by: typeof d.by === "string" ? d.by.slice(0, 200) : "" };
+  }
+  // What the photo check ("Spiel prüfen per Foto") found per villager: {wid: {at, by, vals, want}} ('checks' collection in
+  // shared mode, doc id = worker id, never a field on another doc; 'checks' inside LS_KEY locally). Written by its
+  // "Übernehmen" for every villager it took: vals = the game's numbers (the same object as that 'ingame' snapshot), want =
+  // what the check asked for (the plan's number, or the game's own where "So lassen" kept it). See mismatchFor().
+  let checks = {};
+  function cleanCheck(d) {
+    if (!d || typeof d !== "object" || Array.isArray(d) || typeof d.at !== "number" || !isFinite(d.at) || d.at <= 0) return null;
+    const v = cleanIngame({ vals: d.vals }), w = cleanIngame({ vals: d.want && typeof d.want === "object" && !Array.isArray(d.want) ? d.want : {} });
+    if (!v || !Object.keys(v.vals).length) return null;
+    return { at: d.at, by: typeof d.by === "string" ? d.by.slice(0, 200) : "", vals: v.vals, want: w ? w.vals : {} };
   }
   function valuesAt(wid) {
     const s = stamps[wid];
@@ -2219,14 +2277,16 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const switched = lastPhase !== null && state.settings.phase !== lastPhase;
     lastPhase = state.settings.phase;
     // voll: changed numbers roll (after a phase switch, as the light passes); ruhig: a short fade (.bump); aus: CSS does nothing.
+    // A priority marked wrong in the game (.mm: "1 → 7") only stamps, the roll would flatten it.
     if (anim() === "voll") {
       const hs = changed.map(([el]) => el.clientHeight);
       const at = switched && !$("#panel-plan").hidden && !entry.open ? planSweep($("#plan-view"), changed.map(c => c[0])) : null;
-      changed.forEach(([el, a, b], i) => rollNum(el, a, b, hs[i], (at && at.get(el)) || 0, valText));
+      changed.forEach(([el, a, b], i) => { if (el.classList.contains("mm")) bump(el); else rollNum(el, a, b, hs[i], (at && at.get(el)) || 0, valText); });
     } else for (const [el] of changed) bump(el);
     const mains = plan.team.map(w => w.id + ":" + plan.main[w.id]).join(",");
     if (lastMains && mains !== lastMains) ring();
     lastMains = mains;
+    return new Set(changed.map(c => c[0]));
   }
   const cellVal = c => c.off ? 0 : c.p;
   const valText = v => v === 0 ? "aus" : String(v);
@@ -2245,6 +2305,88 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   }
   // Also waits for the shared tick-off, so the dots never flash "Noch nie eingetragen" while it loads.
   function tracking() { return !isExample() && state.ready && !state.loadFailed && state.ingameReady; }
+
+  // ---------- Abweichungen zum Spiel: priorities the photo check found wrong in the game ----------
+  // A priority stands wrong in the game ("rot") while the villager's snapshot is still the one the check wrote (not newer
+  // than the check, or the same numbers), the photo showed it other than the check asked for (vals != want) and it still
+  // differs from the plan now. A later tick-off (new snapshot) or a new check where it matches ends it by itself; a number
+  // that only moved in the plan since then (a phase switch) keeps the ember dot. Drawing only, nothing here writes.
+  const sameVals = (a, b) => { const ka = Object.keys(a), kb = Object.keys(b); return ka.length === kb.length && ka.every(k => a[k] === b[k]); };
+  function checkHolds(wid) {
+    const c = checks[wid], s = applied[wid], m = appliedMeta[wid];
+    if (!c || !s || typeof s !== "object") return false;
+    return (!!m && m.at > 0 && m.at <= c.at) || sameVals(s, c.vals);
+  }
+  // {at, n, cells: {jobId: {g, t}}} for one villager of the plan (g = in the game, t = the plan's number), or null.
+  function mismatchFor(plan, w) {
+    if (!checkHolds(w.id)) return null;
+    const c = checks[w.id], cells = {};
+    let n = 0;
+    for (const j of plan.jobs) {
+      const g = c.vals[j.id], t = cellVal(plan.cells[w.id][j.id]);
+      if (g === undefined || g === t || c.want[j.id] === g) continue;
+      cells[j.id] = { g, t }; n++;
+    }
+    return n ? { at: c.at, n, cells } : null;
+  }
+  // Every villager of the real team with such priorities, in roster order (Map wid -> mismatchFor).
+  function mismatches(plan) {
+    const m = new Map();
+    if (!plan || !tracking()) return m;
+    for (const w of plan.team) { const x = mismatchFor(plan, w); if (x) m.set(w.id, x); }
+    return m;
+  }
+  const prioN = n => `${n} ${n === 1 ? "Priorität" : "Prioritäten"}`;
+  const ckDay = at => { const x = new Date(at), two = n => String(n).padStart(2, "0"); return `${two(x.getDate())}.${two(x.getMonth() + 1)}.${x.getFullYear() !== new Date().getFullYear() ? x.getFullYear() : ""}`; };
+  // In the game a locked job is an X, in the plan "aus".
+  const mmWhy = (at, m) => `Laut Foto-Prüfung vom ${ckDay(at)} steht im Spiel ${xText(m.g)}. Soll: ${valText(m.t)}.`;
+  const mmLabel = m => `Im Spiel ${xText(m.g)}, soll ${valText(m.t)}`;
+  // Inside a badge or cell: what is in the game small and struck through, then what it should be ("1 → 7").
+  const mmInner = m => `<span class="mm-in"><s class="mm-was" aria-hidden="true">${xText(m.g)}</s><span class="mm-arr" aria-hidden="true">→</span><span class="mm-to">${valText(m.t)}</span></span>`;
+  const mmBadge = x => `<span class="mm-badge"><span aria-hidden="true">⚠</span> ${prioN(x.n)} falsch im Spiel</span>`;
+  const MM_ONLY_KEY = "bellwright-nur-falsche-v1";   // "Nur diese zeigen" on this device, cleared once nothing is wrong
+  let mmOnly = lsGet(MM_ONLY_KEY, false) === true;
+  let lastMm = new Map();   // the marks of the plan shown last ("Jetzt korrigieren" takes these villagers)
+  let mmSeen = null;        // "wid|jobId" marked last time; null until the plan first shows with the checks known
+  // The banner above the entry banner, the filter bar above the plan and the legend entry. Part of renderPlan.
+  function renderMm(mm, onlyMm) {
+    const nW = mm.size, nC = [...mm.values()].reduce((s, x) => s + x.n, 0);
+    if (nW) {
+      const html = `<strong class="mm-banner-lead">${nC} ${nC === 1 ? "Priorität steht" : "Prioritäten stehen"} im Spiel falsch (bei ${nW} ${nW === 1 ? "Bewohner" : "Bewohnern"})</strong>`
+        + `<span class="muted small">Laut Foto-Prüfung. Rot markiert: klein und durchgestrichen, was im Spiel steht – groß, was dort stehen soll.</span>`;
+      if ($("#mm-banner-text").innerHTML !== html) $("#mm-banner-text").innerHTML = html;
+    }
+    $("#mm-banner").hidden = !nW;
+    $("#mm-only").hidden = onlyMm;
+    if (onlyMm) {
+      const t = `Gezeigt: nur ${nW === 1 ? "der Bewohner" : `die ${nW} Bewohner`} mit falschen Prioritäten.`;
+      if ($("#mm-filter-text").textContent !== t) $("#mm-filter-text").textContent = t;
+    }
+    $("#mm-filter").hidden = !onlyMm;
+    $("#legend-mm").hidden = !nW;
+  }
+  // Marks that appear (Übernehmen here or on another phone) stamp once (voll) or fade in (ruhig); marks that are already
+  // there when the page opens, or come again with a redraw, the filter or the other view, do not. skip = numbers that
+  // just stamped or rolled because their value changed.
+  function mmFx(mm, skip) {
+    const ready = tracking() && state.checksReady, view = $("#plan-view");
+    const now = new Set();
+    for (const [wid, x] of mm) for (const jid of Object.keys(x.cells)) now.add(wid + "|" + jid);
+    if (mmSeen && ready) {
+      const had = new Set([...mmSeen].map(k => k.slice(0, k.indexOf("|"))));
+      for (const k of now) {
+        if (mmSeen.has(k)) continue;
+        const el = view.querySelector(`[data-k="${CSS.escape(k)}"], [data-cell="${CSS.escape(k)}"]`);
+        if (el && !skip.has(el)) play(el, FOKUS_STAMP, FOKUS_FADE);
+      }
+      for (const wid of mm.keys()) {
+        if (had.has(wid)) continue;
+        const b = view.querySelector(`[data-fokus="${CSS.escape(wid)}"] .mm-badge`);
+        if (b) play(b, FOKUS_STAMP, FOKUS_FADE);
+      }
+    }
+    if (ready) mmSeen = now;
+  }
 
   // "gerade eben" / "vor 5 Min." / "vor 2 Std." / "gestern" / "am 12.10."
   function relTime(at, now = Date.now()) {
@@ -2373,6 +2515,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const hideAll = () => {
       $("#notes").hidden = true; $("#reason").hidden = true; $("#others").hidden = true;
       $("#mark-all").hidden = true; $("#legend-chg").hidden = true; $("#chips").hidden = true; $("#card-hint").hidden = true;
+      lastMm = new Map(); renderMm(lastMm, false);
     };
     if (!state.ready || state.loadFailed || anchorWait() || prefsWait()) {
       lastPlan = null;
@@ -2392,11 +2535,19 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
 
     const notes = [...plan.notes];
     const track = !!(tracking() && plan.team.length && plan.jobs.length);
+    // Priorities the photo check found wrong in the game (red, not the ember dot). Nothing left: the filter ends itself.
+    const mm = track ? mismatches(plan) : new Map();
+    lastMm = mm;
+    if (mmOnly && track && state.checksReady && !mm.size) { mmOnly = false; try { localStorage.removeItem(MM_ONLY_KEY); } catch (e) { /* ignore */ } }
+    const onlyMm = mmOnly && mm.size > 0;
+    const shown = onlyMm ? plan.team.filter(w => mm.has(w.id)) : plan.team;
+    renderMm(mm, onlyMm);
     const changed = [];
     if (track) {
       for (const w of plan.team) {
-        const d = changesFor(plan, w);
-        if (d && Object.keys(d).length) changed.push(`${w.name || "Ohne Namen"} (${zahlen(Object.keys(d).length)})`);
+        const d = changesFor(plan, w), x = mm.get(w.id);
+        const n = d ? Object.keys(d).filter(k => !(x && x.cells[k])).length : 0;   // the red ones are not "geändert"
+        if (n) changed.push(`${w.name || "Ohne Namen"} (${zahlen(n)})`);
       }
       const anySnap = plan.team.some(w => applied[w.id]);
       const never = anySnap ? plan.team.filter(w => !applied[w.id]).map(w => w.name || "Ohne Namen") : [];
@@ -2423,20 +2574,21 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     let html;
     if (!plan.jobs.length) html = `<div class="empty"><p class="muted">Alle Jobs sind abgeschaltet. Schaltet unter „Einstellungen“ mindestens einen ein.</p></div>`;
     else if (!plan.team.length) html = `<div class="empty"><p class="muted">Es ist niemand als Arbeiter eingeteilt. Wachen und Begleiter bekommen keine Jobs.</p></div>`;
-    else if (state.view === "cards") html = `<div class="wplan">${plan.team.map(w => cardPlanHtml(plan, w, track, canTick, canFix)).join("")}</div>`;
-    else html = tableHtml(plan, track, canTick);
+    else if (state.view === "cards") html = `<div class="wplan">${shown.map(w => cardPlanHtml(plan, w, track, canTick, canFix, mm)).join("")}</div>`;
+    else html = tableHtml(plan, track, canTick, mm, shown);
     swapPlanHtml(view, html);
-    if (hasGrid) afterRender(plan);
+    mmFx(mm, hasGrid ? afterRender(plan) : new Set());
 
     const cards = hasGrid && state.view === "cards";
     $("#card-hint").hidden = !cards;
     const hint = canFix ? "Tippt auf eine Zeile, dann seht ihr den Grund für die Zahl und könnt sie festlegen." : "Tippt auf eine Zeile, dann seht ihr den Grund für die Zahl.";
     if ($("#card-hint").textContent !== hint) $("#card-hint").textContent = hint;
     const chips = $("#chips");
-    if (cards && plan.team.length > 1) {
-      const ch = plan.team.map(w => {
+    if (cards && shown.length > 1) {
+      const ch = shown.map(w => {
         const d = track ? changesFor(plan, w) : null;
-        const mark = d && Object.keys(d).length ? ` <span class="dot" aria-label="geändert">●</span>` : (track && applied[w.id] ? ` <span class="ok" aria-label="eingetragen">✓</span>` : "");
+        const mark = mm.has(w.id) ? ` <span class="mm-dot" aria-label="Prioritäten falsch im Spiel">⚠</span>`
+          : d && Object.keys(d).length ? ` <span class="dot" aria-label="geändert">●</span>` : (track && applied[w.id] ? ` <span class="ok" aria-label="eingetragen">✓</span>` : "");
         return `<button type="button" class="chip" data-jump="${esc(w.id)}">${esc(w.name || "Ohne Namen")}${mark}</button>`;
       }).join("");
       if (ch !== lastChipsHtml) { chips.innerHTML = ch; lastChipsHtml = ch; }
@@ -2457,10 +2609,12 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     ckRefresh();   // "Spiel prüfen (Foto)" and an open check follow the plan
   }
 
-  function tableHtml(plan, track, canTick) {
+  // mm = the priorities wrong in the game (mismatches), shown = the villagers drawn ("Nur diese zeigen" filters them).
+  function tableHtml(plan, track, canTick, mm = new Map(), shown = plan.team) {
     const head = `<thead><tr><th class="wcol" scope="col">Arbeiter</th>${plan.jobs.map(j => `<th scope="col">${esc(j.label)}<span class="en">${esc(j.game)}</span></th>`).join("")}</tr></thead>`;
-    const body = plan.team.map(w => {
+    const body = shown.map(w => {
       const mj = JOB[plan.main[w.id]];
+      const x = mm.get(w.id);
       const d = track ? changesFor(plan, w) : null;
       const nChg = d ? Object.keys(d).length : 0;
       const who = track ? whoWhen(w.id) : "";
@@ -2471,13 +2625,14 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       const cells = plan.jobs.map(j => {
         const c = plan.cells[w.id][j.id];
         const key = `${w.id}|${j.id}`;
-        const was = d && d[j.id];
+        const m = x && x.cells[j.id];   // wrong in the game: red "1 → 7" instead of the ember dot
+        const was = !m && d && d[j.id];
         const fx = c.fixed || c.locked;
-        const cls = `cell p${c.off ? 0 : c.p}${c.main ? " main" : ""}${fx ? " fixed" : ""}${was ? " chg" : ""}${state.selected === key ? " sel" : ""}`;
-        const label = `${w.name || "Arbeiter"}, ${j.label}: ${c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}${was ? `, ${wasText(was)}` : ""}`;
-        return `<td><button type="button" class="${cls}" data-cell="${esc(key)}" data-focus="c:${esc(key)}" aria-label="${esc(label)}">${c.off ? "aus" : c.p}</button></td>`;
+        const cls = `cell p${c.off ? 0 : c.p}${c.main ? " main" : ""}${fx ? " fixed" : ""}${was ? " chg" : ""}${m ? " mm" : ""}${state.selected === key ? " sel" : ""}`;
+        const label = `${w.name || "Arbeiter"}, ${j.label}: ${m ? mmLabel(m) : c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}${was ? `, ${wasText(was)}` : ""}`;
+        return `<td><button type="button" class="${cls}" data-cell="${esc(key)}" data-focus="c:${esc(key)}" aria-label="${esc(label)}">${m ? mmInner(m) : c.off ? "aus" : c.p}</button></td>`;
       }).join("");
-      return `<tr data-fokus="${esc(w.id)}"><th class="wcol" scope="row"><span class="wname" tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}</span>${FOKUS_MARK}<span class="wsub">Hauptjob: ${esc(mj ? mj.label : "–")}</span>${tick}</th>${cells}</tr>`;
+      return `<tr data-fokus="${esc(w.id)}"><th class="wcol" scope="row"><span class="wname" tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}</span>${FOKUS_MARK}<span class="wsub">Hauptjob: ${esc(mj ? mj.label : "–")}</span>${x ? mmBadge(x) : ""}${tick}</th>${cells}</tr>`;
     }).join("");
     const foot = `<tfoot><tr><th class="wcol" scope="row">Besetzung</th>${plan.jobs.map(j => {
       const c = plan.coverage[j.id];
@@ -2488,19 +2643,23 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     return `<div class="matrix-wrap"><table class="matrix">${head}<tbody>${body}</tbody>${foot}</table></div>`;
   }
 
-  function cardPlanHtml(plan, w, track, canTick, canFix) {
+  function cardPlanHtml(plan, w, track, canTick, canFix, mm = new Map()) {
     const mj = JOB[plan.main[w.id]];
     const d = track ? changesFor(plan, w) : null;
+    const x = mm.get(w.id);
     const hasSnap = track && !!applied[w.id];
     const nChg = d ? Object.keys(d).length : 0;
     const done = hasSnap && !nChg;
     const rows = plan.jobs.map(j => {
       const c = plan.cells[w.id][j.id];
-      const was = d && d[j.id];
+      const m = x && x.cells[j.id];   // wrong in the game: red "1 → 7", the photo line on top of the opened row
+      const was = !m && d && d[j.id];
       const key = `${w.id}|${j.id}`;
       const fx = c.fixed || c.locked;
-      return `<details class="wp-row" data-key="${esc(key)}"><summary data-focus="r:${esc(key)}"><span class="wp-job">${esc(j.label)}<small>${esc(j.game)}${was ? ` · <span class="was">${esc(wasText(was))}</span>` : ""}</small></span>`
-        + `<span class="pbadge p${c.off ? 0 : c.p}${c.main ? " main" : ""}${fx ? " fixed" : ""}${was ? " chg" : ""}" data-k="${esc(key)}" aria-label="${esc(`${c.off ? "aus" : "Priorität " + c.p}${c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}${was ? ", " + wasText(was) : ""}`)}">${c.off ? "aus" : c.p}</span></summary>`
+      const tag = `${c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}`;
+      return `<details class="wp-row" data-key="${esc(key)}"><summary data-focus="r:${esc(key)}"><span class="wp-job">${esc(j.label)}<small>${esc(j.game)}${m ? ` · <span class="mm-say">im Spiel ${esc(xText(m.g))}</span>` : was ? ` · <span class="was">${esc(wasText(was))}</span>` : ""}</small></span>`
+        + (m ? `<span class="pbadge p${c.off ? 0 : c.p}${c.main ? " main" : ""}${fx ? " fixed" : ""} mm" data-k="${esc(key)}" aria-label="${esc(mmLabel(m) + tag)}">${mmInner(m)}</span></summary><p class="mm-why">${esc(mmWhy(x.at, m))}</p>`
+          : `<span class="pbadge p${c.off ? 0 : c.p}${c.main ? " main" : ""}${fx ? " fixed" : ""}${was ? " chg" : ""}" data-k="${esc(key)}" aria-label="${esc(`${c.off ? "aus" : "Priorität " + c.p}${tag}${was ? ", " + wasText(was) : ""}`)}">${c.off ? "aus" : c.p}</span></summary>`)
         + `<p class="wp-why">${esc(c.why)}</p>${canFix ? fixHtml(w, j, c) : ""}</details>`;
     }).join("");
     const body = done
@@ -2512,7 +2671,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const seal = done ? `<div class="applied-box"><span class="applied-ok${justApplied.has(w.id) ? " stamp" : ""}">im Spiel eingetragen</span>${who ? `<small class="applied-who">${esc(who)}</small>` : ""}</div>` : "";
     const unfix = canFix && prefs[w.id]
       ? `<div class="wp-unfix"><button type="button" class="linkbtn" data-fix="clear" data-fix-k="${esc(w.id)}|" data-focus="fx:${esc(w.id)}|:clear">Alle Festlegungen lösen</button></div>` : "";
-    return `<article class="wp-card" id="wp-${esc(w.id)}" data-fokus="${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}${FOKUS_MARK}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${seal}</div>${body}${unfix}${foot}</article>`;
+    return `<article class="wp-card" id="wp-${esc(w.id)}" data-fokus="${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}${FOKUS_MARK}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${x ? mmBadge(x) : ""}${seal}</div>${body}${unfix}${foot}</article>`;
   }
 
   // "Festlegen:" inside an opened row (cards) and in the table's reason box. Only for people who can change the plan.
@@ -2547,9 +2706,10 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       const c = plan.cells[wid] && plan.cells[wid][jid];
       if (!w || !c) { state.selected = null; return renderReason(); }
       const d = tracking() ? changesFor(plan, w) : null;
-      const was = d && d[jid];
+      const x = tracking() ? mismatchFor(plan, w) : null, m = x && x.cells[jid];   // wrong in the game: the photo line on top
+      const was = !m && d && d[jid];
       const wasLine = was ? `<br><span class="muted">Im Spiel bisher: ${esc(was === "neu" ? "noch nicht eingetragen (neu im Plan)" : was)}</span>` : "";
-      html = `<strong>${esc(w.name || "Ohne Namen")} · ${esc(JOB[jid].label)}: ${c.off ? "aus" : "Priorität " + c.p}${c.fixed || c.locked ? " (fest)" : ""}</strong><br>${esc(c.why)}${wasLine}`;
+      html = `${m ? `<p class="mm-why">${esc(mmWhy(x.at, m))}</p>` : ""}<strong>${esc(w.name || "Ohne Namen")} · ${esc(JOB[jid].label)}: ${c.off ? "aus" : "Priorität " + c.p}${c.fixed || c.locked ? " (fest)" : ""}</strong><br>${esc(c.why)}${wasLine}`;
       if (!locked() && !isExample()) fixH = fixHtml(w, JOB[jid], c);
     }
     // Only when it changed: the text is a live region, and the controls keep focus.
@@ -2736,19 +2896,21 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       + (applied[w.id] ? "" : `<p class="ep-new">Neue Dorfbewohner stehen überall auf 5. Habt ihr bei ${esc(w.name || "diesem Dorfbewohner")} schon etwas verstellt, stellt jede Zeile auf die große Zahl.</p>`)
       + (entry.changed ? `<p class="ep-changed">Der Plan hat sich gerade geändert.</p>` : "")
       + `</div>`;
+    const mm = mismatchFor(plan, w);   // the photo check found these wrong in the game: a crimson line and crimson rows
     const body = rows.map(r => {
       const job = `<span class="er-job">${esc(r.j.label)}<small>${esc(r.j.game)}</small></span>`;
       const fx = r.c.fixed || r.c.locked;
       if (!r.chg) return `<div class="er-row same"><span class="er-check" aria-hidden="true"></span>${job}<span class="er-keep">bleibt ${r.to === 0 ? `X<span class="vh"> (aus)</span>` : r.to}${fx ? `<span class="er-fest"> · fest</span>` : ""}</span></div>`;
       const on = !!(checks && checks.get(r.j.id) === r.to);
-      const label = `${r.j.label}: von ${xAria(r.from)} auf ${xAria(r.to)}${r.c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}`;
-      return `<button type="button" class="er-row diff" data-e="row" data-job="${esc(r.j.id)}" data-focus="row:${esc(r.j.id)}" aria-pressed="${on}" aria-label="${esc(label)}">`
+      const label = `${r.j.label}: von ${xAria(r.from)} auf ${xAria(r.to)}${r.c.main ? ", Hauptjob" : ""}${fx ? ", von euch festgelegt" : ""}${mm && mm.cells[r.j.id] ? ", laut Foto falsch im Spiel" : ""}`;
+      return `<button type="button" class="er-row diff${mm && mm.cells[r.j.id] ? " mm" : ""}" data-e="row" data-job="${esc(r.j.id)}" data-focus="row:${esc(r.j.id)}" aria-pressed="${on}" aria-label="${esc(label)}">`
         + `<span class="er-check" aria-hidden="true"></span>${job}<span class="er-from" aria-hidden="true">von ${xText(r.from)}<span class="er-arrow">→</span></span>`
         + `<span class="pbadge er-to p${r.to}${r.c.main ? " main" : ""}${fx ? " fixed" : ""}" data-k="${esc(r.j.id)}" aria-hidden="true">${xText(r.to)}</span></button>`;
     }).join("");
     const why = `<details class="ep-why" data-key="why"><summary data-focus="why">Warum diese Zahlen?</summary><ul>`
       + rows.map(r => `<li><b>${esc(r.j.label)} ${r.to === 0 ? "X (aus)" : r.to}:</b> ${esc(r.c.why)}</li>`).join("") + `</ul></details>`;
-    return `${head}<div class="er-rows">${body}</div>${why}`;
+    const mmLine = mm ? `<p class="ep-mm">Laut Foto ${mm.n === 1 ? "steht diese Priorität" : "stehen diese Prioritäten"} im Spiel falsch</p>` : "";
+    return `${head}${mmLine}<div class="er-rows">${body}</div>${why}`;
   }
 
   // Draws the current villager into the current card. fresh = just switched (no "changed" comparison).
@@ -3201,6 +3363,24 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     lsSet(LATER_KEY, laterAt);   // blocked storage: it holds for this page load
     renderPlan();
     ($("#entry-open").hidden ? $("#plan-title") : $("#entry-open")).focus();
+  });
+  // Priorities wrong in the game: "Jetzt korrigieren" = the Eintragen-Modus with only these villagers (read-only viewers
+  // get its usual "Weiter"); "Nur diese zeigen" filters cards and table on this device until "Alle zeigen" or nothing is left.
+  $("#mm-go").addEventListener("click", () => { const ids = [...lastMm.keys()]; if (ids.length) entryOpen({ ids, i: 0 }); });
+  $("#mm-only").addEventListener("click", () => {
+    mmOnly = true;
+    lsSet(MM_ONLY_KEY, true);   // blocked storage: it holds for this page load
+    renderPlan();
+    const f = $("#mm-filter");
+    if (f.hidden) return;
+    f.scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#mm-all").focus({ preventScroll: true });
+  });
+  $("#mm-all").addEventListener("click", () => {
+    mmOnly = false;
+    try { localStorage.removeItem(MM_ONLY_KEY); } catch (e) { /* ignore */ }
+    renderPlan();
+    $("#plan-title").focus({ preventScroll: true });
   });
 
   // ---------- "Hier warst du": the villager last worked on (per device) ----------
@@ -3747,16 +3927,20 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       stamps = {};   // likewise 'stamps' (when the values were last checked)
       if (d.stamps && typeof d.stamps === "object" && !Array.isArray(d.stamps))
         for (const [wid, v] of Object.entries(d.stamps)) { const s = cleanStamp(v); if (s && wid.length <= 80) stamps[wid] = s; }
+      checks = {};   // likewise 'checks' (what the photo check found)
+      if (d.checks && typeof d.checks === "object" && !Array.isArray(d.checks))
+        for (const [wid, v] of Object.entries(d.checks)) { const c = cleanCheck(v); if (c && wid.length <= 80) checks[wid] = c; }
     },
     save() {
       if (!state.ready) return;
-      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()], prefs, stamps }) && !state.noStore) { state.noStore = true; renderStatus(); }
+      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()], prefs, stamps, checks }) && !state.noStore) { state.noStore = true; renderStatus(); }
     },
     setWorker() { this.save(); },
     deleteWorker() { this.save(); },
     setSettings() { this.save(); },
     setPrefs() { this.save(); },
     setStamp() { this.save(); },
+    setCheck() { this.save(); },
     // Tick-off per browser, as before: putIngame already merged the change into `applied`.
     setIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
     deleteIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
@@ -3771,7 +3955,9 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     let gotW = false, gotS = false, gotI = false, gotP = false;          // first delivery of each listener ever
     let sinceW = false, sinceS = false, sinceI = false, sinceP = false;  // delivered since the last subscribe()
     let gotT = false, sinceT = false;                      // the same for 'stamps' (when the values were last checked)
+    let gotC = false, sinceC = false;                      // the same for 'checks' (what the photo check found)
     let srvStamps = {};                                    // the last stamps the server sent, to undo a refused write
+    let srvChecks = {};                                    // the last checks the server sent, to undo a refused write
     let srvPrefs = {};                                     // the last Festlegungen the server sent, to undo a refused write
     let srvWorkers = new Map();                            // the last workers the server sent, to undo a refused delete
     let srvIngame = { ids: new Set(), vals: {}, meta: {} }; // the last tick-offs the server sent, to undo a refused write
@@ -3782,7 +3968,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       if (gotI) state.ingameReady = true;
       if (gotP) state.prefsReady = true;
       if (gotT) state.stampsReady = true;
-      if (sinceW && sinceS && sinceI && sinceP && sinceT) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
+      if (gotC) state.checksReady = true;
+      if (sinceW && sinceS && sinceI && sinceP && sinceT && sinceC) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
     }
 
     // Resolves true when the write went through (after one retry for a transient error).
@@ -3901,6 +4088,27 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       settle();
       renderAll();
     }
+    function onChecks(snap) {
+      gotC = sinceC = true;
+      const srv = {};
+      for (const d of snap.docs) { const c = cleanCheck(d.data && d.data()); if (c) srv[d.id] = c; }
+      srvChecks = srv;
+      const m = { ...srv };
+      // A check (or its Rückgängig) that is not saved yet keeps the local copy.
+      for (const key of pending) if (key.startsWith("c:")) {
+        const wid = key.slice(2);
+        if (checks[wid]) m[wid] = checks[wid]; else delete m[wid];
+      }
+      checks = m;
+      settle();
+      renderAll();
+    }
+    // A refused check: show what the server has again, unless a newer write is on its way.
+    function restoreCheck(wid) {
+      if (pending.has("c:" + wid)) return;
+      if (srvChecks[wid]) checks[wid] = srvChecks[wid]; else delete checks[wid];
+      renderPlan();
+    }
     // A refused stamp: show what the server has again, unless a newer write is on its way.
     function restoreStamp(wid) {
       if (pending.has("t:" + wid)) return;
@@ -3953,7 +4161,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         if (!gotI) state.ingameDenied = true;
         if (!gotP) state.prefsDenied = true;
         if (!gotT) state.stampsDenied = true;
-        state.ready = true; renderAll(); return;
+        state.ready = true; renderAll(); return;   // without checks the plan shows no marks (nothing waits for them)
       }
       for (const u of unsubs) { try { u(); } catch (x) { /* ignore */ } }
       unsubs = [];
@@ -3971,13 +4179,14 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       }
     }
     function subscribe() {
-      sinceW = sinceS = sinceI = sinceP = sinceT = false;
+      sinceW = sinceS = sinceI = sinceP = sinceT = sinceC = false;
       unsubs = [
         db.collection("workers").onSnapshot(onWorkers, onListenError),
         db.doc("settings/main").onSnapshot(onSettings, onListenError),
         db.collection("ingame").onSnapshot(onIngame, onListenError),
         db.collection("prefs").onSnapshot(onPrefs, onListenError),
         db.collection("stamps").onSnapshot(onStamps, onListenError),
+        db.collection("checks").onSnapshot(onChecks, onListenError),
       ];
     }
     return {
@@ -4023,6 +4232,13 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
           return t ? ref.set({ at: t.at, by: t.by }) : ref.delete();
         }, ok => { if (!ok) restoreStamp(wid); });
       },
+      // What the photo check found: set() of the whole doc {at, by, vals, want}; none = delete.
+      setCheck(wid, delay = 0) {
+        schedule("c:" + wid, delay, () => {
+          const c = checks[wid], ref = db.collection("checks").doc(wid);
+          return c ? ref.set({ at: c.at, by: c.by, vals: { ...c.vals }, want: { ...c.want } }) : ref.delete();
+        }, ok => { if (!ok) restoreCheck(wid); });
+      },
     };
   }
 
@@ -4055,6 +4271,13 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     backend.setStamp(wid, delay);
   }
   const stampNow = (wid, delay) => putStamp(wid, { at: Date.now(), by: myId }, delay);
+  // What the photo check found for a villager: memory first (the marks follow at once), then the backend. doc null = none.
+  function putCheck(wid, doc, delay) {
+    const c = cleanCheck(doc);
+    if (c) checks[wid] = c; else delete checks[wid];
+    backend.setCheck(wid, delay);
+  }
+  const checkCopy = wid => checks[wid] ? JSON.parse(JSON.stringify(checks[wid])) : null;
   function addWorker(name) {
     if (locked()) return null;
     const w = blankWorker(name);
@@ -4350,16 +4573,18 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         const id = card.dataset.wid;
         const w = state.workers.get(id);
         if (!w) return;
-        // Kept in memory for Rückgängig: the same villager (same id), the same tick-off and the same Festlegungen.
+        // Kept in memory for Rückgängig: the same villager (same id), the same tick-off, Festlegungen, stamp and check.
         if (state.mode === "local") reloadApplied();
         const ing = ingameDoc(id);
         const pf = prefsCopy(id);
         const sp = stamps[id] ? { ...stamps[id] } : null;
+        const ckd = checkCopy(id);
         state.workers.delete(id);
         backend.deleteWorker(id);
         putIngame(id, null);
         if (pf) putPrefs(id, null, 0);
         if (sp) putStamp(id, null, 0);
+        if (ckd) putCheck(id, null, 0);
         renderAll();
         toast(`${w.name || "Arbeiter"} gelöscht.`, { label: "Rückgängig", fn: () => {
           if (locked()) { toast("Rückgängig geht gerade nicht."); return null; }
@@ -4368,6 +4593,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
             if (ing) putIngame(id, ing);
             if (pf) putPrefs(id, pf, 0);
             if (sp) putStamp(id, sp, 0);
+            if (ckd) putCheck(id, ckd, 0);
             renderAll();
           }
           toast(`${w.name || "Arbeiter"} ist wieder da.`);
@@ -5406,7 +5632,8 @@ Reply with only this JSON:
   // import). Each row is matched to a villager (a cut-off name by its beginning; a row that fits nobody or more than one
   // villager is picked by hand, never assigned silently) and compared with the CURRENT plan (switched-on jobs only).
   // Nothing is written before "Übernehmen": then the game's numbers become each villager's shared snapshot ('ingame',
-  // through putIngame like the tick-off), and "So lassen" turns a difference into a Festlegung (prefs). One Rückgängig.
+  // through putIngame like the tick-off), "So lassen" turns a difference into a Festlegung (prefs), and what was found is
+  // kept in 'checks' (putCheck), so the plan marks what stands wrong in the game (mismatchFor). One Rückgängig.
   // ck.rows = [{k, name, vals: 13 × (0..9 | null), unsure: Set(column), auto: wid | "", pick: wid | "-" | ""}] in read
   // order (auto = matched, pick = chosen by hand, "-" = nobody). conf = {"k|jobId" -> value the players confirmed},
   // keep = Set("k|jobId") with "So lassen", shown = rows with a card (a card stays once it is there). Drawing never writes.
@@ -5549,13 +5776,15 @@ Reply with only this JSON:
   }
   // What "Übernehmen" writes, for the villagers whose numbers are all known: ing = {wid: the game's numbers}, pf = {wid:
   // Festlegungen} where "So lassen" changes them (a 1 off the main job -> lockMain, any other value -> pin), kept =
-  // Set("wid|jobId") of those lines. The same for the preview and for Übernehmen, so they never disagree.
+  // Set("wid|jobId") of those lines, want = {wid: what the check asks for} (the plan's number, the game's where "So lassen"
+  // keeps it) for the 'checks' doc. The same for the preview and for Übernehmen, so they never disagree.
   function ckWrites(m) {
-    const ing = {}, pf = {}, kept = new Set();
+    const ing = {}, pf = {}, kept = new Set(), want = {};
     for (const it of m.items) {
       if (it.nOpen) continue;
       const wid = it.w.id;
       ing[wid] = Object.fromEntries(it.lines.map(l => [l.j.id, l.g]));
+      want[wid] = Object.fromEntries(it.lines.map(l => [l.j.id, ckCanKeep(it, l) && ck.keep.has(l.key) ? l.g : l.p]));
       const keeps = it.lines.filter(l => ckCanKeep(it, l) && ck.keep.has(l.key));
       if (!keeps.length) continue;
       const prev = prefsCopy(wid), next = prev ? JSON.parse(JSON.stringify(prev)) : { lockMain: null, pins: {} };
@@ -5566,7 +5795,7 @@ Reply with only this JSON:
       }
       if (JSON.stringify(cleanPrefs(next)) !== JSON.stringify(cleanPrefs(prev))) pf[wid] = next;
     }
-    return { ing, pf, kept };
+    return { ing, pf, kept, want };
   }
   // The plan after "Übernehmen" against the plan now: numbers that move although nobody chose them here (the game's real
   // numbers end a "ruhig gehalten", a "So lassen" moves a main job to someone else). Shown before Übernehmen, so nothing
@@ -5816,12 +6045,14 @@ Reply with only this JSON:
     }
     if (m.open && Date.now() - ck.armed < 450) return;   // a double tap is not a second decision
     if (state.mode === "local") reloadApplied();   // another tab may have changed it
-    const at = Date.now(), prevIng = {}, prevPf = {}, ids = [], wr = ckWrites(m);
+    const at = Date.now(), prevIng = {}, prevPf = {}, prevCk = {}, ids = [], wr = ckWrites(m);
     for (const it of ready) {
       const wid = it.w.id;
       ids.push(wid);
       prevIng[wid] = ingameDoc(wid);
+      prevCk[wid] = checkCopy(wid);
       putIngame(wid, { vals: wr.ing[wid], by: myId, at });
+      putCheck(wid, { at, by: myId, vals: wr.ing[wid], want: wr.want[wid] }, 0);   // the marks: what is wrong in the game
       if (wr.pf[wid]) { prevPf[wid] = prefsCopy(wid); putPrefs(wid, wr.pf[wid], 0); }
     }
     justApplied.clear();
@@ -5834,6 +6065,7 @@ Reply with only this JSON:
     toast(`Spielstand von ${ids.length === 1 ? "1 Bewohner" : ids.length + " Bewohnern"} übernommen.` + (open ? ` ${open} ${open === 1 ? "hat" : "haben"} Zahlen zum Nachziehen.` : " Alles stimmt."), { label: "Rückgängig", fn: () => {
       if (locked() || !tracking()) { toast("Rückgängig geht gerade nicht."); return null; }
       for (const [wid, doc] of Object.entries(prevIng)) if (state.workers.has(wid)) putIngame(wid, doc);
+      for (const [wid, d] of Object.entries(prevCk)) if (state.workers.has(wid)) putCheck(wid, d, 0);
       for (const [wid, p] of Object.entries(prevPf)) if (state.workers.has(wid)) putPrefs(wid, p, 0);
       renderPlan();
       toast("Rückgängig gemacht.");
@@ -6063,6 +6295,7 @@ Reply with only this JSON:
       state.ready = true;
       state.ingameReady = true;   // ticks stay in this browser (AP_KEY), as before
       state.stampsReady = true;   // stamps come with the LS payload
+      state.checksReady = true;   // so do the checks
       backend = local;
       window.addEventListener("storage", e => {
         if (e.key !== LS_KEY) return;
