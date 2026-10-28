@@ -692,3 +692,14 @@ BUILD 17 WORDING CORRECTION (user 2026-10-25): not the villagers "don't match", 
 priorities: "13 Prioritäten stehen im Spiel falsch (bei 10 Bewohnern)" / "1 Priorität steht im Spiel falsch (bei 1
 Bewohner)"; badge "⚠ 2 Prioritäten falsch im Spiel" / "⚠ 1 Priorität falsch im Spiel"; Eintragen-Modus line "Laut Foto
 stehen diese Prioritäten im Spiel falsch" (singular "steht diese Priorität …"). Never "Bewohner passen nicht zum Spiel".
+
+====================================================================================================
+IDEA IN PROGRESS (brainstorming, 2026-10-28) – NOT approved for building yet
+Vorrats-Check: the app looks at the group's stock (food, raw materials) and SUGGESTS priority changes
+(e.g. "Essen ist knapp: stellt Kochen und Landwirtschaft wichtiger"); it changes nothing by itself. LATER an optional
+switch lets the app adjust job importance automatically from the stock.
+Input: a PHOTO of the in-game "Lager" tab (same window as Gebäude/Bevölkerung). Waiting for the user's Lager photos
+from their next session -> spike: read them by hand first, then design (categories, what counts as knapp, suggestions).
+Other ideas offered and not yet chosen: Spielabend-Assistent (guided loop: Werte -> Plan -> Eintragen -> Foto-Prüfung),
+all skills via one table photo (if the game's view dropdown has a skills table), "wer trägt gerade ein", Betten-Check,
+learning progress view.
