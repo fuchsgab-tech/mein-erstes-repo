@@ -703,3 +703,56 @@ from their next session -> spike: read them by hand first, then design (categori
 Other ideas offered and not yet chosen: Spielabend-Assistent (guided loop: Werte -> Plan -> Eintragen -> Foto-Prüfung),
 all skills via one table photo (if the game's view dropdown has a skills table), "wer trägt gerade ein", Betten-Check,
 learning progress view.
+
+====================================================================================================
+BUILD 18. Vorrats-Check per Lager-Foto (approved by the user 2026-10-30: "Ja passt") | effort L
+WHY: the app knows the people but not the stock. The group wants to photograph the in-game "Lager" tab inside the app;
+the app reads it, shows the stock in groups with a traffic light and SUGGESTS priority changes. It changes nothing by
+itself (an automatic mode comes LATER, not now).
+GAME SCREEN (see t2/fixtures/lager-*.jpg and the lead's transcription t2/fixtures/lager-live.json): window tab "Lager",
+a category dropdown (Proviant, Waffen, Rohstoffe, Rüstungen, Kleidung, Werkzeuge, Ausrüstung, Munition, Dekorationen,
+Questgegenstände, Kenntnisbücher, Sonstiges; "Alle" shows everything), a search field, and a list: icon, item name,
+three numbers per row: Lager (chest), reserviert (chest with hourglass), unterwegs (arrow into chest). German thousands
+separator "2.115" = 2115. Names can be cut off with "…". A red search-icon box next to a name is the cursor – ignore.
+Photos overlap when scrolled; merge rows. The category shown is in the dropdown at the top of each photo.
+UI:
+- New tab "Lager" (before Einstellungen; the tab row must still fit at 360 px – compact labels/icons if needed; keyboard
+  tab navigation keeps working). Empty state with how-to: "Im Spiel: Fenster „Lager“ → Kategorie wählen (am wichtigsten:
+  Proviant, Rohstoffe, Werkzeuge) → Liste abfotografieren, bei langen Listen mehrere Fotos, jeweils weiter gescrollt."
+- "Lager prüfen (Foto)": 1–8 photos in one Claude call via the existing sample/photo pipeline (photoBlob, PHOTO_ERR,
+  cost note, rate-limit handling). Strict JSON: rows [{name, category, lager, reserviert, unterwegs, group}] where
+  group is chosen by Claude from the fixed list below for items not in the app's built-in map; unreadable numbers ->
+  null + listed as unsure. Review step before saving: rows grouped, unsure numbers highlighted and editable, merged
+  duplicates; "Speichern" writes the check; read-only viewers can check and view but not save.
+- GROUPS (built-in German name map from the fixture, Claude's group for unknown items as fallback):
+  Essen (all Proviant except burnt/spoiled; raw meat/fish shown as "roh – muss noch zubereitet werden"),
+  Holz & Bretter (Baumstamm, Holz, Holzplanke, Hartholzstamm, Hartholzplanke),
+  Stein & Lehm (Rohstein, Granit, Schlamm, Stampflehm, Torf),
+  Erz & Metall (Kupfer-/Zinn-/Eisenerz, Kupfer-/Zinn-/Bronze-/Eisenbarren, Nägel),
+  Stoff, Leder & Seil (Baumwolle, Baumwollbolzen, Flachs, Leinen, Hanf, Einfache Schnur, Seil, Riemen, Leder,
+  Unverarbeitetes Leder, Fell, Pelz, Rohpelz),
+  Tierfutter (Grobes Tierfutter; Getreide/Weizen/Stroh count as Futter-Rohstoff),
+  Werkzeug (everything in category Werkzeuge),
+  Saatgut and Sonstiges (shown collapsed, no traffic light).
+- Overview per group: total, traffic light knapp / okay / viel, expandable item list with Lager / reserviert / unterwegs,
+  and trend vs the previous check ("↓ 16 seit 28.10."). Separate warnings: "Verdorbene Nahrung 79 – Essen verdirbt.
+  Ein Vorratskeller hält Essen länger frisch." and burnt food.
+- TRAFFIC LIGHT: first check = estimate from population (Essen: knapp < 5 × Bewohner, viel > 20 × Bewohner; Tierfutter
+  vs Vieh count if known (ask once, optional) else fixed; other groups use per-item minimums for key items, e.g. Holzplanke,
+  Seil, Nägel, Barren) and say "Schätzung – wird mit jeder Prüfung genauer". From the second check on, use the trend:
+  falling fast -> knapp even above the minimum ("reicht bei diesem Verbrauch noch etwa n Prüfungen").
+- SUGGESTIONS (text + the job's current importance, nothing applied): Essen knapp -> Kochen, Landwirtschaft, Jagen, Ernte
+  wichtiger; Holz -> Holzfällen; Bretter -> Handwerk (Sägegrube); Stein & Lehm -> Ernte; Erz -> Ernte (Minenlager);
+  Barren/Nägel -> Schmelzen/Handwerk; Stoff/Leder/Seil -> Handwerk, Jagen; Tierfutter -> Landwirtschaft, Tierhaltung;
+  Werkzeug -> Handwerk (Werkzeugmacher). "viel" -> "kann etwas zurückgestellt werden". Each suggestion names the job
+  as in the game and its current importance from the settings ("Kochen ist gerade „normal“ – dringend wäre besser").
+  A small link "Zu den Einstellungen" is fine; no automatic change.
+- A short summary line on the Plan tab when the last check has something "knapp": "Lager: Tierfutter und Seil knapp →
+  Vorschläge ansehen" (opens the Lager tab).
+DATA: new collection 'stock': one doc per check {at, by, rows, pop} (keep the latest 12, deleting older ones in the same
+user action that saves). Never add fields to existing docs. Local mode: inside the LS payload.
+LATER (not now): switch "Prioritäten nach Lager anpassen".
+TEST (feat-stock.js): stub sample with the fixture rows (two overlapping photos with duplicate rows, one cut-off name,
+one unsure number, "2.115"); assert merge, grouping, totals, traffic lights for the real data (Tierfutter knapp with 11
+animals, Seil knapp, Essen viel at 32 Bewohnern, spoiled-food warning), suggestions text, trend after a second stubbed
+check, read-only, errors, 360/390/1280, voll/ruhig/aus per the animation skill, tabs still fit at 360 px.
