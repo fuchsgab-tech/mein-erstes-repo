@@ -1,0 +1,758 @@
+====================================================================================================
+BUILD: 1. Mitspieler-Zugang erklären (statt stillem „Nur ansehen“) | effort S
+WHY: Checked in the platform db contract (0.2.76). Friends outside the owner's organization can edit only if the owner invites them by email as Editor ('Bearbeiter'), and only while the page is NOT also shared by public link. Signed-out visitors get no shared data at all, and the app then quietly drops into local mode and shows the example team as if it were the group's plan. The owner uses a personal account, so every co-op friend is an outside viewer. Today they only see 'Nur ansehen' with no reason. If access fails, every co-op feature fails. This is a text-level fix and unblocks everything after it.
+SPEC:
+DATA: none new. Republish with capabilities {db:{}, sample:{images:true}, user:{scopes:['profile']}}. A non-empty declaration replaces the whole set, so db and sample must be restated. user/profile is needed by item 2 anyway.
+
+BOOT (the db IIFE, ~line 2324):
+- Resolve `user = await use('user')` alongside db.
+- state.isOwner = user?.isOwner() ?? false.
+- state.notConnected = !!(window.claude && window.claude.use) && db === null.
+- Keep the existing can('data.write') check.
+
+renderStatus, new and changed texts:
+- ro: title 'Nur ansehen'. Line: 'Du kannst den Plan ansehen, aber nichts ändern. Damit du mitplanen kannst, muss der Besitzer dich im Teilen-Menü per E-Mail als „Bearbeiter“ einladen. Ist die Seite zusätzlich per Link geteilt, können eingeladene Mitspieler nur ansehen.'
+  - Add a small button 'Nachricht an den Besitzer kopieren'. It calls copy('Hi! Im Bellwright-Arbeitsplan kann ich nichts ändern. Kannst du mich im Teilen-Menü per E-Mail als Bearbeiter einladen und das Teilen per Link ausschalten? Danke!', 'Nachricht kopiert. Schick sie dem Besitzer.').
+  - Show the same text when onWriteError flips to read-only.
+- notConnected (inside Claude, but db is null): title 'Nicht verbunden'. Line: 'Du siehst gerade nicht die gemeinsame Liste. Melde dich bei claude.ai an und öffne den Link noch einmal. Bis dahin speichert die App nur auf diesem Gerät.'
+  - The example banner's first sentence becomes 'Das ist nur ein Beispiel, nicht eure gemeinsame Liste.'
+- db mode, owner only: line 'Gemeinsam gespeichert. Mitspieler können nur mitplanen, wenn ihr sie im Teilen-Menü per E-Mail als „Bearbeiter“ einladet.'
+- Other writers and local mode outside Claude: unchanged.
+
+HILFE: new first section 'Mitspieler einladen', as an ordered list:
+1. 'Die Seite in Claude über „Teilen“ freigeben.'
+2. 'Jeden Mitspieler mit seiner E-Mail-Adresse einladen und „Bearbeiter“ wählen.'
+3. 'Das Teilen per Link aus lassen – sonst können eingeladene Mitspieler nur ansehen.'
+4. 'Jeder braucht ein eigenes Claude-Konto und muss angemeldet sein.'
+Add a small note that the menu wording can differ slightly.
+
+EDGE CASES:
+- user is null: behave as today.
+- can() returns null: keep the inputs. A refused write still decides.
+- Never show the owner line to non-owners.
+
+TEST: run four sessions and check each message and the copy button at 360px width:
+- owner;
+- friend invited by email as Bearbeiter (can edit);
+- the same friend after turning on link sharing (sees 'Nur ansehen' with the explanation);
+- private or signed-out window ('Nicht verbunden' plus the example banner text).
+====================================================================================================
+BUILD: 2. Gemeinsamer Spielstand: „im Spiel eingetragen“ für alle + Rückgängig | effort M
+WHY: Merged from the xbox-flow, planner, coop and photo proposals. The tick-off lives in each phone's localStorage (AP_KEY), but the group shares one world. When Lena enters Agnes, Gabriel's phone still shows ember dots, so someone enters her again or the group stops trusting the dots. A shared snapshot is also the foundation for the Eintragen-Modus and the Ruhiger Plan, which need the same anchor on every phone. Undo covers the one-tap tick, and the delete that today removes a villager for everyone after a single 'Sicher?'.
+SPEC:
+DATA (db mode):
+- New collection 'ingame', doc id = worker id: {vals:{<jobId>:0..9}, by:'<user id or empty>', at:<ms>}. 0 means aus/X, the same encoding as today's AP_KEY snapshot.
+- Use a separate collection, not a worker field: older open tabs save workers with set(toDoc(w)) and would erase unknown fields.
+- Local mode keeps AP_KEY exactly as today.
+
+BACKEND (makeDbBackend):
+- subscribe() adds db.collection('ingame').onSnapshot(onIngame, onListenError).
+- onIngame fills `applied` = {wid: vals} and `appliedMeta` = {wid:{by,at}}. Pending 'i:<wid>' keys keep the local copy, same pattern as onWorkers.
+- Add gotI/sinceI. tracking() also requires the first ingame snapshot, so the dots never flash 'Noch nie eingetragen' while loading.
+- New methods:
+  - setIngame(wid, doc) → schedule('i:'+wid, 0, () => db.collection('ingame').doc(wid).set(doc))
+  - deleteIngame(wid)
+- The local backend writes AP_KEY.
+
+markApplied(ids) (~line 1318):
+- Build vals as today, then call setIngame for each id with by = myId (await user.id() at boot, '' if null) and at = Date.now().
+- Drop reloadApplied() in db mode.
+- Hide or disable tick buttons and #mark-all when state.readOnly.
+
+MIGRATION (once per device; flag localStorage 'bellwright-ingame-migriert-v1'):
+- After the first workers AND ingame snapshots, write every AP_KEY entry whose worker exists and has no ingame doc, with by=myId and at=now.
+- Never overwrite an existing doc.
+- Then remove the migrated keys from AP_KEY and set the flag.
+
+WHO AND WHEN:
+- Under the 'im Spiel eingetragen' seal on cards and next to the table tick, show 'eingetragen von Lena · vor 2 Std.'.
+- Resolve names at render time with user.profiles(byIds). Cache them in a Map and re-render once when they arrive. Never store names.
+- If the name is '': 'eingetragen vor 2 Std.'.
+- Relative time: 'gerade eben' / 'vor 5 Min.' / 'vor 2 Std.' / 'gestern' / 'am 12.10.'.
+
+UNDO:
+- toast(msg, {label, fn}) gets an optional action button inside #toast, which then stays visible 8 s instead of 3.6 s.
+- Tick-off: 'Für alle als eingetragen gemerkt.' [Rückgängig] restores the previous doc, or deletes it if there was none.
+- Mark-all: 'Alle als eingetragen gemerkt.' [Rückgängig] restores all of them.
+- Delete (~line 1815): keep the removed worker and its ingame doc in memory. Toast '{Name} gelöscht.' [Rückgängig] re-saves the SAME id via saveWorker and restores the ingame doc. Deleting a worker also calls deleteIngame.
+
+EDGE CASES:
+- Values for jobs that are no longer in the plan are ignored; changesFor already iterates plan.jobs.
+- Old tabs only write localStorage, which is harmless.
+- Ticking is not possible before ingame has loaded.
+
+TEST:
+- Two accounts on two phones (owner and invited Bearbeiter). Tick Agnes on A: on B the dots vanish within about 1 s and the card shows 'eingetragen von <A>'.
+- Rückgängig on A brings the dots back on both phones.
+- Pre-seed AP_KEY on A and reload: docs are created, AP_KEY is emptied, and B sees them.
+- Delete Bertram, then Rückgängig: same id, same ticked state.
+- Local mode outside Claude is unchanged.
+====================================================================================================
+BUILD: 3. Eintragen-Modus am Fernseher (ein Dorfbewohner pro Bildschirm) | effort M
+WHY: This is the step players repeat most, with the controller in both hands. Today they scroll past 12 small badges per villager and can't tell which numbers to change. When the phone locks they lose their place. One villager per screen fixes this: large 'von 5 → 2' rows for the 4–6 numbers that really change, faded 'bleibt' rows for the rest, and a thumb-sized 'Fertig – weiter' that ticks the villager off for the whole group (item 2).
+SPEC:
+PLACEMENT:
+- Primary button 'Im Spiel eintragen (3 offen)' in .grid-head next to 'Prioritäten pro Arbeiter'.
+- On coarse pointers, also a sticky bar at the bottom of the Plan panel (position: sticky; bottom: 0; padding-bottom: max(12px, env(safe-area-inset-bottom))).
+- Both show only when tracking() and the queue is non-empty.
+
+QUEUE: lastPlan.team filtered to workers with no snapshot or a non-empty changesFor(), in roster order (sortedWorkers). Built when the mode opens and kept as ids.
+
+OVERLAY:
+- <div id='entry' role='dialog' aria-modal='true' aria-labelledby='entry-name'>, position fixed, inset 0, z-index 20, background var(--bg), its own scroll. Lock page scroll while open.
+- Close with '✕' (44px, aria-label 'Schließen') or Escape. ←/→ keys go back and forward on desktop.
+
+HEADER:
+- Progress '3 / 7' with small dots (done ones in ember).
+- Name in --font-display, about 2.2rem.
+- 'Hauptjob: Kochen'.
+- Chip '4 Zahlen ändern', or 'Alles passt schon'.
+- Muted line 'Im Spiel: Bevölkerung → {Name} → Job-Prioritäten'.
+- Without a snapshot, an extra line: 'Neue Dorfbewohner stehen überall auf 5. Habt ihr bei {Name} schon etwas verstellt, stellt jede Zeile auf die große Zahl.'
+- Link 'Überspringen' moves on without ticking.
+
+ROWS:
+- Rows follow plan.jobs order. Switch to the in-game order once the user's screenshot gives it.
+- from = applied[wid][job], or 5 when there is no snapshot.
+- Change rows (from ≠ target):
+  - min-height 56px with an ember left border;
+  - job label at 1.125rem plus the small English name;
+  - muted 'von 5';
+  - target in a 64×56 badge at 2rem, reusing .p1–.p9/.p0 and the main-job seal;
+  - 0 shows as 'X' (aria-label 'aus – im Spiel X');
+  - tapping a row toggles a check that lasts only for this session (line-through and ✓).
+- Same rows: 36px, opacity .5, text 'bleibt 5'.
+- No reason text in the rows. A <details> 'Warum diese Zahlen?' at the bottom lists c.why for each row.
+
+BOTTOM BAR (fixed, safe-area padding):
+- '◀ Zurück' at 30 % width.
+- 'Fertig – weiter ▶' at 70 % width, min-height 64px; 'Fertig' on the last villager.
+- Fertig calls markApplied([wid]), plays the existing stamp and ring(), then goes to the next villager.
+- Read-only viewers see 'Weiter ▶', which writes nothing.
+- After the last villager: 'Alle {n} eingetragen.' with [Schließen].
+
+LIVE: renderPlan() calls entry.refresh() while the mode is open. Changed badges get .bump plus the line 'Der Plan hat sich gerade geändert.' A worker who left the team is skipped.
+
+SCREEN ON:
+- On open: if ('wakeLock' in navigator) try { lock = await navigator.wakeLock.request('screen') } catch {}. Re-request on visibilitychange and release on close.
+- Show the pill 'Bildschirm bleibt an' only if the lock resolved.
+- Otherwise, once per device (localStorage 'bellwright-sperre-tipp-v1'): 'Tipp: Stellt die automatische Sperre am Handy für diese Zeit auf „Nie“.'
+- No hidden-video trick and no navigator.vibrate (both are unreliable in the iframe).
+- Pause the embers loop while the mode is open.
+
+RESUME:
+- Write localStorage 'bellwright-eintragen-v1' = {ids, i, at} on every step.
+- On load, if it is less than 3 h old and an id from position i on still has open changes, show a banner on the Plan tab: 'Weitermachen bei {Name} ({i+1}/{n})' with [Weiter] and [×].
+
+LANDSCAPE (max-height: 500px): name block on the left, rows in two columns.
+
+EDGE CASES:
+- The button is hidden for the example team or when all jobs are off.
+- Above 12 villagers the dots become text only.
+
+TEST:
+- Adopt the example team, tick everyone, then switch phase: the button shows '(n offen)'.
+- In the mode, 'von' equals the snapshot and the badge equals the plan cell.
+- Fertig on phone A clears the card on phone B.
+- Reload halfway: the resume banner appears.
+- iPhone in the Claude app and Android Chrome at 360px: no horizontal scroll, the bar sits above the home indicator, and either the pill or the tip appears.
+- Reduced motion: no bump or stamp animation.
+====================================================================================================
+BUILD: 4. Ruhiger Plan: kleine Verschiebungen nicht umstellen, Hauptjobs halten | effort M
+WHY: I re-ran the app's compute() on the example team. Switching Start → Ausbau changes 40 of 77 numbers, Aufrüsten changes 28 and Ausgewogen 21. Most are ±1 shifts that barely change behaviour in the game, plus a pointless swap between jobs that use the same skill (Agnes Ernten → Holzfällen). Every number is a controller trip. I then prototyped exactly this spec on the real compute(). Changes drop to 4, 17 and 3. Over all 49 single '+1 level' edits there are 0 main-job flips, against 1 today, and on average 0.5 changed cells. Real gains still win: with Hilde at Kochen 9/10 and Edda at 3/4, Hilde still becomes cook. This needs item 2 so that every phone uses the same anchor.
+SPEC:
+SETTINGS:
+- settings.calm is a boolean, default true. normSettings treats a missing value as true, so an old tab that rewrites settings/main without the field leaves it on.
+- Einstellungen → Rechenweise gets a checkbox 'Plan ruhig halten' with the small text: 'Kleine Verschiebungen um eins werden nicht umgestellt, und Hauptjobs wechseln nur, wenn es sich deutlich lohnt. So müsst ihr im Spiel weniger umstellen.'
+
+COMPUTE: compute(workers, settings, opts = {}), where opts.anchor = {wid:{jobId:0..9}} (the shared snapshots from item 2, or AP_KEY in local mode) and opts.calm. renderPlan passes the anchor only when tracking(); the example team gets none.
+
+(a) anchorMain[w] = the single job with value 1 in w's snapshot that is still switched on. None if there are 0 or 2+ such jobs.
+
+(b) Step 2 cost (~line 906): −(score + (must ? 1000 : 0) + (calm && j.id === anchorMain[w] ? STICK : 0)), with STICK = 1.2 score points (about one skill level). This is far below the must bonus, so coverage still wins.
+
+(c) Group re-sort (~line 914): when calm, leave out workers whose main equals their anchorMain and re-sort only the others. Without this, the re-sort undoes (b).
+
+(d) Cell hysteresis. Run it after the side-job and 'max two 2s' steps and BEFORE coverage. For each cell that is not main/side/off/weak/fixed:
+- a = the snapshot value, or 5 when the worker has no snapshot (the game default).
+- If a is 3..9, p is 2..9 and |p − a| = 1, then set c.ideal = p, c.p = a, c.held = true.
+- Append to why: ' Rechnerisch {p}, im Spiel steht {a} – zu wenig Unterschied, um es umzustellen.'
+- Without a snapshot, append instead: ' Rechnerisch {p}. Neue Dorfbewohner stehen auf 5 – der kleine Unterschied lohnt das Umstellen nicht.'
+- Coverage then runs unchanged, so a needed 2 still wins.
+
+(e) Compute once more with calm=false (cheap). If STICK alone kept a main job, append to the main row's why: ' Bleibt Hauptjob, weil es schon so im Spiel steht und ein Wechsel kaum etwas bringt.'
+
+(f) Info note when n > 0: 'Ruhig gehalten: {n} Zahlen bleiben wie im Spiel, weil sich kaum etwas ändern würde.'
+
+(g) Phase buttons on the Plan tab: when tracking() and at least one snapshot exists, the <small> under each inactive phase shows '{n} Zahlen ändern'. Compute this with one compute() per phase. Players then see the cost before they switch.
+
+EDGE CASES:
+- calm off must reproduce today's output exactly.
+- A job switched back on has snapshot 0, so it gets no hysteresis (0/1/2 are never held). Held values are never 1 or 0.
+- Snapshot values for removed jobs are ignored.
+- The plan depends on what was entered before; that is intended. Unticking the checkbox is the escape hatch, and the why text always shows the calculated value.
+
+TEST: in a node harness, copy the constants, hungarian and compute out of the file.
+1. With calm=false, the result deep-equals today's compute for all 4 phases on EXAMPLE.
+2. Snapshot everyone in Start, then switch phase: changed cells are about 4 for Ausbau (fresh 40), about 17 for Aufrüsten (28) and about 3 for Ausgewogen (21).
+3. 49 single '+1 Stufe' edits: 0 main flips.
+4. Edda Kochen 3/4 and Hilde 9/10: Hilde becomes cook even with calm on.
+====================================================================================================
+BUILD: 5. Fotos richtig zuordnen und unsichere Zahlen zeigen (auch beim Text-Import) | effort M
+WHY: Merged from the photo and xbox-flow proposals. Names are matched exactly (findByName), so one misread letter ('Wulfrlc', 'Agnés') silently creates a ghost villager in the shared roster. Misread digits (3/8, 1/7) and a level read lower than the stored one are accepted without question. The text import even writes straight to the shared list with no preview. This only uses data the app already has (names, stored values) plus a 'sure' flag from the same Claude call, so it costs no extra Claude usage.
+SPEC:
+PROMPT (PHOTO_PROMPT, ~line 1948):
+(1) Append the roster: 'Known villagers in this village (photos may misspell them): Agnes, Bertram, … If a villager is one of them, set “known” to that exact name, otherwise null.' Use sortedWorkers names, at most 80.
+(2) Each villager gets 'image': the 0-based index of the image it was read from.
+(3) Each stat becomes {cur, max, sure}. Set sure=false when a digit could be another (3/8, 1/7, 5/6, 0/8), is partly hidden by glare or stripes, or the max was estimated from a bar.
+Update the example JSON. cleanPhotoResult keeps known (≤40 chars), image (an integer in range, else null) and stats[a].sure (default true).
+
+MATCHING (replaces findByName in the review):
+- norm(s): lowercase → NFD without accents → 0→o, 1 | ! → l, 'rn' → m → letters only.
+- sim = 1 − levenshtein / maxLen.
+- score = sim
+  + 0.3 if read.known equals w.name (ignoring case)
+  + 0.02 for each attribute where both Max values exist and are equal
+  − 0.08 for each attribute where both Max values exist and differ
+  − 0.08 for each attribute whose read Stufe is lower than the stored one.
+- Best ≥ 0.85 with no conflict → green 'aktualisiert Agnes'.
+- 0.6–0.85, or any conflict → amber 'Ist das Agnes?'.
+- Below 0.6 → 'neu'.
+
+REVIEW CARD (renderReview / applyReview):
+- The badge becomes <select data-r='target'>: 'Neu anlegen' plus the existing workers, best match first and preselected if its score is ≥ 0.6. Editing the name re-runs the match unless the select was touched.
+- applyReview uses state.workers.get(target).
+- Two checked cards with the same target are blocked with 'Zwei Karten zeigen auf Agnes. Bitte bei einer „Neu anlegen“ oder einen anderen Namen wählen.', and focus moves to the second select.
+- For an existing target, each stat shows a muted 'bisher 4/7'. Values that did not change are dimmed (.same, opacity .6).
+- Amber .doubt outline with a short reason (aria-describedby):
+  - 'unsicher gelesen' (sure=false)
+  - 'Stufe über Max'
+  - 'ungewöhnlich hoch' (>10)
+  - 'niedriger als gespeichert – Lesefehler?'
+  - 'Max anders als gespeichert'
+  - Each doubt has a small 'stimmt' button that clears it; editing the field also clears it.
+- Card head chip '{n} Zahlen prüfen'.
+- A 64px thumbnail of photo.files[image] sits in the card head. Tapping it opens <dialog id='zoom'> with the image at full width, a 'Größer' toggle (200 %, scroll box with touch-action: pan-x pan-y pinch-zoom) and 'Schließen'.
+- If doubts remain, the first tap on 'Ausgewählte übernehmen' turns the button into 'Trotzdem übernehmen ({n} ungeprüft)' for 4 s (the same two-tap pattern as Löschen).
+
+TEXT IMPORT:
+- Move #review out of #photo to directly under #import.
+- #do-import is renamed 'Prüfen'. It maps parseRoster rows to review objects (sure true, image null, known null) and calls renderReview.
+- Nothing is saved before 'Ausgewählte übernehmen'.
+- Lines it cannot read stay in the field with '{n} Zeilen ohne Werte bleiben im Feld.'
+
+COST AND ERRORS:
+- One-time card above 'Werte auslesen' (localStorage 'bellwright-kosten-info-v1'): 'Fotos lesen nutzt euer eigenes Claude-Kontingent, ähnlich wie eine Chat-Nachricht mit Bild. Beim ersten Mal fragt Claude um Erlaubnis.' [Verstanden].
+- rate_limited: 'Euer Claude-Limit ist gerade erreicht. Tragt die Werte von Hand oder als Text ein oder versucht es später.' plus a button 'Als Text eintragen' that opens #import. Never retry automatically.
+
+EDGE CASES:
+- Empty roster: no known list in the prompt.
+- Short names ('Ida' vs 'Ina', sim .67) land in amber, by design.
+- Unnamed workers never match.
+
+TEST: with the example roster, feed review objects directly (no Claude call):
+- 'Wulfrlc' → Wulfric preselected.
+- 'Agnés' → Agnes, green.
+- 'Ina' → amber.
+- Edda read with Kochen 1 → amber 'niedriger…'.
+- Two cards pointing at Agnes → blocked.
+- Text import 'Agnes: Kochen 4/7' saves only after confirming.
+- Then one real TV photo end to end on a phone.
+====================================================================================================
+BUILD: 6. Foto zuschneiden, bevor Claude liest | effort M
+WHY: Checked in the sample contract: the platform shrinks every image to about 1.2 megapixels before Claude sees it. In a full TV photo, or a 4K Xbox screenshot where the villager window fills a third of the frame, the digits end up a few pixels tall. That causes the 3/8 and 1/7 mix-ups. Cropping on the phone at full resolution is the biggest lever for reading accuracy. Today the help text asks non-technical players to crop in their gallery app, which they skip.
+SPEC:
+DATA (session only): photo.files entries become {src: File (original), rot: 0|90|180|270, crop: {x,y,w,h} as 0–1 fractions of the rotated image (default: whole image), blob, url}.
+
+WHEN THE CROP STEP OPENS:
+- After addFiles, read each new image with createImageBitmap(src, {imageOrientation:'from-image'}).
+- Images above 1.5 MP, where the platform downsizing loses detail, go into a crop queue, and the crop sheet opens for the first one.
+- Smaller images, such as already-cropped PC screenshots, skip it.
+- Every thumbnail gets a small 'Zuschneiden' button.
+
+CROP SHEET: <div id='crop' role='dialog' aria-modal='true'>, fixed full-screen.
+- Title 'Auf das Fenster zuschneiden'.
+- Hint: 'Zieht die Ecken an den Rand des Fensters mit Name und Fertigkeiten. Je enger, desto sicherer liest Claude die Zahlen.'
+- Canvas with the (rotated) image fitted to the screen (max-height about 70vh) and the area outside the box dimmed.
+- 4 corner handles (20px visible, 44px hit area); drag inside the box to move it.
+- Pointer events with setPointerCapture, touch-action: none on the stage. Minimum box size: 8 % of each side.
+- Buttons: 'Drehen' (90° clockwise, resets the box), 'Ganzes Bild', 'Passt' (primary).
+- With a queue: 'Bild 2 von 3'.
+- Closing with ✕ keeps the whole image.
+
+PREP: prepImage(entry)
+- Draw the rotated crop at FULL source resolution.
+- Scale by min(1, sqrt(1.15e6 / (w·h))).
+- Encode as JPEG 0.92 into entry.blob.
+- Revoke the old object URL and call bmp.close().
+- Process one image at a time (phone memory).
+
+CAPTURE LOOP: after 'Passt', show next to 'Werte auslesen' a <label for='photo-cam'> 'Nächstes Foto' (coarse pointers) and the counter '{n} Fotos bereit', so 10 villagers can be shot in one go.
+
+HINT TEXT (replaces the Xbox paragraph in .drop): 'Xbox: Den Fernseher direkt abfotografieren – gerade davor, etwa 1 m Abstand und lieber 2× zoomen als nah ran (weniger Streifen), Licht aus gegen Spiegelungen. Danach auf das Fenster zuschneiden. Kleine Schrift? Die Xbox-Lupe vergrößert: Xbox-Taste drücken, dann die Ansicht-Taste. Oder Screenshot mit der Share-Taste und über die Xbox-App aufs Handy holen.'
+
+LEFT OUT ON PURPOSE: automatic blur/glare scores (thresholds never tested on real TV photos), perspective correction, splitting into strips.
+
+EDGE CASES:
+- If createImageBitmap fails, show the existing 'konnte nicht geöffnet werden' message.
+- The maxCount check is unchanged.
+- Stopping a read keeps the crops.
+
+TEST:
+- A 3840×2160 PNG cropped to a 900×1100 panel gives a blob of about 0.99 MP with no scaling.
+- An iPhone portrait photo with EXIF rotation shows upright.
+- Handles drag without scrolling the page on iOS Safari and Android Chrome.
+- Read the same 3 real TV photos with and without cropping and count wrong digits. The goal is clearly fewer.
+====================================================================================================
+BUILD: 7. Festlegen: Hauptjob oder einzelne Zahlen fixieren | effort M
+WHY: Players know things the model doesn't: Edda stays cook, Wulfric is reading books and should not research, an apprentice has to do a particular research. Today any manual choice is overwritten by the next plan and then flagged as 'geändert' forever. The controls sit inside the existing reason rows, so players who don't need them never see them. It also covers niche cases (apprentice research, a favourite carrier) without a separate feature for each.
+SPEC:
+DATA:
+- Collection 'prefs', doc id = worker id: {lockMain: jobId|null, pins: {jobId: 0|2..9}}.
+- Kept separate from the worker doc because old tabs replace worker docs with set().
+- Written with set() via schedule('p:'+wid, 300). Deleted with the worker and restored by its Rückgängig (item 2).
+- Fourth listener in subscribe().
+- Local mode: a 'prefs' map inside the LS_KEY payload (older versions ignore it).
+
+COMPUTE: compute(workers, settings, {anchor, calm, prefs}).
+1. Apportion slots on the full N as today. For each worker whose lockMain job is on: decrement slots[j] if it is > 0, and drop j from must if a locked worker now holds it. Run the Hungarian only on unlocked workers over the rebuilt columns, with today's fallback if there are fewer columns than rows.
+2. A pin of 0 (X) on job j adds +1e6 to that worker's cost on j's columns, so j can never become their main job.
+3. Right after the per-cell loop for a worker, apply the pins: c.auto = {p, off, why}, then set c.p/c.off from the pin and c.fixed = true.
+   - The side-job pick skips fixed cells, and is skipped entirely if the worker has a pinned 2.
+   - 'Max two 2s' never demotes a fixed cell.
+   - The calm hysteresis skips fixed cells.
+   - Coverage counts fixed cells but never picks one.
+4. Why texts:
+   - fixed cell: 'Von euch festgelegt. Die App würde {auto} vorschlagen: {auto.why}'
+   - locked main: 'Hauptjob von euch festgelegt.' followed by the skill line.
+5. Add out.objective = Σ score(w, main) without the must bonus. If prefs exist, also compute without prefs. If the difference is ≥ 1, add the note 'Eure Festlegungen kosten das Team etwa {Δ, auf 0,5 gerundet} Stufen.'
+   A lock on a switched-off job gets the note 'Festlegung für {Name} ruht – {Job} ist abgeschaltet.'
+
+UI (phone first, visible only when a row is opened):
+- Inside each card row's <details>, and in the table's #reason box, add a line 'Festlegen:' with 44px buttons 'Auto · 2 · 3 · 5 · 9 · X' and a small select 'andere' (4/6/7/8).
+- Non-main rows get 'Als Hauptjob'; a locked main gets 'Hauptjob lösen'.
+- Fixed badges get a small text tag 'fest'.
+- Under a card that has fixes: link 'Alle Festlegungen lösen'.
+- planText marks fixed values with ' (fest)'.
+- 1 is not offered as a pin; 'Als Hauptjob' sets it. So two jobs on 1 can never happen.
+
+EDGE CASES:
+- lockMain on j plus a pin X on j: the lock wins and the pin is removed on save.
+- Guards and companions keep their prefs, but they are inactive.
+- Prefs are stored by job id, so phase switches don't touch them.
+
+TEST (node harness):
+- Lock Godric → Herstellung: he gets crafting 1 and the cost note shows about 1 Stufe.
+- Pin Wulfric Forschung = X: someone else covers research, and Wulfric never gets it as main.
+- Two pinned 2s: no third 2.
+- 'Auto' removes the pin.
+- A second phone sees the fix within about 1 s.
+====================================================================================================
+CANCELLED BY USER (2026-10-14) – DO NOT BUILD: 8. Außenposten planen + „Wer passt hin?“ | effort L
+(Kept only for later reference. Replaced by BUILD: 9 at the end of this file.)
+WHY: This is the group's next step: they have outposts but no workers there yet. As soon as one villager moves, the single plan is wrong. Outpost workers only work at their outpost's buildings (the app's own Hilfe says so), and small groups never get Lieferung near the front, because delivery is only weighted from 5 workers. It comes last because it is the biggest change. Outposts appear in the UI only once one is created, so the app stays simple until then.
+SPEC:
+DATA:
+- Collection 'locations', doc id = location id: {name (≤30), order, jobs:{jobId:{on, imp}}}.
+- The main village stays implicit ('dorf' = settings/main), so nothing migrates and old tabs can't wipe outposts.
+- A worker's place is prefs/<wid>.loc (from item 7): a location id, or null = Hauptdorf. An unknown id counts as Hauptdorf.
+- Local mode: 'locations' inside the LS_KEY payload.
+
+CREATE (Einstellungen, new section 'Außenposten' below the jobs):
+- Button '+ Außenposten anlegen' → name field (placeholder 'z. B. Mine am Fluss') and template chips that only preset switches:
+  - 'Mine / Steinbruch' (Ernten 5)
+  - 'Holzfäller' (Holzfällen 5)
+  - 'Hof' (Landwirtschaft 5, Tierhaltung 4)
+  - 'Leer'
+- Every template also switches on Lieferung 5, Kochen 3 and Bauen 3; everything else is off.
+- Hint: 'Schaltet nur Jobs ein, für die dort ein Gebäude steht.'
+- A chip row at the top of Einstellungen, 'Einstellungen für: Hauptdorf · Mine', selects which location's job rows are edited. The phase buttons apply only to Hauptdorf.
+- 'Außenposten löschen' (two taps) moves its workers back to Hauptdorf.
+
+WORKER EDITOR: select 'Ort' next to the role, shown only when an outpost exists.
+
+PLAN:
+- Chip row above the grid, 'Hauptdorf (12) · Mine (2)', only when outposts exist. The choice is remembered per device in localStorage.
+- renderPlan runs compute(workersOf(loc), settingsOf(loc), {…, outpost: loc !== 'dorf'}).
+- Outpost mode in compute():
+  - delivery weight and coverage start at N ≥ 1 instead of 5/3;
+  - from N ≥ 2, delivery needs someone on 2 or better;
+  - the N<3 note reads 'Am Außenposten macht jeder fast alles. Lieferung steht vorne, damit Waren ins Lager kommen.'
+- Notes, plan text and the Eintragen-Modus show the location name. Change tracking stays per worker.
+
+WER PASST HIN? Button on an outpost's plan.
+- Lists the top 3 Hauptdorf workers by gain − loss:
+  - loss = objective(Hauptdorf) − objective(Hauptdorf without w), one extra compute per worker;
+  - gain = the best jobSkill + 0.25·imp over the outpost's switched-on skill jobs;
+  - workers with a locked main are left out.
+- Each line: 'Agnes – Ernten 6/9 · Hauptdorf verliert etwa 1 Stufe' with a button 'Hinschicken'.
+- Hinschicken sets loc and shows the toast 'Agnes ist jetzt bei Mine eingeplant. Im Spiel Agnes dem Außenposten zuweisen und dann die Zahlen eintragen.'
+- No headcount rule is hard-coded.
+
+EDGE CASES:
+- Outpost with all jobs off: 'Schaltet die Jobs ein, für die dort Gebäude stehen.'
+- Empty outpost: 'Noch niemand hier.' plus the 'Wer passt hin?' button.
+- A moved worker keeps their ingame snapshot, so the dots show exactly what to change.
+- Guards and companions can't be sent.
+
+TEST:
+- Example team, create 'Mine', send Agnes: the Hauptdorf plan recomputes without her, and Mine gives her Ernten 1 and Lieferung ≤ 2.
+- A second phone sees the outpost and her move.
+- Delete Mine: Agnes is back in Hauptdorf.
+- The ranking takes under 100 ms with 30 workers.
+====================================================================================================
+LATER:
+- Job-Reihenfolge und Spielnamen wie auf der Xbox :: One photo or screenshot of a villager's Job-Prioritäten tab on the German Xbox UI. It shows the row order, the exact labels, whether 'Karawane' and 'Training' exist, and whether it is one villager or a grid. Then hardcode the order and labels in JOBS. No calibration UI unless players' versions differ. This directly improves the Eintragen-Modus row order.
+- Kontrollfoto: Eingetragenes abgleichen und echten Spielstand übernehmen :: The same photo, to confirm that the name and all values are readable on one screen. After that it reuses the crop step, the review step and the shared 'ingame' collection ('Spielstand merken' stores the values read from the photo as the snapshot).
+- Anwärter / Rekrut-Check (lohnt sich der Neue?) :: A photo of the Xbox recruit window: does it show Max values and traits? Also, are they recruiting now? Then a role 'Anwärter' that compute() leaves out, plus 'würde Hauptjob X übernehmen · Umstellaufwand n Zahlen'. Renown refund numbers are not verified, so give the recruit-or-not verdict without them.
+- Bücherplan und Bibliothek :: Do they own books or a Library? The current tiers, XP and minimum levels also need confirming: the wiki values predate the Summer-2026 update, and one Steam post disagrees on Journeyman XP. The inventory input (7 skills × 5 tiers) is a lot of UI, so it is only worth it if they use books.
+- Eigenschaften mit echten Wirkungen (Tipp-Auswahl, Hunger, Laune, Nomad-Korrektur) :: Trait effects verified after the Summer-2026 'slightly rebalanced npc traits'. The wiki lists Nomad as +30 % combat, while the app treats Nomad as a good hauler. Also which traits their villagers actually have.
+- Wer trägt wen ein (zuständig, aufteilen, live „Lena trägt gerade ein“) :: Whether several players enter priorities at the same time, and whether non-host players may edit priorities in co-op. The shared tick-off (build 2) already covers the basic case.
+- Wache oder Arbeiter? Rollenberater :: Whether raids are a real problem for them, and reading Strength and Agility, which the photo prompt ignores today. There is no verified guards-per-villager ratio, so it could only rank candidates.
+- „Warum nicht …?“: knapp/klar-Hinweis und „Wer noch?“ pro Hauptjob :: No game facts. First see whether players still doubt main-job choices once Festlegen exists. It adds UI to every card.
+- Platz-Grenzen pro Job (höchstens n fest auf 1) :: How many workers one research table, cooking station or workshop serves at a time. It only matters at around 20+ workers.
+- Lehrlinge und Berufs-Forschung :: Whether they have apprentices, and which research is still profession-gated after recent patches. Until then, Festlegen ('Als Hauptjob' on Forschung) covers it by hand.
+- „Frag Claude“-Assistent mit Dorfwissen :: The core flows settled first, and the group's agreement to spend more Claude usage. Answers can only be as good as the app's community-sourced knowledge, so build it after the facts above are confirmed.
+- Chronik, Sicherungen, Backup-Datei und feldgenaues Speichern :: Evidence of lost edits or bad imports after builds 2 and 5, since undo and the review step cover the usual accidents. Field-level merge only matters if two people edit the same villager at once. A backup file needs the downloads capability.
+QUESTIONS:
+- Könnt ihr ein Foto oder einen Xbox-Screenshot vom Reiter „Job-Prioritäten“ eines Dorfbewohners schicken? Dann passe ich Reihenfolge und Namen der Jobs genau an euer Spiel an.
+- Wer trägt die Zahlen im Spiel ein – nur der Host oder jeder von euch? Und habt ihr eure Mitspieler per E-Mail als Bearbeiter eingeladen oder die Seite per Link geteilt?
+- Welche Außenposten habt ihr (z. B. Mine, Holzfällerlager, Hof), und wie viele Leute wollt ihr ungefähr dorthin schicken?
+- Was steht als Nächstes an: neue Leute anwerben, Bücher verteilen oder Wachen bestimmen?
+
+====================================================================================================
+BUILD: 9. Karte-Menü mit Animation (ersetzt Außenposten) | effort M
+WHY: The user cancelled the outpost feature but wants the link to the wiki's interactive map kept, in its OWN menu, with a cool animation
+("Außenposten weg, aber Link zur Minikarte soll bleiben in einem eigenen Menü mit cooler Animation!"). The app cannot embed the wiki map
+(CSP blocks foreign images/iframes) and must not copy the game's map image or the wiki's marker data, so the menu is an app-drawn,
+animated parchment map vignette that leads to the wiki map.
+SPEC:
+PLACE: a new tab "Karte" (role=tab, same pattern as the others, keyboard arrows/Home/End keep working), placed before "Hilfe".
+- The tab row must still fit at 360px without horizontal overflow and with legible labels; if five text tabs do not fit, switch narrow
+  screens to a compact tab bar (small icon above a short label) for ALL tabs. Tap targets >= 44px.
+CONTENT of the Karte panel:
+- Heading "Karte von Karvenia" (font-display).
+- An inline-SVG parchment map vignette drawn by the app: a GENERIC hand-drawn medieval landscape (coast line, river, forest symbols,
+  hills, mountains, a small village with a bell tower, a dotted road), NOT the real Bellwright geography, no external images.
+  Colors from the existing tokens (parchment = warm light browns derived from --accent/--surface-2; ink = dark brown; ember accents).
+- Text: "Die interaktive Karte mit Rohstoffen, Lagern und Orten pflegen Fans im Bellwright-Wiki."
+- Big primary button "Interaktive Karte öffnen" -> https://bellwright.fandom.com/wiki/Map:Karvenia (an <a> styled as .btn.primary,
+  target="_blank" rel="noopener noreferrer"), caption under it "Fan-Wiki, öffnet sich in neuem Tab". Tapping the map vignette itself
+  does NOT navigate (avoid accidental opens); it replays/skips the animation.
+- Hilfe gets a short line with the same link (small).
+ANIMATION ("cool", medieval, not cheesy; all inside @media (prefers-reduced-motion: no-preference); total intro <= 2.6 s):
+  1. the parchment unrolls from the centre (clip-path/scaleX) while two rolled wooden scroll ends slide outward;
+  2. ink lines draw themselves (stroke-dasharray/dashoffset), staggered: coast -> river -> hills/mountains -> forest -> road;
+  3. the compass rose spins in with a slight overshoot and settles; the needle keeps a very slow sway;
+  4. the dotted road draws from the village to a "?" mark at the edge;
+  5. a wax seal (bell emblem) stamps onto the village with a short thump and a small ember burst (reuse the ember palette);
+  6. idle: slow drifting cloud/fog shadows across the parchment and a faint warm torch-light flicker at one edge;
+  7. the "Interaktive Karte öffnen" button gets a light shine sweep once the intro ends, and an ember glow on hover/focus.
+- The intro plays when the Karte tab is opened (each time, but tapping the map skips to the end state); idle animations pause when
+  the tab is hidden or the page is not visible (animation-play-state / visibilitychange).
+- Reduced motion: show the finished map statically, no movement.
+- Implement through ONE function playMapIntro(panel) and CSS classes on the panel so the later "Animationen: voll / ruhig / aus"
+  setting (batch 2b) can gate it: "ruhig" = only a short fade of the finished map, "aus" = static.
+- Performance: SVG + CSS only, no canvas, no libraries; keep the SVG small (< ~12 KB); no layout shift while animating.
+NO new capabilities, no db, nothing stored.
+TEST (feat-map.js): tab exists before Hilfe and is keyboard reachable; tabs.js still passes; link href/target/rel correct; panel and tab
+row have no horizontal overflow at 360/390/1280; with reduced motion the final state is visible immediately; without it all map parts
+are visible after ~3 s; tapping the map skips to the end state; switching tabs mid-intro leaves no stuck state; no console errors.
+
+====================================================================================================
+BUILD: 10. Animationen: Eintragen-Modus lebendig + passende Effekte | effort M-L
+WHY: The user picked "Eintragen-Modus lebendig" plus "something fitting, nothing lame". It must feel hand-crafted and medieval
+(ledger, wax, embers, bell), short, smooth on a phone, and never get in the way of entering numbers.
+SETTING (do this first, everything below depends on it):
+- Einstellungen gets "Animationen: voll / ruhig / aus" (segmented control like the existing ones), stored PER DEVICE in
+  localStorage 'bellwright-anim-v1' (try/catch; default "voll"), applied as <html data-anim="voll|ruhig|aus">.
+- Movement only when @media (prefers-reduced-motion: no-preference) AND data-anim != "aus". With reduced motion the page behaves
+  like "aus" whatever the setting says (say so under the control: "Euer Gerät wünscht weniger Bewegung – Animationen sind aus.").
+- "ruhig" = only short functional fades/transitions (<= 200 ms): no embers (pause the ember canvas), no infinite pulses (main seal
+  glow), no sweeps, no flips, no shakes, no rolling. "aus" = no animation at all (also the existing ones: reveal, bell, bump,
+  stamp, seal, toast, embers).
+ENTRY MODE (#entry, use the existing hooks: entryGo(to, dir) is the only switch function, #entry-stage[data-dir], one
+article.entry-card per villager with .entry-page and .entry-seal, section#entry-finale):
+1. Page turn between villagers: a ledger page flip (perspective on the stage, rotateY around the spine edge, backface hidden,
+   light shading gradient on the turning page), direction-aware for Weiter/Zurück, ~450 ms. A tap during the flip finishes it
+   at once; never delay focus or the write.
+2. Wax seal on "Fertig": the seal drops onto the card (scale ~1.6 -> 1 with a hard landing), the card does a tiny thump
+   (2-3 px), and a short ember burst sprays from the seal (<= 24 small particles, ~600 ms, transform/opacity only). Keep the
+   current timing contract: the next villager comes after the stamp (adjust the 750 ms only if needed, max ~950 ms in "voll").
+3. Finale (all entered): a banner unfurls "Alle eingetragen" (scaleY from the top with ribbon tails), an ember fountain rises
+   behind it (~1.5 s), and the existing bell rings. The partial finale ("k von n …") gets only a calm fade.
+4. Rolling numbers: in the entry rows the target number rolls like an odometer from the old value to the new one when the card
+   appears ("von 5 →" then 5 rolls to 2; X/aus crossfades). 
+PLAN:
+5. Changed plan cells/badges after a recompute roll from old to new (odometer) instead of the plain bump in "voll"; "ruhig"
+   keeps a short fade/bump-free update; "aus" none.
+6. Phase switch (phase buttons): a warm light sweep runs across the plan grid/cards, staggered by column/card; changed cells glow
+   briefly as it passes. ~700 ms total.
+7. Header torch flicker: a very subtle, irregular flicker of the title glow (text-shadow/opacity), only in "voll", paused when
+   the page is hidden.
+RULES: transform/opacity only (no layout animation), particles capped and removed after use, pause everything on
+visibilitychange hidden, no flashing faster than 3/s, nothing blocks input or delays db writes, no horizontal overflow at 360px.
+TEST (feat-anim.js): setting persists per device and sets html[data-anim]; blocked localStorage falls back to "voll" without errors;
+with reduced motion no animations run (document.getAnimations() empty after interactions) and the note shows; in "aus" no
+animations; in "ruhig" no infinite/long animations; entry flow works in all three modes (Fertig ticks via the shared tick-off,
+advances, Zurück, double taps ignored, finale reached); timing: next villager within ~1.2 s; rolling numbers end on the right
+value; phase switch sweep ends and leaves no stuck classes; no console errors; 360/390/1280 no overflow.
+
+====================================================================================================
+BUILD: 11. Animationen an den Skill "bellwright-animations" anpassen | effort M
+WHY: The user installed the skill /root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/bellwright-animations/SKILL.md (READ IT FULLY – it is the authority for this
+build) and asked to run it over the app. The lead's quick audit of Version 15 found these deviations (verify each, find
+any others the skill implies, fix them all):
+1. Rule 2 (only transform/opacity): @keyframes seal (box-shadow, INFINITE on .pbadge.main/.cell.main), torchText
+   (text-shadow, infinite on h1), okflash (box-shadow), bump (filter). Rebuild them with opacity/transform only, e.g. a
+   pre-drawn glow on a pseudo-element whose opacity animates. The skill also says avoid permanent pulsing ("Dauer-Pulsieren"):
+   the main-seal glow should not pulse forever (a one-time stamp/glow is fine); the header torch flicker may stay in voll
+   only if it animates opacity/transform of a glow layer.
+2. Canvas embers: tick() builds createRadialGradient per particle per frame -> pre-render ONE sprite on an offscreen canvas
+   and drawImage with globalAlpha (skill code sample). DPR cap 2 and halving under 600 px already exist – keep.
+3. sparks(): seal burst uses 24 particles, finale fountain 40 -> at most 20 particles each, lifetime < 800 ms, then done.
+4. "Ruhig" level: only opacity fades <= 150 ms, no movement over 8 px, no particles (some ruhig rules use 0.16-0.2 s).
+5. prefers-reduced-motion: the skill says reduce counts as "Aus" UNLESS the user deliberately chose a level in the
+   settings. Today every animation is wrapped in @media (prefers-reduced-motion: no-preference), so an explicit choice is
+   ignored. Make html[data-anim] the single switch: JS anim() = explicit stored choice if the user picked one, else
+   (reduce ? "aus" : "voll"); CSS keys only on [data-anim]. Keep the note under the control, reworded: it now says the
+   device asks for less motion, so the default is "Aus", and that an explicit choice overrides it.
+6. Interaction timing (rule 3, max 400 ms for interactions, never block a click): the entry-mode page turn is ~460 ms ->
+   <= 400 ms; after "Fertig" the next villager comes after 750 ms and a second tap is ignored -> keep the shared write
+   immediate, keep protection against a double TICK, but a second tap during the stamp must finish the animation at once
+   and advance (no waiting). Entrance animations <= 700 ms (finale banner etc.).
+7. Style table: tab switch = 12 px slide + fade 260 ms cubic-bezier(.2,.7,.2,1); a changed priority "stamps"
+   scale 1.25 -> 0.95 -> 1 in 320 ms cubic-bezier(.3,1.6,.5,1) (today: bump/odometer – keep the odometer roll in voll if it
+   fits, but the landing should be the stamp); list load: rows staggered 30 ms, at most 10 staggered, 220 ms each (today
+   .reveal uses 80 ms per --i without a cap); toast in 16 px + fade 240 ms ease-out, out fade 160 ms; error = shake +-4 px
+   3x in 240 ms (add where the app shows an error state, e.g. a refused write / read-only switch or an invalid import).
+8. Rules 4/5 (pause when hidden, one frame loop): verify; only the embers loop should be a continuous rAF loop.
+NOT part of this build: loading GSAP/Lottie/Three.js ("das volle Paket" is optional; keep the app dependency-free).
+Process skills to follow (read them): /root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/test-driven-development/SKILL.md (write/adjust the failing check first in
+t2/feat-anim.js, then fix), /root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/verification-before-completion/SKILL.md (no success claims without running the commands),
+/root/.claude/skills/synced/742d902d-594a-458d-84d2-65fd255c95f9_1eb6da81-0fd2-4266-a5cf-dda6f3d7304f/systematic-debugging/SKILL.md (if a test fails unexpectedly).
+TEST: extend t2/feat-anim.js: no keyframe animates anything but transform/opacity; ember tick uses drawImage of one sprite
+(no createRadialGradient in the loop); sparks <= 20 and gone after 800 ms; ruhig animations <= 150 ms and <= 8 px;
+reduced motion: no stored choice -> aus, stored voll -> voll; page turn <= 400 ms; a second tap during the stamp advances at
+once without a second write; reveal stagger 30 ms capped at 10; toast/shake timings; all three levels + 360 px.
+
+====================================================================================================
+ROUND 3 (user approved 2026-10-24: "Alle drei perfekt" + the building table; a building-priority PLANNER is NOT wanted)
+Build in this order, each finished, tested and saved before the next.
+
+BUILD 12. Spickzettel Gebäudeprioritäten (Hilfe) | effort S
+- New Hilfe section "Gebäudeprioritäten" (after the job-priority explanation). Explain in 2 short lines: job priority =
+  WAS jemand macht, Gebäudepriorität = WO er es innerhalb eines Jobs zuerst macht. Scale: 1 = am wichtigsten,
+  5 = Standard, ⊘ = aus, Gebäude ohne Zahl (Wohnzelte, Brunnen, Wegweiser, Rathaus) brauchen keine.
+- Table (stacks into cards at 360 px, no horizontal page scroll):
+  1  Kochstellen (Lagerfeuer mit Kochtopf), Forschungstisch, Sägegrube solange ihr viel baut
+  2  Werkzeugmacher, Bauernhöfe, Dreschhaus, Holzfällerplatz, Minenlager, Geflügelstall, eine Baustelle, die fertig werden soll
+  3  Holzfällerhütte, Jägerlager, Metzgerei, Mischkübel, Webstuhl + Webertisch, Gerbergestell, Räuchergestelle
+  4  Fischerlager, Handwerkerecke, Einfache Werkbank, Schwammhütte
+  5  Alle Lager (Vorratslager, Scheunen, Lagertruhen), Sammlerhütte + Trockengestelle, Försterei, Komposthaufen, Karawane
+  ⊘  was ihr gerade nicht braucht
+- Rules below it: "Höchstens 3–4 Gebäude auf 1." · "Eine Baustelle auf 2, bis sie fertig ist, dann wieder 5." ·
+  "Ein rotes Warnzeichen am Gebäude heißt meist: Werkzeug oder Material fehlt."
+- A link to it from the Plan tab is not needed.
+
+BUILD 13. Eintragen ohne Verrutschen | effort M
+User problem: while entering numbers on the Xbox they look TV -> phone -> TV and land on the wrong villager in the normal
+plan view; they had forgotten the Eintragen-Modus exists.
+- Prominent banner at the top of the Plan tab whenever tracking() and the open queue (same count as the existing
+  "Im Spiel eintragen (n offen)" button) is > 0: "{n} Bewohner haben neue Zahlen" + big primary button
+  "Jetzt im Spiel eintragen" (opens the existing Eintragen-Modus) + small "Später" (hides it for this device until the
+  count changes; localStorage, try/catch). Not for the example team. Avoid three CTAs at once on a phone: the banner
+  replaces the grid-head button while the banner is visible; the sticky phone bar only shows once the banner is scrolled
+  out of view.
+- "Hier warst du" highlight: tapping/clicking anywhere in a villager's card (cards view) or row (table view) marks that
+  villager as the focus: clear gold left border, warm background tint and a small marker "◆ hier". Only one at a time,
+  stored per device (localStorage 'bellwright-fokus-v1'), survives re-renders, live snapshots, tab switches and
+  reloads. Closing the Eintragen-Modus sets the focus to the villager last shown there. When the Plan tab is opened and
+  the focused villager is off-screen, scroll it into view (no smooth scroll unless anim() is voll).
+- Table view readability (row slipping): zebra striping, slightly taller rows on phones, the name column sticky on the
+  left while scrolling sideways, and the focused row highlighted across the whole width.
+- Animations only per the bellwright-animations skill (stamp/fade, voll/ruhig/aus).
+
+BUILD 14. Werte aktuell halten | effort M
+Villagers get better through work, but the plan uses old numbers.
+- Arbeiter tab editor: next to each skill's Stufe field a "+1" button (>= 44 px; disabled read-only; at MAXV stays).
+  +1 raises cur by 1 and raises Max to cur if needed (never lowers Max). Saves through the existing worker save path.
+- Freshness: NEW collection 'stamps', doc id = worker id: {at, by} (do NOT add fields to worker docs – old tabs replace
+  them with set()). Written when a worker's stats change through the editor, +1, text import or photo import.
+  Deleted with the worker, restored by its Rückgängig. Local mode: inside the LS payload.
+  A worker without a stamp uses this device's first-seen time (localStorage map), so nobody is nagged right away and no
+  db writes are needed for old data.
+- Each worker card (Arbeiter tab) shows muted "Werte von heute / gestern / vor 12 Tagen".
+- Plan tab hint when at least one active worker's values are older than 7 days: "Die Werte von {n} Bewohnern sind über
+  eine Woche alt. Durch Arbeit werden sie besser – kurz nachschauen?" with button "Werte prüfen" (opens Arbeiter tab
+  sorted by oldest first, a small chip "Älteste zuerst" to switch back) and "Später" (hidden for 3 days on this device).
+- The hint never shows for the example team or when there are no workers.
+
+BUILD 15. Rekruten-Check | effort M
+Before recruiting someone in the game, the group enters the candidate's values and sees whether they fill a gap.
+- Arbeiter tab: button "Rekruten prüfen" opens a panel (bottom sheet on phones) for up to 3 candidates. Per candidate:
+  optional name, the 7 skills (Stufe/Max, same inputs as the editor), traits (same parser), plus a text field that
+  accepts the same text format as the import (parseRoster) to fill it quickly. Nothing is written to the db while
+  checking; read-only viewers may check but not add.
+- For each candidate compute the plan with the current active workers + the candidate (current settings, prefs and
+  locks respected, calm OFF so the result is the ideal assignment) and compare with the plan without them:
+  * "Hauptjob: Kochen (Stufe 4/7)" plus the reason line from compute,
+  * gap text: if that job had nobody on 1 before -> "Füllt eine Lücke: bisher hatte niemand Kochen als Hauptjob.",
+    otherwise "Verstärkt Ernte (jetzt 2 Leute)",
+  * team effect from out.objective: "Das Team wird etwa {Δ, 0,5 gerundet} Stufen besser",
+  * who would change main job: "Edda würde von Kochen zu Ernte wechseln" (max 3 lines, then "+n weitere").
+  * With 2-3 candidates: mark the one with the biggest Δ as "Bester Kandidat".
+- Buttons per candidate: "Anwerben" (adds them as a normal worker with these values, stamp now, toast with Rückgängig)
+  and "Verwerfen". The panel remembers its candidates per device until closed with "Alle verwerfen" (localStorage).
+- Copy in "ihr" form; works at 360 px one-handed.
+
+====================================================================================================
+BUILD 16. Spiel prüfen per Foto (approved by the user 2026-10-25: "Ja passt so bau los") | effort M-L
+WHY: after entering numbers on the Xbox the group photographs the game's table view (Bevölkerung -> top right
+"Arbeitsprioritäten": one row per villager, 13 icon columns) and wants the app to check that everything was entered
+correctly. A lead spike proved it works: both real photos (t2/fixtures/tabelle-1.jpg, tabelle-2.jpg) could be read
+completely (28 villagers x 13 numbers, truncated names like "Hubert Ger…", ⊘ cells, one cell with a red cursor box).
+t2/fixtures/check-live.json holds the group's real roster, settings, ingame snapshots and the lead's transcription of
+the photos (photoRows). The relocation case is NOT needed (the user said the move is finished).
+COLUMNS in the game table (left to right): Handwerk, Schmelzen, Ernte, Landwirtschaft, Holzfällen, Lieferung, Kochen,
+Jagen, Bau, Tierhaltung, Forschung, Karawanenträger, Karawanenwache (= GAME_ORDER / JOBS_SHOWN). Icons: anvil, furnace,
+berries, sprout, axe, chest, bowl, bow, hammer, rabbit, paper, cart, shield. ⊘ = gesperrt (= app value 0 / "aus").
+Numbers are 1-9; bright/dark tiles mean nothing. Rows may repeat across overlapping photos (scrolled) – merge them.
+A name may have a second muted line (profession title like "Zimmermann", "Weber", "Holzfäller", "Bauer") – ignore it.
+UI:
+- Button "Spiel prüfen (Foto)" on the Plan tab (next to the entry banner/grid head, only when tracking() and there are
+  workers) and on the Eintragen-Modus finale ("Jetzt mit Foto prüfen"). Short how-to: "Im Spiel: Bevölkerung → oben
+  rechts „Arbeitsprioritäten“. Fotografiert die Tabelle so, dass links die Namen und alle Spalten zu sehen sind. Bei
+  vielen Bewohnern 2–3 Fotos, jeweils weiter gescrollt."
+- 1-3 images (file input, same downscale/prep as the existing photo path), read with the existing sample capability
+  (images) using a NEW prompt for the table (roster names in the prompt for matching; strict JSON: rows [{name, values:
+  13 entries of 1-9 or "X" or null when unreadable, unsure: [column indexes]}]). Same error handling as the existing
+  photo flow (sample null, consent refused, rate limit, limits()).
+- Matching rows to villagers: reuse the BUILD 5 matching (normName, prefix match for truncated names, nameSim); a row
+  that matches nobody or matches ambiguously is shown with a select to pick the villager (never silently assigned).
+- Compare each matched row with the CURRENT plan targets (cellVal of plan.cells for switched-on jobs; switched-off app
+  jobs are not compared; the two caravan columns only if those jobs are on).
+- Result view (in the same style as the photo review, sticky action bar, 360 px one-handed):
+  * "✓ {n} stimmen" (collapsed list),
+  * per villager with differences: "Bau: im Spiel 1, Plan 7" lines, buttons "Korrigieren" and "So lassen",
+  * cells read unsure/null: shown with "?" and an input to confirm the game value before saving,
+  * villagers not found on any photo: "Nicht auf den Fotos: …",
+  * warning when a villager has two or more jobs on 1 in the game: "{Name} hat {Job A} und {Job B} auf 1 – das Spiel
+    wählt dann zufällig. Stellt einen davon auf 2."
+- "Übernehmen" (one tap at the bottom) applies the result:
+  * For every confirmed villager row, write the ACTUAL game values as that villager's shared 'ingame' snapshot
+    (setIngame/putIngame, by/at as usual). Matching villagers are thereby ticked off; villagers with differences are
+    open again and the Eintragen-Modus shows exactly "von 1 → 7" for them ("Korrigieren" = this default).
+  * "So lassen" on a difference instead adopts the game value as a Festlegung (prefs pins, BUILD 7) so the plan
+    plans around it: a value 0 or 2-9 becomes a pin; a game 1 on a job that is not the plan's main job becomes
+    lockMain on that job when the villager has exactly one 1 in the game; with two or more 1s "So lassen" is not
+    offered for the 1s (show the two-1s warning instead).
+  * Toast with Rückgängig restoring the previous ingame docs and prefs.
+- Nothing is written before "Übernehmen". Read-only viewers can check and see the result but cannot apply.
+TEST (feat-check.js): stub sample to return the lead's transcription (photoRows, with a duplicated row across two
+"photos", one truncated name, one unsure cell) for the real roster in check-live.json; assert matching (all 28),
+comparison against the computed plan, two-1s warnings (e.g. Helene Colley Kochen + Bau), apply writes game values to
+ingame and ticks matching villagers, "So lassen" creates the right pins/lockMain, Rückgängig, read-only, errors,
+360 px, animations per the skill.
+
+====================================================================================================
+BUILD 17. Abweichungen zum Spiel deutlich markieren (approved by the user 2026-10-25) | effort M
+User's words: if after the photo check something in the game is wrong (game table differs from the app), mark it in the
+app so that one sees at once (1) that something does not match, (2) what is in the game and (3) what it should be.
+Example: Helene Colley – game Bau 1, app Bau 7.
+Today the plan only shows a small ember "●" next to a value that differs from the tick-off snapshot – easy to miss.
+DATA: new collection 'checks', doc id = worker id: {at, by, vals} written by the photo check's "Übernehmen" for every
+villager it applied (vals = the game values read, the same object written to 'ingame'). Do NOT add fields to existing
+docs. Deleted with the worker, restored by its Rückgängig, and the check's own Rückgängig restores/removes them. Local
+mode: inside the LS payload.
+A cell is a CONFIRMED MISMATCH ("rot") when checks[wid] exists, the villager's current ingame snapshot is still the one
+the check wrote (ingame.at <= checks.at, or the same vals), and the game value differs from the current plan target.
+A later tick-off in the Eintragen-Modus (new snapshot) or a new photo check where it matches clears it automatically.
+Differences that are only plan changes since the last tick (no confirmed check) keep today's ember "●" ("neue Zahl").
+UI:
+- Cards and table view: a confirmed-mismatch cell gets a clear crimson frame/background (tokens: --crimson/--bad), the
+  target number big and the game value small and struck through before it ("~~1~~ → 7"; aria-label "Im Spiel 1, soll 7").
+  Tapping/focusing the cell opens its reason row with the line "Laut Foto-Prüfung vom {Datum} steht im Spiel {x}.
+  Soll: {y}." on top. Locked/X values read "X"/"aus".
+- The villager's card header / table name cell gets a crimson badge "⚠ passt nicht zum Spiel ({n})".
+- Plan tab banner (above the entry banner, same style family, crimson accent) when >= 1 villager has a confirmed
+  mismatch: "{n} Bewohner passen laut Foto nicht zum Spiel" + "Jetzt korrigieren" (opens the Eintragen-Modus with ONLY
+  these villagers in the queue) + "Nur diese zeigen" (filters cards and table to these villagers; a chip "Alle zeigen"
+  switches back; per device, cleared when nothing is left).
+- The Eintragen-Modus card of such a villager shows a small crimson line "Laut Foto falsch im Spiel" above the rows;
+  its rows already show "von 1 → 7".
+- Example team / no checks: nothing changes. Read-only viewers see the marks and the filter but "Jetzt korrigieren"
+  works in its usual read-only way.
+- Animations per the bellwright-animations skill (a one-time stamp/fade when marks appear; no pulsing).
+TEST (feat-mismatch.js): from the check-live fixture: apply a photo check (stubbed sample) -> the 10 villagers get red
+marks with correct game/target values, badge counts, banner count, filter, "Jetzt korrigieren" queue = only them;
+ticking one in the Eintragen-Modus clears its marks; a plan-only change (phase switch) shows the ember dot, not red;
+worker delete + Rückgängig; second viewer sees the marks live; read-only; 360/390/1280 no overflow; voll/ruhig/aus.
+BUILD 17 WORDING CORRECTION (user 2026-10-25): not the villagers "don't match", the PRIORITIES do. Banner counts wrong
+priorities: "13 Prioritäten stehen im Spiel falsch (bei 10 Bewohnern)" / "1 Priorität steht im Spiel falsch (bei 1
+Bewohner)"; badge "⚠ 2 Prioritäten falsch im Spiel" / "⚠ 1 Priorität falsch im Spiel"; Eintragen-Modus line "Laut Foto
+stehen diese Prioritäten im Spiel falsch" (singular "steht diese Priorität …"). Never "Bewohner passen nicht zum Spiel".
+
+====================================================================================================
+IDEA IN PROGRESS (brainstorming, 2026-10-28) – NOT approved for building yet
+Vorrats-Check: the app looks at the group's stock (food, raw materials) and SUGGESTS priority changes
+(e.g. "Essen ist knapp: stellt Kochen und Landwirtschaft wichtiger"); it changes nothing by itself. LATER an optional
+switch lets the app adjust job importance automatically from the stock.
+Input: a PHOTO of the in-game "Lager" tab (same window as Gebäude/Bevölkerung). Waiting for the user's Lager photos
+from their next session -> spike: read them by hand first, then design (categories, what counts as knapp, suggestions).
+Other ideas offered and not yet chosen: Spielabend-Assistent (guided loop: Werte -> Plan -> Eintragen -> Foto-Prüfung),
+all skills via one table photo (if the game's view dropdown has a skills table), "wer trägt gerade ein", Betten-Check,
+learning progress view.
+
+====================================================================================================
+BUILD 18. Vorrats-Check per Lager-Foto (approved by the user 2026-10-30: "Ja passt") | effort L
+WHY: the app knows the people but not the stock. The group wants to photograph the in-game "Lager" tab inside the app;
+the app reads it, shows the stock in groups with a traffic light and SUGGESTS priority changes. It changes nothing by
+itself (an automatic mode comes LATER, not now).
+GAME SCREEN (see t2/fixtures/lager-*.jpg and the lead's transcription t2/fixtures/lager-live.json): window tab "Lager",
+a category dropdown (Proviant, Waffen, Rohstoffe, Rüstungen, Kleidung, Werkzeuge, Ausrüstung, Munition, Dekorationen,
+Questgegenstände, Kenntnisbücher, Sonstiges; "Alle" shows everything), a search field, and a list: icon, item name,
+three numbers per row: Lager (chest), reserviert (chest with hourglass), unterwegs (arrow into chest). German thousands
+separator "2.115" = 2115. Names can be cut off with "…". A red search-icon box next to a name is the cursor – ignore.
+Photos overlap when scrolled; merge rows. The category shown is in the dropdown at the top of each photo.
+UI:
+- New tab "Lager" (before Einstellungen; the tab row must still fit at 360 px – compact labels/icons if needed; keyboard
+  tab navigation keeps working). Empty state with how-to: "Im Spiel: Fenster „Lager“ → Kategorie wählen (am wichtigsten:
+  Proviant, Rohstoffe, Werkzeuge) → Liste abfotografieren, bei langen Listen mehrere Fotos, jeweils weiter gescrollt."
+- "Lager prüfen (Foto)": 1–8 photos in one Claude call via the existing sample/photo pipeline (photoBlob, PHOTO_ERR,
+  cost note, rate-limit handling). Strict JSON: rows [{name, category, lager, reserviert, unterwegs, group}] where
+  group is chosen by Claude from the fixed list below for items not in the app's built-in map; unreadable numbers ->
+  null + listed as unsure. Review step before saving: rows grouped, unsure numbers highlighted and editable, merged
+  duplicates; "Speichern" writes the check; read-only viewers can check and view but not save.
+- GROUPS (built-in German name map from the fixture, Claude's group for unknown items as fallback):
+  Essen (all Proviant except burnt/spoiled; raw meat/fish shown as "roh – muss noch zubereitet werden"),
+  Holz & Bretter (Baumstamm, Holz, Holzplanke, Hartholzstamm, Hartholzplanke),
+  Stein & Lehm (Rohstein, Granit, Schlamm, Stampflehm, Torf),
+  Erz & Metall (Kupfer-/Zinn-/Eisenerz, Kupfer-/Zinn-/Bronze-/Eisenbarren, Nägel),
+  Stoff, Leder & Seil (Baumwolle, Baumwollbolzen, Flachs, Leinen, Hanf, Einfache Schnur, Seil, Riemen, Leder,
+  Unverarbeitetes Leder, Fell, Pelz, Rohpelz),
+  Tierfutter (Grobes Tierfutter; Getreide/Weizen/Stroh count as Futter-Rohstoff),
+  Werkzeug (everything in category Werkzeuge),
+  Saatgut and Sonstiges (shown collapsed, no traffic light).
+- Overview per group: total, traffic light knapp / okay / viel, expandable item list with Lager / reserviert / unterwegs,
+  and trend vs the previous check ("↓ 16 seit 28.10."). Separate warnings: "Verdorbene Nahrung 79 – Essen verdirbt.
+  Ein Vorratskeller hält Essen länger frisch." and burnt food.
+- TRAFFIC LIGHT: first check = estimate from population (Essen: knapp < 5 × Bewohner, viel > 20 × Bewohner; Tierfutter
+  vs Vieh count if known (ask once, optional) else fixed; other groups use per-item minimums for key items, e.g. Holzplanke,
+  Seil, Nägel, Barren) and say "Schätzung – wird mit jeder Prüfung genauer". From the second check on, use the trend:
+  falling fast -> knapp even above the minimum ("reicht bei diesem Verbrauch noch etwa n Prüfungen").
+- SUGGESTIONS (text + the job's current importance, nothing applied): Essen knapp -> Kochen, Landwirtschaft, Jagen, Ernte
+  wichtiger; Holz -> Holzfällen; Bretter -> Handwerk (Sägegrube); Stein & Lehm -> Ernte; Erz -> Ernte (Minenlager);
+  Barren/Nägel -> Schmelzen/Handwerk; Stoff/Leder/Seil -> Handwerk, Jagen; Tierfutter -> Landwirtschaft, Tierhaltung;
+  Werkzeug -> Handwerk (Werkzeugmacher). "viel" -> "kann etwas zurückgestellt werden". Each suggestion names the job
+  as in the game and its current importance from the settings ("Kochen ist gerade „normal“ – dringend wäre besser").
+  A small link "Zu den Einstellungen" is fine; no automatic change.
+- A short summary line on the Plan tab when the last check has something "knapp": "Lager: Tierfutter und Seil knapp →
+  Vorschläge ansehen" (opens the Lager tab).
+DATA: new collection 'stock': one doc per check {at, by, rows, pop} (keep the latest 12, deleting older ones in the same
+user action that saves). Never add fields to existing docs. Local mode: inside the LS payload.
+LATER (not now): switch "Prioritäten nach Lager anpassen".
+TEST (feat-stock.js): stub sample with the fixture rows (two overlapping photos with duplicate rows, one cut-off name,
+one unsure number, "2.115"); assert merge, grouping, totals, traffic lights for the real data (Tierfutter knapp with 11
+animals, Seil knapp, Essen viel at 32 Bewohnern, spoiled-food warning), suggestions text, trend after a second stubbed
+check, read-only, errors, 360/390/1280, voll/ruhig/aus per the animation skill, tabs still fit at 360 px.
