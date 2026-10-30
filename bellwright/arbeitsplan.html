@@ -131,7 +131,14 @@ small { font-size: var(--step--1); }
 .tab[aria-selected="true"] { color: var(--accent-hi); }
 .tab[aria-selected="true"]::after { transform: scaleX(1); }
 .tab:hover { color: var(--fg); }
-@media (max-width: 560px) { .tab { font-size: 1rem; padding: 10px 8px 12px; } .tab::after { left: 6px; right: 6px; } }
+@media (max-width: 560px) { .tab { font-size: 1rem; padding: 10px 6px 12px; min-width: 44px; } .tab::after { left: 5px; right: 5px; } }
+/* Five tabs on a narrow phone: "Einstellungen" becomes a gear (the word stays for screen readers). */
+.tab-ico { display: none; width: 22px; height: 22px; vertical-align: -5px; }
+@media (max-width: 480px) {
+  #tab-jobs { min-width: 44px; }
+  #tab-jobs .tab-ico { display: inline-block; }
+  #tab-jobs .tab-txt { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+}
 .tab .count { font-family: var(--font-body); font-size: var(--step--1); color: var(--muted); margin-left: 4px; font-variant-numeric: lining-nums tabular-nums; }
 .panel { padding-top: 22px; display: grid; gap: 22px; }
 .panel:focus { outline: none; }
@@ -440,6 +447,95 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
 @media (pointer: coarse) {
   #check-open, .check .btn, .check-result .btn, .ck-pick select, .ck-ctl select, .ck-seg button { min-height: 44px; }
   #check-thumbs .thumb button { min-width: 44px; height: 44px; }
+}
+/* Vorrats-Check (Lager tab): the photos as in "Spiel prüfen" (.check, .drop, .thumbs), the result as a review with the
+   sticky .ck-act bar; rows grouped in <details>, the three numbers right-aligned, an unsure one as an amber input. The
+   overview: one <details> per group with a traffic light (dot + word: knapp red, okay green, viel brass), total, trend and
+   why, the items inside; then the suggestion cards. On the Plan tab one line leads there when something is knapp. */
+.stock-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.sk-body, .sk-view, .sk-over, .sk-sugg { display: grid; gap: 12px; min-width: 0; }
+.sk-view { gap: 22px; }
+.sk-sum { max-width: 72ch; }
+.sk-ro { font-size: 0.875rem; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); padding: 6px 10px; }
+#stock-rv-title:focus, #sk-over-h:focus, #sk-sugg-h:focus { outline: none; }
+.stock-review h3 { color: var(--accent-hi); }
+.sk-pop { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 16px; padding: 10px 12px; background: var(--field); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.sk-pop label { display: grid; gap: 2px; font-size: var(--step--1); color: var(--muted); }
+.sk-pop input[type="number"] { width: 5.5em; font-size: 16px; min-height: 40px; }
+.sk-pop p { flex: 1 1 220px; min-width: 0; }
+.sk-open { color: var(--warn); font-weight: 700; }
+.sk-rgroup, .sk-group { background: var(--field); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+:is(.sk-rgroup, .sk-group) > summary { list-style: none; cursor: pointer; min-height: 44px; padding: 6px 12px; }
+:is(.sk-rgroup, .sk-group) > summary::-webkit-details-marker { display: none; }
+:is(.sk-rgroup, .sk-group) > summary::after { content: "›"; color: var(--muted); font-size: 1.125rem; justify-self: end; }
+:is(.sk-rgroup, .sk-group)[open] > summary::after { transform: rotate(90deg); color: var(--accent); }
+.sk-rgroup > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto 12px; align-items: center; gap: 8px; font-weight: 700; }
+.sk-cnt { font-size: 0.75rem; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-variant-numeric: lining-nums tabular-nums; }
+.sk-tbl, .sk-items { display: grid; padding: 0 12px 10px; font-variant-numeric: lining-nums tabular-nums; min-width: 0; }
+.sk-th, .sk-row, .sk-item { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 3.6rem); gap: 2px 8px; align-items: center; padding: 5px 0; border-top: 1px solid var(--line); min-width: 0; }
+.sk-th { font-size: 0.75rem; color: var(--muted); border-top: 0; padding-bottom: 2px; }
+.sk-th span:not(:first-child), .sk-n { text-align: right; }
+.sk-iname { min-width: 0; overflow-wrap: break-word; line-height: 1.25; }   /* a long word breaks only when it cannot fit */
+.sk-n { min-width: 0; }
+.sk-n input[type="number"] { width: 100%; text-align: right; font-size: 16px; min-height: 40px; padding: 4px 6px; }
+.sk-n.doubt input[type="number"] { border-color: var(--warn); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.35), 0 0 0 1px var(--warn); }
+.sk-tag, .sk-dline { grid-column: 1 / -1; font-size: 0.75rem; line-height: 1.3; }
+.sk-tag { color: var(--ember); }
+:is(.sk-row, .sk-item)[data-kind="brand"] .sk-tag, :is(.sk-row, .sk-item)[data-kind="verdorben"] .sk-tag { color: var(--bad); }
+:is(.sk-row, .sk-item)[data-kind="futterroh"] .sk-tag { color: var(--muted); }
+.sk-dline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--warn); font-size: 0.8125rem; }
+.sk-head { display: grid; gap: 2px; }
+.sk-head h3 { color: var(--accent-hi); }
+.sk-when { font-size: var(--step--1); color: var(--muted); }
+.sk-top { display: grid; gap: 8px; min-width: 0; }
+.sk-top:empty { display: none; }
+.sk-est { font-size: 0.875rem; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 6px 10px; max-width: 80ch; }
+.sk-warn { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sk-warn li { font-size: 0.9375rem; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); padding: 8px 12px; max-width: 80ch; }
+.sk-groups, .sk-rgroups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 10px; align-items: start; min-width: 0; }
+.sk-group { border-left-width: 3px; }
+.sk-group[data-light="knapp"] { border-left-color: var(--bad); }
+.sk-group[data-light="okay"] { border-left-color: var(--good); }
+.sk-group[data-light="viel"] { border-left-color: var(--accent); }
+.sk-group > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 12px; grid-template-areas: "name light total chev" "sub sub sub sub"; align-items: center; gap: 2px 10px; padding: 8px 12px; }
+.sk-group > summary::after { grid-area: chev; }
+.sk-name { grid-area: name; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.sk-light { grid-area: light; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; font-weight: 700; line-height: 1.3; border: 1px solid; border-radius: 999px; padding: 1px 10px; }
+.sk-light::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.sk-light.knapp { color: var(--bad); border-color: var(--bad); background: color-mix(in oklab, var(--crimson) 20%, transparent); }
+.sk-light.okay { color: var(--good); border-color: color-mix(in oklab, var(--good) 55%, transparent); }
+.sk-light.viel { color: var(--accent-hi); border-color: var(--accent); }
+.sk-total { grid-area: total; font-weight: 800; font-size: 1.125rem; font-variant-numeric: lining-nums tabular-nums; }
+.sk-sub { grid-area: sub; display: flex; flex-wrap: wrap; gap: 0 12px; font-size: var(--step--1); min-width: 0; }
+.sk-trend { color: var(--muted); font-variant-numeric: lining-nums tabular-nums; }
+.sk-why { color: var(--fg); overflow-wrap: anywhere; }
+.sk-group[data-light="knapp"] .sk-why { color: var(--bad); font-weight: 700; }
+.sk-missing { font-size: 0.9375rem; color: var(--muted); overflow-wrap: anywhere; }
+.sk-sugg h3 { color: var(--accent-hi); }
+.sk-sugg-note { max-width: 72ch; display: flex; flex-wrap: wrap; align-items: center; gap: 0 10px; }   /* the 44 px link does not stretch the lines */
+.sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 10px; align-items: start; min-width: 0; }
+.sk-card { display: grid; gap: 6px; min-width: 0; padding: 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--bad); border-radius: var(--radius); }
+.sk-card[data-light="viel"] { border-left-color: var(--accent); }
+.sk-card h4 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: var(--step-1); line-height: 1.15; color: var(--accent-hi); }
+.sk-card[data-light="knapp"] h4 { color: var(--bad); }
+.sk-card-why { font-size: 0.9375rem; }
+.sk-jobs { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; font-size: 0.9375rem; }
+.sk-jobs li::marker { color: var(--accent); }
+.sk-none { color: var(--good); }
+.stock-line { display: flex; align-items: center; min-width: 0; padding: 2px 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--bad); border-radius: var(--radius); }
+.stock-line .linkbtn { font-size: 0.9375rem; color: var(--fg); text-align: left; min-height: 36px; }
+.stock-line .linkbtn:hover { color: var(--accent-hi); }
+@media (max-width: 480px) {
+  .stock-photo { padding: 12px; }
+  .sk-act #stock-save { flex-grow: 2; order: 2; }
+  .sk-act #stock-discard { order: 1; }
+  .sk-tbl, .sk-items { padding-inline: 8px; }
+  .sk-th, .sk-row, .sk-item { grid-template-columns: minmax(0, 1fr) repeat(3, 2.75rem); gap: 2px 5px; }
+  .sk-iname { font-size: 0.9375rem; }   /* "Baumwollbolzen", "Unverarbeitetes" fit in one line at 360 px */
+}
+@media (pointer: coarse) {
+  #panel-lager .btn, .sk-pop input[type="number"], .sk-n input[type="number"], .stock-line .linkbtn { min-height: 44px; }
+  #stock-thumbs .thumb button { min-width: 44px; height: 44px; }
 }
 /* Zoom on the photo a card was read from: full width, "Größer" doubles it inside a scroll box (pinch works there too). */
 .zoom { width: min(960px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); max-width: none; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: linear-gradient(180deg, var(--surface-2), var(--surface)); color: var(--fg); box-shadow: var(--shadow); overflow: hidden; }
@@ -993,6 +1089,16 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
 [data-anim="voll"] .recruit:not([hidden]) .recruit-sheet { animation: sheetIn 0.26s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 [data-anim="ruhig"] .recruit:not([hidden]) .recruit-sheet { animation: calmIn 0.15s ease-out both; }
 @keyframes sheetIn { from { opacity: 0; transform: translateY(24px); } }
+/* Vorrats-Check: a new result and a new overview come in group by group (voll: 220 ms, 30 ms apart, at most 10 apart; ruhig:
+   a 150 ms fade; aus: nothing, the script adds no class). The lights of a new overview stamp once by script (play: voll scale
+   1.25 -> 0.95 -> 1 in 320 ms, ruhig a 150 ms fade). An opened group drops its list in; the Plan line comes in like a row. */
+[data-anim="voll"] .sk-in { animation: rise 0.22s ease-out backwards; animation-delay: calc(min(var(--i, 0), 10) * 30ms); }
+[data-anim="ruhig"] .sk-in { animation: calmIn 0.15s ease-out both; }
+[data-anim="voll"] .sk-group[open] .sk-items { animation: drop 0.25s ease-out both; }
+[data-anim="ruhig"] .sk-group[open] .sk-items { animation: calmIn 0.15s ease-out both; }
+:is([data-anim="voll"], [data-anim="ruhig"]) :is(.sk-rgroup, .sk-group) > summary::after { transition: transform 0.15s ease, color 0.15s; }
+[data-anim="voll"] .stock-line { animation: rise 0.22s ease-out backwards; }
+[data-anim="ruhig"] .stock-line { animation: calmIn 0.15s ease-out both; }
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1020,7 +1126,9 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     <div class="tablist" role="tablist">
       <button class="tab" role="tab" id="tab-plan" data-tab="plan" aria-selected="true" aria-controls="panel-plan">Plan</button>
       <button class="tab" role="tab" id="tab-arbeiter" data-tab="arbeiter" aria-selected="false" aria-controls="panel-arbeiter">Arbeiter<span class="count" id="wcount" aria-hidden="true"></span><span class="vh" id="wcount-sr"></span></button>
-      <button class="tab" role="tab" id="tab-jobs" data-tab="jobs" aria-selected="false" aria-controls="panel-jobs">Einstellungen</button>
+      <button class="tab" role="tab" id="tab-lager" data-tab="lager" aria-selected="false" aria-controls="panel-lager">Lager</button>
+      <!-- Narrow phones show a gear instead of the word, so five tabs fit in one row; the word stays for screen readers. -->
+      <button class="tab" role="tab" id="tab-jobs" data-tab="jobs" aria-selected="false" aria-controls="panel-jobs"><svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M9.52 4.82L9.28 1.86L14.72 1.86L14.48 4.82L15.32 5.17L17.24 2.90L21.10 6.76L18.83 8.68L19.18 9.52L22.14 9.28L22.14 14.72L19.18 14.48L18.83 15.32L21.10 17.24L17.24 21.10L15.32 18.83L14.48 19.18L14.72 22.14L9.28 22.14L9.52 19.18L8.68 18.83L6.76 21.10L2.90 17.24L5.17 15.32L4.82 14.48L1.86 14.72L1.86 9.28L4.82 9.52L5.17 8.68L2.90 6.76L6.76 2.90L8.68 5.17ZM12 8.4a3.6 3.6 0 1 0 0 7.2a3.6 3.6 0 1 0 0-7.2Z"/></svg><span class="tab-txt">Einstellungen</span></button>
       <button class="tab" role="tab" id="tab-wissen" data-tab="wissen" aria-selected="false" aria-controls="panel-wissen">Hilfe</button>
     </div>
   </nav>
@@ -1115,6 +1223,9 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         <button class="btn small fresh-later" type="button" id="fresh-later">Später</button>
       </div>
     </div>
+
+    <!-- The last Lager check found something knapp: one line into the Lager tab's suggestions (nothing changes by itself). -->
+    <p class="stock-line" id="stock-line" hidden><button type="button" class="linkbtn" id="stock-line-go"></button></p>
 
     <ul class="notes" id="notes"></ul>
 
@@ -1231,6 +1342,74 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     </div>
     <p class="muted" id="w-loading" hidden>Lädt eure Arbeiterliste …</p>
     <div class="wlist" id="wlist"></div>
+  </div>
+
+  <!-- LAGER: the stock from photos of the game's "Lager" window, a traffic light per group and suggestions. It changes
+       nothing by itself; the photos are read like the photo import, nothing is saved before "Speichern". -->
+  <div class="panel" id="panel-lager" role="tabpanel" aria-labelledby="tab-lager" tabindex="-1" hidden>
+    <div class="stock-top">
+      <h2 id="stock-h">Lager</h2>
+      <button class="btn primary" type="button" id="stock-open" aria-controls="stock-photo" aria-expanded="false" hidden>Lager prüfen (Foto)</button>
+    </div>
+    <p class="muted small" id="stock-note" hidden></p>
+    <p class="muted" id="stock-load" hidden>Lädt eure Lager-Prüfungen …</p>
+    <div class="empty" id="stock-empty" hidden>
+      <h3>Noch keine Lager-Prüfung</h3>
+      <p id="stock-empty-howto">Im Spiel: Fenster „Lager“ → Kategorie wählen (am wichtigsten: Proviant, Rohstoffe, Werkzeuge) → Liste abfotografieren, bei langen Listen mehrere Fotos, jeweils weiter gescrollt.</p>
+      <p class="muted">Die App liest die Fotos, zeigt euren Vorrat mit einer Ampel und schlägt vor, welche Jobs wichtiger werden sollten. Sie ändert nichts von selbst.</p>
+    </div>
+
+    <section class="check stock-photo" id="stock-photo" aria-labelledby="stock-photo-h" hidden>
+      <div class="check-head">
+        <h3 id="stock-photo-h" tabindex="-1">Lager prüfen per Foto</h3>
+        <button class="btn small" type="button" id="stock-close">Schließen</button>
+      </div>
+      <p class="muted check-howto" id="stock-howto">Im Spiel: Fenster „Lager“ → Kategorie wählen (am wichtigsten: Proviant, Rohstoffe, Werkzeuge) → Liste abfotografieren, bei langen Listen mehrere Fotos, jeweils weiter gescrollt.</p>
+      <div class="drop">
+        <div class="row">
+          <input class="vh" type="file" id="stock-cam" accept="image/*" capture="environment">
+          <label class="btn primary" for="stock-cam" id="stock-cam-btn">Foto machen</label>
+          <input class="vh" type="file" id="stock-file" accept="image/*" multiple>
+          <label class="btn" for="stock-file">Bilder auswählen</label>
+        </div>
+        <p class="muted small">Bis zu 8 Fotos auf einmal. Gerade vor den Fernseher, Licht aus gegen Spiegelungen. Gespeichert wird erst mit „Speichern“.</p>
+      </div>
+      <div class="thumbs" id="stock-thumbs"></div>
+      <div class="cost-info" id="stock-cost" hidden>
+        <p>Fotos lesen nutzt euer eigenes Claude-Kontingent, ähnlich wie eine Chat-Nachricht mit Bild. Beim ersten Mal fragt Claude um Erlaubnis.</p>
+        <button class="btn small" type="button" id="stock-cost-ok">Verstanden</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="button" id="stock-read" disabled>Lager auslesen</button>
+        <button class="btn" type="button" id="stock-stop" hidden>Stopp</button>
+        <span class="muted" id="stock-msg" aria-live="polite"></span>
+      </div>
+    </section>
+    <div class="review stock-review" id="stock-review" role="region" aria-labelledby="stock-rv-title" hidden>
+      <div class="sk-body" id="stock-rv-body"></div>
+      <div class="ck-act sk-act">
+        <span class="ck-msg" id="stock-act-msg" aria-live="polite"></span>
+        <button class="btn" type="button" id="stock-discard">Verwerfen</button>
+        <button class="btn primary" type="button" id="stock-save">Speichern</button>
+      </div>
+    </div>
+
+    <div class="sk-view" id="stock-view">
+      <section class="sk-over" id="sk-over" aria-labelledby="sk-over-h" hidden>
+        <div class="sk-head">
+          <h3 id="sk-over-h" tabindex="-1">Vorrat</h3>
+          <p class="sk-when" id="sk-when"></p>
+        </div>
+        <div class="sk-top" id="sk-top"></div>
+        <div class="sk-groups" id="sk-groups"></div>
+        <p class="sk-missing" id="sk-missing" hidden></p>
+      </section>
+      <section class="sk-sugg" id="sk-sugg" aria-labelledby="sk-sugg-h" hidden>
+        <h3 id="sk-sugg-h" tabindex="-1">Vorschläge</h3>
+        <p class="sk-sugg-note muted small">Die App ändert nichts von selbst. Die Wichtigkeit stellt ihr unter Einstellungen ein. <button type="button" class="linkbtn" data-goto="jobs">Zu den Einstellungen</button></p>
+        <div class="sk-cards" id="sk-cards"></div>
+      </section>
+    </div>
   </div>
 
   <!-- EINSTELLUNGEN -->
@@ -1643,6 +1822,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     stampsReady: false,     // when the values were last checked ('stamps') has arrived; the Plan hint waits for it
     stampsDenied: false,    // db: the stamps never come: the hint counts from this device's first sight
     checksReady: false,     // what the photo check found ('checks') has arrived; the "Nur diese zeigen" filter waits for it
+    stockReady: false,      // the Lager checks ('stock') have arrived; the Lager tab says "Lädt …" until then
+    stockDenied: false,     // db: the stock never comes (refused or connection lost): the Lager tab shows without it
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -1719,6 +1900,219 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (s) return s.at;
     if (!(typeof seen[wid] === "number" && seen[wid] > 0)) { seen[wid] = Date.now(); lsSet(SEEN_KEY, seen); }   // this device only
     return seen[wid];
+  }
+
+  // ---------- Vorrats-Check: what the game's "Lager" holds (logic only: no page, no storage) ----------
+  // One check = the Lager photos read once, saved as {at, by, pop, vieh, rows: [{name, category, lager, reserviert, unterwegs,
+  // group}]}: pop = Bewohner, vieh = Tiere (null = not known), the three numbers as the game shows them (null = not readable).
+  // Shared mode: the 'stock' collection, one doc per check (the latest STOCK_KEEP; "Speichern" deletes older ones in the same
+  // action); local mode: 'stock' inside LS_KEY. stocks = {id: cleaned doc}. Nothing here changes the plan, it only suggests.
+  let stocks = {};
+  let stockRev = 0;   // bumped on every change of stocks: the overview is worked out once per change
+  const STOCK_KEEP = 12, STOCK_MAX_ROWS = 400;   // 400 rows of about 110 bytes stay far below a document's 256 KiB
+  const STOCK_FIELDS = ["lager", "reserviert", "unterwegs"];
+  const STOCK_CATS = ["Proviant", "Waffen", "Rohstoffe", "Rüstungen", "Kleidung", "Werkzeuge", "Ausrüstung", "Munition", "Dekorationen", "Questgegenstände", "Kenntnisbücher", "Sonstiges"];
+  // cat = the game category the group comes from (for "Nicht auf den Fotos"); quiet = shown collapsed, no traffic light.
+  const STOCK_GROUPS = [
+    { id: "essen", label: "Essen", cat: "Proviant" },
+    { id: "holz", label: "Holz & Bretter", cat: "Rohstoffe" },
+    { id: "stein", label: "Stein & Lehm", cat: "Rohstoffe" },
+    { id: "erz", label: "Erz & Metall", cat: "Rohstoffe" },
+    { id: "stoff", label: "Stoff, Leder & Seil", cat: "Rohstoffe" },
+    { id: "futter", label: "Tierfutter", cat: "Rohstoffe" },
+    { id: "werkzeug", label: "Werkzeug", cat: "Werkzeuge" },
+    { id: "saatgut", label: "Saatgut", cat: "Rohstoffe", quiet: true },
+    { id: "sonstiges", label: "Sonstiges", cat: null, quiet: true },
+  ];
+  const STOCK_GROUP = Object.fromEntries(STOCK_GROUPS.map(g => [g.id, g]));
+  const STOCK_TAG = { roh: "roh – muss noch zubereitet werden", brand: "angebrannt – zählt nicht", verdorben: "verdorben – zählt nicht", futterroh: "Futter-Rohstoff" };
+  const stockKey = s => String(s ?? "").normalize("NFC").toLowerCase().replace(/(…|\.{2,})\s*$/, "").replace(/\s+/g, " ").trim();
+  const stockCut = s => /(…|\.{2,})\s*$/.test(String(s ?? ""));
+  // The built-in map, from the group's real Lager photos (2026-10-30): game name -> group and kind. Kinds: roh = still has to
+  // be cooked, brand / verdorben = burnt / spoiled (not counted as food), futterroh = grain and straw (feed only once made).
+  const STOCK_ITEMS = new Map();
+  for (const [group, kind, list] of [
+    ["essen", "", ["Beere", "Geräucherter Pilz", "Kleines Stück geräuchertes Fleisch", "Radieschen", "Rote Bete", "Rübe", "Stück geräuchertes Fleisch", "Zwiebel"]],
+    ["essen", "roh", ["Fischfilet", "Großes Stück rohes Fleisch", "Kleines Stück rohes Fleisch", "Stück rohes Fleisch"]],
+    ["essen", "brand", ["Angebrannter Fisch", "Angebrannter Pilz"]],
+    ["essen", "verdorben", ["Verdorbene Nahrung"]],
+    ["holz", "", ["Baumstamm", "Hartholzplanke", "Hartholzstamm", "Holz", "Holzplanke"]],
+    ["stein", "", ["Granit", "Rohstein", "Schlamm", "Stampflehm", "Torf"]],
+    ["erz", "", ["Bronzebarren", "Eisenbarren", "Eisenerz", "Eisennägel", "Kupferbarren", "Kupfererz", "Kupfernägel", "Zinnbarren", "Zinnerz"]],
+    ["stoff", "", ["Baumwollbolzen", "Baumwolle", "Einfache Schnur", "Fell", "Flachs", "Hanf", "Leder", "Leinen", "Pelz", "Riemen", "Rohpelz", "Seil", "Unverarbeitetes Leder"]],
+    ["futter", "", ["Grobes Tierfutter"]],
+    ["futter", "futterroh", ["Getreide", "Stroh", "Weizen"]],
+    ["saatgut", "", ["Apfelsamen", "Baumsamen", "Baumsetzling", "Baumwollsamen", "Flachssamen", "Hanfsamen", "Knoblauchsamen", "Radieschensamen", "Rote-Bete-Samen", "Rübensamen", "Salbeisamen"]],
+    ["sonstiges", "", ["Dünger", "Federn", "Fischschuppe", "Flussschilf", "Hahnkadaver", "Hirschgeweih", "Knoblauch", "Moos", "Regenwürmer", "Salbei", "Schilf", "Weiße Perle", "Wolfszahn"]],
+  ]) for (const name of list) STOCK_ITEMS.set(stockKey(name), { name, group, kind });
+  // A name as read -> the built-in item: the same name, or a cut-off one ("Großes Stück rohes Flei…") by its beginning
+  // when exactly one item starts like that. null = not in the map.
+  function stockItem(name) {
+    const k = stockKey(name);
+    if (!k) return null;
+    if (STOCK_ITEMS.has(k)) return { key: k, ...STOCK_ITEMS.get(k) };
+    if (!stockCut(name) || k.length < 3) return null;
+    let hit = null;
+    for (const [key, it] of STOCK_ITEMS) if (key.startsWith(k)) { if (hit) return null; hit = { key, ...it }; }
+    return hit;
+  }
+  // The group: the built-in map, then the game category (Proviant = Essen, Werkzeuge = Werkzeug, weapons, armour … =
+  // Sonstiges), then the group Claude chose for an item the map does not know.
+  function stockGroupOf(name, category, claude) {
+    const it = stockItem(name);
+    if (it) return it.group;
+    if (category === "Proviant") return "essen";
+    if (category === "Werkzeuge") return "werkzeug";
+    if (category && category !== "Rohstoffe") return "sonstiges";
+    return STOCK_GROUP[claude] ? claude : "sonstiges";
+  }
+  function stockKind(name, group) {
+    const it = stockItem(name);
+    if (it) return it.kind;
+    if (group !== "essen") return "";
+    const s = stockKey(name);
+    return /^angebrannt/.test(s) ? "brand" : /verdorben/.test(s) ? "verdorben" : /(^|\s)roh(e|es|er|en)?(\s|$)/.test(s) ? "roh" : "";
+  }
+  // A number as Claude may send it: 2115, "2115", "2.115" or 2.115 (the game's thousands dot); anything else null.
+  function stockNum(v) {
+    if (typeof v === "number") {
+      if (!isFinite(v) || v < 0) return null;
+      if (Number.isInteger(v)) return v <= 1e7 ? v : null;
+      const k = Math.round(v * 1000), c = Math.round(v * 100);
+      return v < 1000 && Math.abs(v * 1000 - k) < 1e-6 && Math.abs(v * 100 - c) > 1e-6 ? k : null;   // exactly 3 decimals
+    }
+    if (typeof v !== "string") return null;
+    const s = v.replace(/\s/g, "");
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) return +s.replace(/\./g, "");
+    return /^\d{1,7}$/.test(s) ? +s : null;
+  }
+  const stockFmt = n => n === null || n === undefined ? "?" : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  function cleanStockRow(o) {
+    if (!o || typeof o !== "object" || Array.isArray(o)) return null;
+    const name = typeof o.name === "string" ? o.name.replace(/\s+/g, " ").trim().slice(0, 60) : "";
+    if (!stockKey(name)) return null;
+    const category = STOCK_CATS.includes(o.category) ? o.category : "";
+    const n = f => Number.isInteger(o[f]) && o[f] >= 0 && o[f] <= 1e7 ? o[f] : null;
+    return { name, category, lager: n("lager"), reserviert: n("reserviert"), unterwegs: n("unterwegs"), group: stockGroupOf(name, category, o.group) };
+  }
+  function cleanStock(d) {
+    if (!d || typeof d !== "object" || Array.isArray(d) || typeof d.at !== "number" || !isFinite(d.at) || d.at <= 0 || !Array.isArray(d.rows)) return null;
+    const rows = d.rows.slice(0, STOCK_MAX_ROWS).map(cleanStockRow).filter(Boolean);
+    if (!rows.length) return null;
+    const count = (v, lo) => Number.isInteger(v) && v >= lo && v <= 99999 ? v : null;
+    return { at: d.at, by: typeof d.by === "string" ? d.by.slice(0, 200) : "", pop: count(d.pop, 1), vieh: count(d.vieh, 0), rows };
+  }
+  // The doc as it is written (a copy; the same shape in the LS payload).
+  const stockDoc = s => ({ at: s.at, by: s.by, pop: s.pop, vieh: s.vieh,
+    rows: s.rows.map(r => ({ name: r.name, category: r.category, lager: r.lager, reserviert: r.reserviert, unterwegs: r.unterwegs, group: r.group })) });
+  // Key items with a minimum (below = knapp) and a level from which there is "viel"; jobs = what makes more of it (as in the
+  // game's job list), where = the building, said with the job. Absent items are not judged (nothing known about them).
+  const STOCK_KEYS = [
+    { id: "Baumstamm", group: "holz", names: ["Baumstamm"], min: 20, viel: 300, jobs: ["woodcutting"] },
+    { id: "Holz", group: "holz", names: ["Holz"], min: 30, viel: 400, jobs: ["woodcutting"] },
+    { id: "Holzplanke", group: "holz", names: ["Holzplanke"], min: 30, viel: 300, jobs: ["crafting"], where: { crafting: "Sägegrube" } },
+    { id: "Rohstein", group: "stein", names: ["Rohstein"], min: 40, viel: 600, jobs: ["harvesting"] },
+    { id: "Schlamm", group: "stein", names: ["Schlamm"], min: 20, viel: 400, jobs: ["harvesting"] },
+    { id: "Erz", group: "erz", names: ["Kupfererz", "Zinnerz", "Eisenerz"], min: 15, viel: 300, jobs: ["harvesting"], where: { harvesting: "Minenlager" } },
+    { id: "Barren", group: "erz", names: ["Kupferbarren", "Zinnbarren", "Bronzebarren", "Eisenbarren"], min: 15, viel: 150, jobs: ["smelting", "crafting"] },
+    { id: "Nägel", group: "erz", names: ["Kupfernägel", "Eisennägel"], min: 20, viel: 200, jobs: ["smelting", "crafting"] },
+    { id: "Seil", group: "stoff", names: ["Seil"], min: 10, viel: 100, jobs: ["crafting"] },
+    { id: "Leder", group: "stoff", names: ["Leder"], min: 10, viel: 150, jobs: ["crafting", "hunting"] },
+  ];
+  // Per group: the rows (with their kind) and the total that counts (burnt, spoiled and feed grain do not).
+  function stockSums(doc) {
+    const g = Object.fromEntries(STOCK_GROUPS.map(x => [x.id, { rows: [], total: 0 }])), byItem = new Map();
+    for (const r of doc.rows) {
+      const group = stockGroupOf(r.name, r.category, r.group), kind = stockKind(r.name, group), it = stockItem(r.name);
+      g[group].rows.push({ name: r.name, category: r.category, lager: r.lager, reserviert: r.reserviert, unterwegs: r.unterwegs, kind });
+      if (it) byItem.set(it.name, (byItem.get(it.name) || 0) + (r.lager || 0));
+      if (kind !== "brand" && kind !== "verdorben" && kind !== "futterroh") g[group].total += r.lager || 0;
+    }
+    return { g, byItem };
+  }
+  const stockKeyAmount = (s, k) => ({ present: k.names.some(n => s.byItem.has(n)), amount: k.names.reduce((a, n) => a + (s.byItem.get(n) || 0), 0) });
+  // The overview of the latest check (list = the cleaned docs, any order), compared with the ones before; null = no check.
+  // A measure is knapp below its minimum and, from the second check on, when it falls so fast that it lasts less than three
+  // more checks at this rate ("falling fast", even above the minimum); viel from its upper level.
+  function stockView(list, settings) {
+    const docs = (list || []).filter(d => d && d.at > 0 && Array.isArray(d.rows)).slice().sort((a, b) => a.at - b.at);
+    if (!docs.length) return null;
+    const cur = docs[docs.length - 1], S = stockSums(cur);
+    const older = docs.slice(0, -1).reverse().map(d => ({ at: d.at, s: stockSums(d) }));   // newest first
+    const prevOf = pick => { for (const o of older) { const x = pick(o.s); if (x.present) return { at: o.at, amount: x.amount }; } return null; };
+    const gPick = id => s => ({ present: s.g[id].rows.length > 0, amount: s.g[id].total });
+    const lasts = n => `reicht bei diesem Verbrauch noch etwa ${n} ${n === 1 ? "Prüfung" : "Prüfungen"}`;
+    const two = n => String(n).padStart(2, "0");
+    const since = at => { const a = new Date(at), b = new Date(cur.at); return a.toDateString() === b.toDateString() ? `seit ${two(a.getHours())}:${two(a.getMinutes())} Uhr` : `seit ${two(a.getDate())}.${two(a.getMonth() + 1)}.`; };
+    function judge(amount, min, viel, pick) {
+      const prev = prevOf(pick), d = prev ? amount - prev.amount : 0;
+      const fast = d < 0 && amount > 0 && amount / -d < 3, n = fast ? Math.max(1, Math.floor(amount / -d)) : 0;
+      return { amount, fast, n, light: amount < min || fast ? "knapp" : amount >= viel ? "viel" : "okay", sev: amount < min ? amount / Math.max(1, min) : fast ? 1 + amount / -d : 9 };
+    }
+    const fastWhy = j => j.fast ? ` · ${lasts(j.n)}` : "";
+    const fastSay = j => j.fast ? ` R${lasts(j.n).slice(1)}.` : "";
+    const { pop, vieh } = cur, tiere = n => `${n} ${n === 1 ? "Tier" : "Tieren"}`;
+    const entries = [];   // the things with a light: {key, light, label, sev, why, jobs, where}
+    const groups = STOCK_GROUPS.map(G => {
+      const s = S.g[G.id], present = s.rows.length > 0;
+      const prev = present ? prevOf(gPick(G.id)) : null, d = prev ? s.total - prev.amount : 0;
+      const out = { id: G.id, label: G.label, quiet: !!G.quiet, present, light: null, total: s.total, why: "", items: s.rows,
+        trend: prev ? `${d < 0 ? `↓ ${stockFmt(-d)}` : d > 0 ? `↑ ${stockFmt(d)}` : "gleich"} ${since(prev.at)}` : null };
+      if (!present) return out;
+      if (G.quiet) { out.why = `${s.rows.length} ${s.rows.length === 1 ? "Sorte" : "Sorten"}`; return out; }
+      if (G.id === "essen") {
+        if (!pop) { out.why = "Bewohnerzahl fehlt"; return out; }
+        const j = judge(s.total, 5 * pop, 20 * pop, gPick("essen"));
+        Object.assign(out, { light: j.light, why: `für ${pop} Bewohner${fastWhy(j)}` });
+        entries.push({ key: "essen", light: j.light, label: "Essen", sev: j.sev, why: `${stockFmt(s.total)} Essen für ${pop} Bewohner.${fastSay(j)}`,
+          jobs: j.light === "knapp" ? ["cooking", "farming", "hunting", "harvesting"] : ["farming", "hunting", "harvesting"] });   // a lot of food still has to be cooked
+      } else if (G.id === "futter") {
+        if (vieh === 0) { out.why = "Ohne Vieh braucht ihr kein Tierfutter."; return out; }
+        const known = vieh > 0, j = judge(s.total, known ? 3 * vieh : 20, known ? 15 * vieh : 200, gPick("futter"));
+        Object.assign(out, { light: j.light, why: `${known ? `bei ${tiere(vieh)}` : "Vieh unbekannt"}${fastWhy(j)}` });
+        entries.push({ key: "futter", light: j.light, label: "Tierfutter", sev: j.sev, why: `${stockFmt(s.total)} Tierfutter${known ? ` bei ${tiere(vieh)}` : ""}.${fastSay(j)}`, jobs: ["farming", "animals"] });
+      } else if (G.id === "werkzeug") {
+        const j = judge(s.total, pop ? Math.max(5, Math.ceil(pop / 4)) : 5, pop ? 2 * pop : 50, gPick("werkzeug"));
+        Object.assign(out, { light: j.light, why: `${pop ? `für ${pop} Bewohner` : "Bewohnerzahl fehlt"}${fastWhy(j)}` });
+        entries.push({ key: "werkzeug", light: j.light, label: "Werkzeug", sev: j.sev, why: `${stockFmt(s.total)} Werkzeuge${pop ? ` für ${pop} Bewohner` : ""}.${fastSay(j)}`, jobs: ["crafting"], where: { crafting: "Werkzeugmacher" } });
+      } else {
+        const ks = STOCK_KEYS.filter(k => k.group === G.id).map(k => ({ k, x: stockKeyAmount(S, k) })).filter(o => o.x.present)
+          .map(o => ({ k: o.k, j: judge(o.x.amount, o.k.min, o.k.viel, s2 => stockKeyAmount(s2, o.k)) }));
+        if (!ks.length) return out;
+        const low = ks.filter(o => o.j.light === "knapp"), below = low.filter(o => o.j.amount < o.k.min);
+        out.light = low.length ? "knapp" : ks.every(o => o.j.light === "viel") ? "viel" : "okay";
+        out.why = [below.length ? `${joinDe(below.map(o => `${o.k.id} ${stockFmt(o.j.amount)}`))} knapp` : "",
+          ...low.filter(o => !below.includes(o)).map(o => `${o.k.id} ${lasts(o.j.n)}`)].filter(Boolean).join(" · ");
+        for (const o of low) entries.push({ key: o.k.id, light: "knapp", label: o.k.id, sev: o.j.sev, why: `${o.k.id}: ${stockFmt(o.j.amount)} im Lager.${fastSay(o.j)}`, jobs: o.k.jobs, where: o.k.where });
+        if (out.light === "viel") entries.push({ key: G.id, light: "viel", label: G.label, sev: 9, why: `${joinDe(ks.map(o => `${o.k.id} ${stockFmt(o.j.amount)}`))} im Lager.`,
+          jobs: [...new Set(ks.flatMap(o => o.k.jobs))], where: Object.assign({}, ...ks.map(o => o.k.where || {})) });
+      }
+      return out;
+    });
+    // Suggestions: what is knapp first (the most urgent first), then what there is a lot of. Each names the job as the game
+    // does and its importance in the settings; a job that something knapp needs is never suggested to be put back.
+    const knapp = entries.filter(e => e.light === "knapp").sort((a, b) => a.sev - b.sev);
+    const need = new Set(knapp.flatMap(e => e.jobs));
+    const job = (e, id) => JOB[id].label + (e.where && e.where[id] ? ` (${e.where[id]})` : "");
+    const cfg = id => (settings && settings.jobs && settings.jobs[id]) || { on: true, imp: 3 };
+    const sugg = knapp.map(e => ({ key: e.key, light: "knapp", title: `${e.label} knapp`, why: e.why, jobs: e.jobs.map(id => {
+      const c = cfg(id);
+      return !c.on ? `${job(e, id)} ist bei euch abgeschaltet.` : c.imp >= 5 ? `${job(e, id)} ist schon „dringend“.` : `${job(e, id)} ist gerade „${IMP_LABEL[c.imp]}“ – „dringend“ wäre besser.`;
+    }) }));
+    for (const e of entries.filter(x => x.light === "viel")) {
+      const jobs = e.jobs.filter(id => !need.has(id) && cfg(id).on && cfg(id).imp > 1).map(id => `${job(e, id)} ist gerade „${IMP_LABEL[cfg(id).imp]}“ – kann etwas zurückgestellt werden.`);
+      if (jobs.length) sugg.push({ key: e.key, light: "viel", title: `${e.label} viel`, why: e.why, jobs });
+    }
+    const names = knapp.map(e => e.label);
+    const line = names.length ? `Lager: ${names.length > 3 ? `${names.slice(0, 3).join(", ")} und ${names.length - 3} weitere` : joinDe(names)} knapp → Vorschläge ansehen` : "";
+    const bad = kind => S.g.essen.rows.filter(r => r.kind === kind && r.lager > 0), total = rs => rs.reduce((a, r) => a + r.lager, 0);
+    const warnings = [];
+    const sp = bad("verdorben"), br = bad("brand");
+    if (sp.length) warnings.push(`Verdorbene Nahrung ${stockFmt(total(sp))} – Essen verdirbt. Ein Vorratskeller hält Essen länger frisch.`);
+    if (br.length) warnings.push(`Angebranntes Essen ${stockFmt(total(br))} (${br.map(r => `${r.name} ${stockFmt(r.lager)}`).join(", ")}) – zählt nicht als Essen.`);
+    const miss = groups.filter(g => !g.present && !g.quiet), cats = [...new Set(miss.map(g => STOCK_GROUP[g.id].cat))];
+    const missing = miss.length ? `Nicht auf den Fotos: ${joinDe(cats.map(c => `${miss.filter(g => STOCK_GROUP[g.id].cat === c).map(g => g.label).join(" · ")} (Kategorie „${c}“)`))}.` : "";
+    return { at: cur.at, by: cur.by, pop, vieh, first: !older.length, groups, warnings, missing, sugg, knapp: names, line };
   }
 
   // ---------- The planner ----------
@@ -2429,6 +2823,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     Promise.resolve().then(() => u.profiles(miss)).then(ps => {
       for (const id of miss) { const p = ps && ps[id]; names.set(id, p && typeof p.name === "string" ? p.name.trim().slice(0, 60) : ""); }
       renderPlan();
+      renderStock();   // "Geprüft … von Lena" on the Lager tab
     }, () => { for (const id of miss) names.set(id, ""); });
   }
 
@@ -3935,6 +4330,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     renderPhotoAvail();
     refreshReview();
     rkResults();   // Rekruten-Check, only while its panel is open
+    renderStock();   // the Lager tab and its line on the Plan tab
   }
 
   // ---------- Storage backends ----------
@@ -3954,10 +4350,15 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       checks = {};   // likewise 'checks' (what the photo check found)
       if (d.checks && typeof d.checks === "object" && !Array.isArray(d.checks))
         for (const [wid, v] of Object.entries(d.checks)) { const c = cleanCheck(v); if (c && wid.length <= 80) checks[wid] = c; }
+      stocks = {};   // likewise 'stock' (the Lager checks)
+      if (d.stock && typeof d.stock === "object" && !Array.isArray(d.stock))
+        for (const [id, v] of Object.entries(d.stock)) { const k = cleanStock(v); if (k && id.length <= 80) stocks[id] = k; }
+      stockRev++;
     },
     save() {
       if (!state.ready) return;
-      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()], prefs, stamps, checks }) && !state.noStore) { state.noStore = true; renderStatus(); }
+      const stock = Object.fromEntries(Object.entries(stocks).map(([id, k]) => [id, stockDoc(k)]));
+      if (!lsSet(LS_KEY, { settings: state.settings, workers: [...state.workers.values()], prefs, stamps, checks, stock }) && !state.noStore) { state.noStore = true; renderStatus(); }
     },
     setWorker() { this.save(); },
     deleteWorker() { this.save(); },
@@ -3965,6 +4366,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     setPrefs() { this.save(); },
     setStamp() { this.save(); },
     setCheck() { this.save(); },
+    setStock() { this.save(); },
     // Tick-off per browser, as before: putIngame already merged the change into `applied`.
     setIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
     deleteIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
@@ -3980,6 +4382,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     let sinceW = false, sinceS = false, sinceI = false, sinceP = false;  // delivered since the last subscribe()
     let gotT = false, sinceT = false;                      // the same for 'stamps' (when the values were last checked)
     let gotC = false, sinceC = false;                      // the same for 'checks' (what the photo check found)
+    let gotK = false, sinceK = false;                      // the same for 'stock' (the Lager checks)
+    let srvStocks = {};                                    // the last Lager checks the server sent, to undo a refused write
     let srvStamps = {};                                    // the last stamps the server sent, to undo a refused write
     let srvChecks = {};                                    // the last checks the server sent, to undo a refused write
     let srvPrefs = {};                                     // the last Festlegungen the server sent, to undo a refused write
@@ -3993,7 +4397,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       if (gotP) state.prefsReady = true;
       if (gotT) state.stampsReady = true;
       if (gotC) state.checksReady = true;
-      if (sinceW && sinceS && sinceI && sinceP && sinceT && sinceC) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
+      if (gotK) state.stockReady = true;
+      if (sinceW && sinceS && sinceI && sinceP && sinceT && sinceC && sinceK) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
     }
 
     // Resolves true when the write went through (after one retry for a transient error).
@@ -4127,6 +4532,29 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       settle();
       renderAll();
     }
+    function onStock(snap) {
+      gotK = sinceK = true;
+      const srv = {};
+      for (const d of snap.docs) { const k = cleanStock(d.data && d.data()); if (k) srv[d.id] = k; }
+      srvStocks = srv;
+      const m = { ...srv };
+      // A check (or its Rückgängig) that is not saved yet keeps the local copy.
+      for (const key of pending) if (key.startsWith("k:")) {
+        const id = key.slice(2);
+        if (stocks[id]) m[id] = stocks[id]; else delete m[id];
+      }
+      stocks = m;
+      stockRev++;
+      settle();
+      renderStock();
+    }
+    // A refused Lager write: show what the server has again, unless a newer write is on its way.
+    function restoreStock(id) {
+      if (pending.has("k:" + id)) return;
+      if (srvStocks[id]) stocks[id] = srvStocks[id]; else delete stocks[id];
+      stockRev++;
+      renderStock();
+    }
     // A refused check: show what the server has again, unless a newer write is on its way.
     function restoreCheck(wid) {
       if (pending.has("c:" + wid)) return;
@@ -4185,6 +4613,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         if (!gotI) state.ingameDenied = true;
         if (!gotP) state.prefsDenied = true;
         if (!gotT) state.stampsDenied = true;
+        if (!gotK) state.stockDenied = true;
         state.ready = true; renderAll(); return;   // without checks the plan shows no marks (nothing waits for them)
       }
       for (const u of unsubs) { try { u(); } catch (x) { /* ignore */ } }
@@ -4199,11 +4628,12 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         if (!gotW) state.loadFailed = true;
         if (!gotP) state.prefsDenied = true;   // the plan shows without them rather than waiting forever
         if (!gotT) state.stampsDenied = true;
+        if (!gotK) state.stockDenied = true;
         state.ready = true; renderAll();
       }
     }
     function subscribe() {
-      sinceW = sinceS = sinceI = sinceP = sinceT = sinceC = false;
+      sinceW = sinceS = sinceI = sinceP = sinceT = sinceC = sinceK = false;
       unsubs = [
         db.collection("workers").onSnapshot(onWorkers, onListenError),
         db.doc("settings/main").onSnapshot(onSettings, onListenError),
@@ -4211,6 +4641,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         db.collection("prefs").onSnapshot(onPrefs, onListenError),
         db.collection("stamps").onSnapshot(onStamps, onListenError),
         db.collection("checks").onSnapshot(onChecks, onListenError),
+        db.collection("stock").onSnapshot(onStock, onListenError),
       ];
     }
     return {
@@ -4263,6 +4694,13 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
           return c ? ref.set({ at: c.at, by: c.by, vals: { ...c.vals }, want: { ...c.want } }) : ref.delete();
         }, ok => { if (!ok) restoreCheck(wid); });
       },
+      // A Lager check: set() of the whole doc {at, by, pop, vieh, rows}; none = delete (Rückgängig, or older than the 12 kept).
+      setStock(id) {
+        schedule("k:" + id, 0, () => {
+          const k = stocks[id], ref = db.collection("stock").doc(id);
+          return k ? ref.set(stockDoc(k)) : ref.delete();
+        }, ok => { if (!ok) restoreStock(id); });
+      },
     };
   }
 
@@ -4302,6 +4740,13 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     backend.setCheck(wid, delay);
   }
   const checkCopy = wid => checks[wid] ? JSON.parse(JSON.stringify(checks[wid])) : null;
+  // A Lager check: memory first (the overview follows at once), then the backend. doc null = remove it.
+  function putStock(id, doc) {
+    const k = doc && cleanStock(doc);
+    if (k) stocks[id] = k; else delete stocks[id];
+    stockRev++;
+    backend.setStock(id);
+  }
   function addWorker(name) {
     if (locked()) return null;
     const w = blankWorker(name);
@@ -4524,7 +4969,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   }
 
   // ---------- Tabs ----------
-  const TABS = ["plan", "arbeiter", "jobs", "wissen"];
+  const TABS = ["plan", "arbeiter", "lager", "jobs", "wissen"];
   // The new panel slides 12 px in from the side of its tab (voll), like turning a page; ruhig fades (CSS, .enter).
   function showTab(name, push, focus) {
     if (!TABS.includes(name)) name = "plan";
@@ -4850,6 +5295,7 @@ Reply with only this JSON:
     $("#photo-read").disabled = !photo.files.length || photo.busy || locked();
     $("#cost-info").hidden = costSeen;
     ckRefresh();   // the check uses the same photo reading (read-only viewers may check too)
+    skRefresh();   // so does the Lager check
   }
   function openPhoto() {
     if (!photoUsable()) return;
@@ -5633,18 +6079,20 @@ Reply with only this JSON:
     if (!hasFiles(e)) return;
     e.preventDefault();
     photoBox.classList.remove("over");
+    if (skTakes()) { skAddFiles(e.dataTransfer.files); return; }   // into the open "Lager prüfen" instead
     if (ckTakes()) { ckAddFiles(e.dataTransfer.files); return; }   // into the open "Spiel prüfen" instead
     if (photoUsable()) { openPhoto(); addFiles(e.dataTransfer.files); }
   });
   document.addEventListener("paste", e => {
-    const toCheck = ckTakes();
-    if (!photoUsable() && !toCheck) return;
+    const toCheck = ckTakes(), toStock = skTakes();
+    if (!photoUsable() && !toCheck && !toStock) return;
     const t = e.target;
     const textField = t && (t.isContentEditable || (t.matches && t.matches("textarea, input:not([type=number]):not([type=file]):not([type=checkbox]):not([type=range])")));
     if (textField && e.clipboardData && e.clipboardData.getData("text/plain").trim()) return;
     const files = [...((e.clipboardData && e.clipboardData.files) || [])].filter(f => String(f.type).startsWith("image/"));
     if (!files.length) return;
     e.preventDefault();
+    if (toStock) { skAddFiles(files); return; }
     if (toCheck) { ckAddFiles(files); return; }
     openPhoto();
     addFiles(files);
@@ -6152,6 +6600,445 @@ Reply with only this JSON:
   $("#check-body").addEventListener("toggle", e => { if (e.target.classList && e.target.classList.contains("ck-ok")) ck.okOpen = e.target.open; }, true);
   $("#check-body").addEventListener("animationend", e => { if (e.target.classList) e.target.classList.remove("ck-in"); });
 
+  // ---------- Vorrats-Check per Lager-Foto: the Lager tab ----------
+  // The players photograph the game's "Lager" window (a category, then one row per item: Lager, reserviert, unterwegs) and
+  // Claude reads up to 8 photos in one call (the same sample capability, image prep, cost note and error handling as the photo
+  // import). Rows on two overlapping photos are merged, every row gets its group (stockGroupOf) and the result is shown for
+  // checking: an unsure or unreadable number is an amber field. "Speichern" writes one 'stock' doc and, in the same action,
+  // deletes the ones beyond the latest 12 (one Rückgängig for both). The overview and the suggestions (stockView) never change
+  // anything by themselves. Read-only viewers may read and look, not save. Drawing never writes.
+  // sk.rows = [{k, name, category, group, kind, claude, vals: {lager, reserviert, unterwegs}, unsure: Set(field), ok: Set(field)}]
+  // (ok = an unsure number the players checked: typed or "stimmt").
+  const SK_MAX = 8;
+  const STOCK_COL = { lager: "Lager", reserviert: "reserviert", unterwegs: "unterwegs" };
+  const STOCK_ERR = { ...PHOTO_ERR, rate_limited: "Euer Claude-Limit ist gerade erreicht. Versucht es später noch einmal." };
+  const sk = { open: false, files: [], reading: [], ctl: null, busy: false, rows: null, merged: 0, pop: null, vieh: null, seq: 0,
+    armed: 0, armT: null, msg: "", lastId: undefined, openGroups: new Set(), parts: {}, memo: { key: "", m: null } };
+  function stockPrompt() {
+    return `These images are phone photos or screenshots of the video game Bellwright (a medieval settlement builder), usually a TV screen photographed from the couch. They show the settlement window's tab "Lager" (the village storage): at the top a category dropdown (one of ${STOCK_CATS.join(", ")}; "Alle" shows every category), a search field, then a list with one row per item: an icon, the item name and three numbers under three chest icons: "lager" (a plain chest: in storage), "reserviert" (a chest with an hourglass: reserved) and "unterwegs" (an arrow into a chest: on the way to storage). The images are numbered from 0 in the order they are attached. They can overlap, because the list was scrolled between the photos. Photos of a TV can be tilted, blurry or show glare and moiré stripes: read every digit carefully.
+
+For every item row whose name you can read, give:
+- "name": the item name exactly as shown (German). A name that is cut off stays cut off, with its "…" (for example "Großes Stück rohes Flei…").
+- "category": the category shown in the dropdown at the top of that photo (one of the list above), or null if it shows "Alle" or "Kategorie" or cannot be read.
+- "lager", "reserviert", "unterwegs": the three numbers as whole numbers. The game writes thousands with a dot: "2.115" means 2115, so give 2115. Use null for a number you cannot read.
+- "group": one of these groups for the item: "essen" (food), "holz" (logs, wood, planks), "stein" (stone, clay, mud, peat), "erz" (ore, metal bars, nails), "stoff" (fibres, cloth, leather, fur, string, rope), "futter" (animal feed, and grain or straw for it), "werkzeug" (tools), "saatgut" (seeds and saplings), "sonstiges" (everything else).
+- "unsure": the numbers you are not sure about, by name ("lager", "reserviert", "unterwegs"): a digit that could be another one (1/7, 3/8, 5/6, 6/8), glare, blur or stripes. Every null number belongs in "unsure" too. An empty list if all three are clear.
+List every item only once, even if the row is in several images. A small red box with a magnifying glass next to a name is the game's cursor: ignore it; a row inside a coloured frame is read like the others. Ignore the icons, the window tabs and everything outside the list.
+Also give "population": the number next to "Bevölkerung" in the window's tab row, and "livestock": the number next to "Vieh" (null if not visible; if the photos show different numbers, the highest).
+
+Known item names in this game (they help you read the letters; write each name only as far as the image shows it): ${[...STOCK_ITEMS.values()].map(x => JSON.stringify(x.name)).join(", ")}.
+
+Reply with only this JSON:
+{"rows":[{"name":"Baumstamm","category":"Rohstoffe","lager":70,"reserviert":1,"unterwegs":0,"group":"holz","unsure":[]},{"name":"Federn","category":"Rohstoffe","lager":2115,"reserviert":0,"unterwegs":null,"group":"sonstiges","unsure":["unterwegs"]}],"population":32,"livestock":11,"note":""}
+"note": if no Lager list is visible, one short German sentence saying what the images show instead; otherwise "".`;
+  }
+  // Claude's answer, cleaned: rows with a name and at least one number, merged by item (the built-in item, else the name).
+  function skParse(data) {
+    const arr = Array.isArray(data) ? data : data && Array.isArray(data.rows) ? data.rows : [];
+    const rows = [], byKey = new Map();
+    let merged = 0;
+    for (const o0 of arr.slice(0, STOCK_MAX_ROWS * 2)) {
+      const o = o0 && typeof o0 === "object" ? o0 : {};
+      const name = typeof o.name === "string" ? o.name.replace(/\s+/g, " ").trim().slice(0, 60) : "";
+      if (!stockKey(name)) continue;
+      const vals = {}, unsure = new Set();
+      for (const f of STOCK_FIELDS) { vals[f] = stockNum(o[f]); if (vals[f] === null) unsure.add(f); }
+      if (STOCK_FIELDS.every(f => vals[f] === null)) continue;
+      for (const u of Array.isArray(o.unsure) ? o.unsure : []) if (STOCK_FIELDS.includes(u)) unsure.add(u);
+      const category = STOCK_CATS.includes(o.category) ? o.category : "";
+      const it = stockItem(name), key = it ? it.key : stockKey(name), old = byKey.get(key);
+      if (old) { skMerge(old, { name, category, vals, unsure }); merged++; continue; }
+      if (rows.length >= STOCK_MAX_ROWS) continue;
+      const group = stockGroupOf(name, category, o.group);
+      const row = { k: ++sk.seq, name, category, group, kind: stockKind(name, group), claude: o.group, vals, unsure, ok: new Set() };
+      byKey.set(key, row);
+      rows.push(row);
+    }
+    const d = data && typeof data === "object" ? data : {};
+    const count = (v, lo) => { const n = stockNum(v); return n !== null && n >= lo && n <= 99999 ? n : null; };
+    return { rows, merged, pop: count(d.population, 1), vieh: count(d.livestock, 0), note: typeof d.note === "string" ? d.note.trim().slice(0, 300) : "" };
+  }
+  // The same item on two photos: a readable number beats null, a sure one an unsure one; two different sure numbers stay
+  // unsure, so the players decide (as mergeRow does for the table check).
+  function skMerge(a, b) {
+    for (const f of STOCK_FIELDS) {
+      const va = a.vals[f], vb = b.vals[f], ua = a.unsure.has(f), ub = b.unsure.has(f);
+      let v = va, u = ua;
+      if (va === null) { v = vb; u = ub; }
+      else if (vb !== null) {
+        if (va === vb) u = ua && ub;
+        else if (ua !== ub) { v = ua ? vb : va; u = false; }
+        else u = true;
+      }
+      a.vals[f] = v;
+      if (u || v === null) a.unsure.add(f); else a.unsure.delete(f);
+    }
+    if (!a.category && b.category) { a.category = b.category; a.group = stockGroupOf(a.name, a.category, a.claude); a.kind = stockKind(a.name, a.group); }
+    if (stockCut(a.name) && !stockCut(b.name)) a.name = b.name;
+  }
+  const skOpenCount = () => sk.rows ? sk.rows.reduce((n, r) => n + [...r.unsure].filter(f => !r.ok.has(f)).length, 0) : 0;
+  const skLocked = () => locked() || (state.mode === "db" && !state.stockReady);
+  const skAvail = () => photoOk();
+  const skTakes = () => sk.open && !$("#panel-lager").hidden && skAvail();
+  function skLatest() { let best = null, id = null; for (const [k, d] of Object.entries(stocks)) if (!best || d.at > best.at) { best = d; id = k; } return { id, doc: best }; }
+
+  // ----- the result, checked before saving -----
+  const SK_TH = `<div class="sk-th"><span>Gegenstand</span><span>Lager</span><span>reserv.</span><span>unterw.</span></div>`;
+  function skDline(r) {
+    return STOCK_FIELDS.filter(f => r.unsure.has(f) && !r.ok.has(f)).map(f => r.vals[f] === null
+      ? `<span>${STOCK_COL[f]}: nicht lesbar – tragt die Zahl ein</span>`
+      : `<span>${STOCK_COL[f]}: unsicher gelesen</span><button type="button" class="btn small" data-sk="ok" data-k="${r.k}" data-f="${f}" data-focus="ok:${r.k}:${f}">stimmt</button>`).join("");
+  }
+  function skRowHtml(r) {
+    const cells = STOCK_FIELDS.map(f => !r.unsure.has(f) ? `<span class="sk-n">${stockFmt(r.vals[f])}</span>`
+      : `<span class="sk-n${r.ok.has(f) ? "" : " doubt"}" data-f="${f}"><input type="number" min="0" max="9999999" inputmode="numeric" data-sk="v" data-k="${r.k}" data-f="${f}" data-focus="v:${r.k}:${f}" value="${r.vals[f] === null ? "" : r.vals[f]}" aria-label="${esc(`${r.name}, ${STOCK_COL[f]}`)}"></span>`).join("");
+    const dl = skDline(r);
+    return `<div class="sk-row" data-k="${r.k}"${r.kind ? ` data-kind="${r.kind}"` : ""}><span class="sk-iname">${esc(r.name)}</span>${cells}`
+      + (r.kind ? `<span class="sk-tag">${STOCK_TAG[r.kind]}</span>` : "") + `<span class="sk-dline"${dl ? "" : " hidden"}>${dl}</span></div>`;
+  }
+  function skRvHtml() {
+    const open = r => [...r.unsure].some(f => !r.ok.has(f));
+    return `<h3 id="stock-rv-title" tabindex="-1">Ergebnis</h3><p class="sk-sum"></p><p class="sk-ro" hidden>Nur ansehen: Ihr seht das Ergebnis, speichern könnt ihr hier nicht.</p>`
+      + `<div class="sk-pop"><label>Bewohner<input type="number" id="stock-pop" min="1" max="99999" inputmode="numeric" value="${sk.pop ?? ""}"></label>`
+      + `<label>Vieh (optional)<input type="number" id="stock-vieh" min="0" max="99999" inputmode="numeric" value="${sk.vieh ?? ""}"></label>`
+      + `<p class="muted small">Steht im Spiel oben im Fenster bei „Bevölkerung“ und „Vieh“. Daran misst die App, ob Essen und Tierfutter reichen.</p></div>`
+      + `<p class="sk-open" hidden></p><div class="sk-rgroups">`
+      + STOCK_GROUPS.map(G => ({ G, rows: sk.rows.filter(r => r.group === G.id) })).filter(x => x.rows.length).map(({ G, rows }) =>
+        `<details class="sk-rgroup" data-group="${G.id}"${rows.some(open) ? " open" : ""}><summary><span>${esc(G.label)}</span><span class="sk-cnt">${rows.length}</span></summary>`
+        + `<div class="sk-tbl">${SK_TH}${rows.map(skRowHtml).join("")}</div></details>`).join("") + `</div>`;
+  }
+  // What can change while the result is open (a number checked, read-only from now on): painted in place, so a field
+  // being typed in is never replaced.
+  function skRvPaint() {
+    const box = $("#stock-review");
+    if (!sk.rows || box.hidden) return;
+    const ro = skLocked(), n = sk.rows.length, open = skOpenCount();
+    const sum = `${n === 1 ? "1 Gegenstand" : n + " Gegenstände"} erkannt${sk.merged ? `, ${sk.merged} ${sk.merged === 1 ? "doppelte Zeile" : "doppelte Zeilen"} zusammengeführt` : ""}.${ro ? "" : " Gespeichert wird erst mit „Speichern“."}`;
+    const se = box.querySelector(".sk-sum");
+    if (se.textContent !== sum) se.textContent = sum;
+    box.querySelector(".sk-ro").hidden = !ro;
+    const oe = box.querySelector(".sk-open"), ot = open ? `${open === 1 ? "1 unsichere Zahl ist" : open + " unsichere Zahlen sind"} gelb markiert. Prüft sie kurz.` : "";
+    if (oe.textContent !== ot) oe.textContent = ot;
+    oe.hidden = !open;
+    for (const r of sk.rows) {
+      if (!r.unsure.size) continue;
+      const el = box.querySelector(`.sk-row[data-k="${r.k}"]`);
+      if (!el) continue;
+      for (const c of el.querySelectorAll(".sk-n[data-f]")) c.classList.toggle("doubt", !r.ok.has(c.dataset.f));
+      const dl = el.querySelector(".sk-dline"), h = skDline(r);
+      if (dl.dataset.h !== h) { dl.innerHTML = h; dl.dataset.h = h; }
+      dl.hidden = !h;
+    }
+    skPaintBar();
+  }
+  function skRvShow(fresh) {
+    const res = $("#stock-review"), body = $("#stock-rv-body");
+    if (!sk.rows) { if (!res.hidden) { res.hidden = true; body.innerHTML = ""; } return; }
+    if (fresh) {
+      body.innerHTML = skRvHtml();
+      if (anim() !== "aus") [...body.querySelectorAll(".sk-pop, .sk-rgroup")].forEach((el, i) => { el.style.setProperty("--i", Math.min(i, 10)); el.classList.add("sk-in"); });
+    }
+    res.hidden = false;
+    skRvPaint();
+  }
+  function skArm() { clearTimeout(sk.armT); sk.armT = setTimeout(skDisarm, 4000); }
+  function skDisarm() { clearTimeout(sk.armT); sk.armT = null; if (sk.armed) sk.msg = ""; sk.armed = 0; skPaintBar(); }
+  function skPaintBar() {
+    const b = $("#stock-save"), open = skOpenCount();
+    if (sk.armed && !open) { clearTimeout(sk.armT); sk.armT = null; sk.armed = 0; sk.msg = ""; }
+    const t = sk.armed ? `Trotzdem speichern (${open} offen)` : "Speichern";
+    if (b.textContent !== t) b.textContent = t;
+    b.classList.toggle("armed", !!sk.armed);
+    b.disabled = skLocked();
+    if ($("#stock-act-msg").textContent !== sk.msg) $("#stock-act-msg").textContent = sk.msg;
+  }
+
+  // ----- the photos -----
+  function skPaintAvail() {
+    let coarse = true;
+    try { coarse = matchMedia("(pointer: coarse)").matches; } catch (e) { /* keep */ }
+    $("#stock-cam-btn").hidden = $("#stock-cam").hidden = !coarse;
+    $("#stock-read").disabled = !sk.files.length || sk.busy;
+    $("#stock-stop").hidden = !sk.busy;
+    $("#stock-cost").hidden = costSeen;
+  }
+  // Part of renderPhotoAvail and renderStock: the button where photos can be read here (read-only viewers too), else a note.
+  function skRefresh() {
+    const ok = skAvail(), b = $("#stock-open"), note = $("#stock-note");
+    if (b.hidden === ok) b.hidden = !ok;
+    const nt = ok || !photo.checked ? "" : photo.offReason ? photo.offReason.replace(/ Tragt die Werte bitte von Hand oder als Text ein\.$/, "")
+      : photo.sample ? "Bilder lesen geht in dieser Ansicht nicht." : "Lager prüfen per Foto klappt nur, wenn ihr die Seite in Claude geöffnet habt und angemeldet seid.";
+    if (note.textContent !== nt) note.textContent = nt;
+    note.hidden = !nt;
+    if (!ok && sk.open) { skClose(false); return; }
+    if (sk.open) { skPaintAvail(); skRvPaint(); }
+  }
+  function setSkMsg(text, working) {
+    const m = $("#stock-msg");
+    m.textContent = text || "";
+    m.classList.toggle("working", !!working);
+  }
+  function skThumbs() {
+    $("#stock-thumbs").innerHTML = sk.files.map((f, i) =>
+      `<div class="thumb"><img src="${esc(f.url)}" alt="Foto ${i + 1}"><button type="button" data-skrm="${i}" aria-label="Foto ${i + 1} entfernen">×</button></div>`).join("");
+    $("#stock-read").disabled = !sk.files.length || sk.busy;
+  }
+  function skRelease(list) {
+    for (const f of list) if (f && !sk.files.includes(f) && !sk.reading.includes(f)) { try { URL.revokeObjectURL(f.url); } catch (e) { /* ignore */ } }
+  }
+  async function skAddFiles(list) {
+    if (!skAvail()) return;
+    const lim = photo.limits.images, max = Math.min(SK_MAX, lim.maxCount || SK_MAX);
+    let bad = 0, full = false;
+    for (const f of [...list]) {
+      if (!f) continue;
+      const type = String(f.type || "");
+      if (type && !type.startsWith("image/")) { bad++; continue; }
+      if (sk.files.length >= max) { full = true; break; }
+      const blob = await photoBlob(f, lim);
+      if (!blob) { bad++; continue; }
+      if (sk.files.length >= max) { full = true; break; }
+      sk.files.push({ blob, url: URL.createObjectURL(blob) });
+    }
+    if (full) setSkMsg(`Höchstens ${max} Bilder auf einmal.`);
+    else if (bad) { setSkMsg(bad > 1 ? `${bad} Dateien konnten nicht geöffnet werden. Nehmt bitte PNG oder JPG.` : "Eine Datei konnte nicht geöffnet werden. Nehmt bitte PNG oder JPG."); shake($("#stock-msg")); }
+    else setSkMsg("");
+    skThumbs();
+  }
+  function skOpen() {
+    if (!skAvail()) return;
+    if ($("#panel-lager").hidden) showTab("lager", true);
+    sk.open = true;
+    $("#stock-photo").hidden = false;
+    $("#stock-open").setAttribute("aria-expanded", "true");
+    skPaintAvail();
+    renderStock();   // the empty state steps aside: the panel has the how-to
+    $("#stock-photo").scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#stock-photo-h").focus({ preventScroll: true });
+  }
+  // Closes the photos and the result (nothing was saved unless "Speichern" did it).
+  function skClose(focus) {
+    if (sk.busy && sk.ctl) sk.ctl.abort();
+    sk.ctl = null;
+    Object.assign(sk, { open: false, rows: null, merged: 0, msg: "" });
+    skDisarm();
+    const old = sk.files;
+    sk.files = [];
+    skRelease(old);
+    $("#stock-photo").hidden = true;
+    $("#stock-review").hidden = true;
+    $("#stock-rv-body").innerHTML = "";
+    setSkMsg("");
+    $("#stock-open").setAttribute("aria-expanded", "false");
+    skThumbs();
+    renderStock();
+    if (focus) ($("#stock-open").hidden ? $("#panel-lager") : $("#stock-open")).focus({ preventScroll: true });
+  }
+  async function skRead() {
+    if (!skAvail() || !sk.files.length || sk.busy) return;
+    sk.busy = true;
+    const ctl = sk.ctl = new AbortController();
+    setSkMsg("Claude liest die Fotos. Das dauert meist 10 bis 60 Sekunden.", true);
+    skPaintAvail();
+    try {
+      if (typeof photo.sample.json !== "function") throw { code: "capability_removed" };
+      const files = sk.reading = sk.files.slice();
+      const data = await photo.sample.json(stockPrompt(), { images: files.map(f => f.blob), signal: ctl.signal, cache: false });
+      if (!sk.open || sk.ctl !== ctl) return;
+      const res = skParse(data);
+      if (!res.rows.length) {
+        setSkMsg(res.note || "Auf den Fotos war keine Lager-Liste zu erkennen. Fotografiert das Fenster „Lager“ so, dass Namen und Zahlen scharf zu sehen sind.");
+        return;
+      }
+      // Bewohner and Vieh: from the photos, else as at the last check (asked once), else the villagers in the list.
+      const last = skLatest().doc;
+      Object.assign(sk, { rows: res.rows, merged: res.merged, msg: "",
+        pop: res.pop ?? (last && last.pop) ?? (state.workers.size || null), vieh: res.vieh ?? (last ? last.vieh : null) });
+      skDisarm();
+      skRvShow(true);
+      renderStock();
+      const n = res.rows.length;
+      setSkMsg(`${n === 1 ? "1 Gegenstand" : n + " Gegenstände"} erkannt. Prüft das Ergebnis unten.`);
+      const a = document.activeElement, t = $("#stock-rv-title");
+      if (t && (!a || a === document.body || $("#stock-photo").contains(a))) { t.scrollIntoView({ block: "start", behavior: scrollMode() }); t.focus({ preventScroll: true }); }
+    } catch (e) {
+      const code = e && e.code;
+      if (sk.ctl !== ctl && code === "cancelled") return;   // stopped by closing the panel
+      if (PHOTO_OFF[code]) {
+        photo.offReason = PHOTO_OFF[code];
+        photo.limits = null;
+        renderPhotoAvail();   // photos are off for this view: the import goes, the checks close
+        toast(PHOTO_OFF[code].replace(/ Tragt die Werte bitte von Hand oder als Text ein\.$/, ""));
+      } else {
+        setSkMsg(STOCK_ERR[code] || "Die Verbindung wurde unterbrochen. Versucht es noch einmal.");
+        if (code !== "cancelled") shake($("#stock-msg"));   // never tried again by itself
+      }
+    } finally {
+      sk.busy = false;
+      const sent = sk.reading;
+      sk.reading = [];
+      skRelease(sent);
+      if (sk.open) skPaintAvail(); else $("#stock-stop").hidden = true;
+      skThumbs();
+    }
+  }
+  // "Speichern": one new doc; the ones beyond the latest 12 go in the same action. Open numbers are asked about once.
+  function skSave() {
+    if (!sk.rows || skLocked()) return;
+    const open = skOpenCount();
+    if (open && !sk.armed) {
+      sk.armed = Date.now();
+      sk.msg = `${open === 1 ? "1 Zahl ist" : open + " Zahlen sind"} noch unsicher. Tippt noch einmal, um trotzdem zu speichern.`;
+      skArm(); skPaintBar();
+      shake($("#stock-act-msg"));
+      return;
+    }
+    if (open && Date.now() - sk.armed < 450) return;   // a double tap is not a second decision
+    const num = (sel, lo) => { const v = stockNum($(sel).value); return v !== null && v >= lo && v <= 99999 ? v : null; };
+    const at = Date.now(), id = "k" + at.toString(36) + Math.random().toString(36).slice(2, 6);
+    const doc = { at, by: myId, pop: num("#stock-pop", 1), vieh: num("#stock-vieh", 0),
+      rows: sk.rows.map(r => ({ name: r.name, category: r.category, lager: r.vals.lager, reserviert: r.vals.reserviert, unterwegs: r.vals.unterwegs, group: r.group })) };
+    const gone = Object.entries(stocks).sort((a, b) => b[1].at - a[1].at).slice(STOCK_KEEP - 1).map(([oid, k]) => [oid, stockDoc(k)]);
+    putStock(id, doc);
+    for (const [oid] of gone) putStock(oid, null);
+    skClose(false);
+    const h = $("#sk-over-h");
+    if (!$("#sk-over").hidden) { $("#sk-over").scrollIntoView({ block: "start", behavior: scrollMode() }); h.focus({ preventScroll: true }); }
+    toast("Lager-Prüfung gespeichert.", { label: "Rückgängig", fn: () => {
+      if (skLocked()) { toast("Rückgängig geht gerade nicht."); return null; }
+      putStock(id, null);
+      for (const [oid, d] of gone) putStock(oid, d);
+      renderStock();
+      toast("Rückgängig gemacht.");
+      return $("#stock-open").hidden ? $("#panel-lager") : $("#stock-open");
+    } });
+  }
+
+  // ----- the overview of the latest check, the suggestions, the line on the Plan tab -----
+  function skModel() {
+    const key = stockRev + "|" + JSON.stringify(state.settings.jobs);
+    if (sk.memo.key !== key) sk.memo = { key, m: stockView(Object.values(stocks), state.settings) };
+    return sk.memo.m;
+  }
+  const skItemHtml = r => `<div class="sk-item"${r.kind ? ` data-kind="${r.kind}"` : ""}><span class="sk-iname">${esc(r.name)}</span>`
+    + STOCK_FIELDS.map(f => `<span class="sk-n">${stockFmt(r[f])}</span>`).join("") + (r.kind ? `<span class="sk-tag">${STOCK_TAG[r.kind]}</span>` : "") + `</div>`;
+  function skGroupHtml(g) {
+    const sub = (g.trend ? `<span class="sk-trend">${esc(g.trend)}</span>` : "") + (g.why ? `<span class="sk-why">${esc(g.why)}</span>` : "");
+    return `<details class="sk-group" data-group="${g.id}"${g.light ? ` data-light="${g.light}"` : ""}${sk.openGroups.has(g.id) ? " open" : ""}>`
+      + `<summary data-focus="g:${g.id}"><span class="sk-name">${esc(g.label)}</span>${g.light ? `<span class="sk-light ${g.light}">${g.light}</span>` : ""}`
+      + `<span class="sk-total">${stockFmt(g.total)}</span>${sub ? `<span class="sk-sub">${sub}</span>` : ""}</summary>`
+      + `<div class="sk-items">${SK_TH}${g.items.map(skItemHtml).join("")}</div></details>`;
+  }
+  const skCardHtml = s => `<article class="sk-card" data-key="${esc(s.key)}" data-light="${s.light}"><h4>${esc(s.title)}</h4><p class="sk-card-why">${esc(s.why)}</p>`
+    + `<ul class="sk-jobs">${s.jobs.map(j => `<li>${esc(j)}</li>`).join("")}</ul></article>`;
+  // One part of the overview, replaced only when it changed (a focused summary keeps its focus).
+  function skPart(sel, html) {
+    if (sk.parts[sel] === html) return;
+    const el = $(sel), act = document.activeElement, fk = act && el.contains(act) ? act.dataset.focus : null;
+    el.innerHTML = html;
+    sk.parts[sel] = html;
+    if (fk) { const t = el.querySelector(`[data-focus="${CSS.escape(fk)}"]`); if (t) t.focus({ preventScroll: true }); }
+  }
+  function renderStockLine(m) {
+    const line = m ? m.line : "", b = $("#stock-line-go");
+    if (b.textContent !== line) b.textContent = line;
+    $("#stock-line").hidden = !line;
+  }
+  function renderStock() {
+    const ready = state.mode !== "loading" && (state.stockReady || state.stockDenied);
+    const m = ready ? skModel() : null;
+    renderStockLine(m);
+    $("#stock-load").hidden = ready;
+    $("#stock-empty").hidden = !ready || !!m || sk.open || !!sk.rows;
+    $("#sk-over").hidden = $("#sk-sugg").hidden = !m;
+    skRefresh();
+    if (!ready) return;
+    const lid = skLatest().id;   // a new latest check (saved here or on another phone) comes in once
+    let fresh = false;
+    if (sk.lastId === undefined) sk.lastId = lid;
+    else if (lid !== sk.lastId) { sk.lastId = lid; fresh = !!lid; }
+    if (!m) return;
+    if (m.by) wantNames([m.by]);
+    const who = m.by ? names.get(m.by) || "" : "";
+    const when = `Geprüft ${relTime(m.at)}${who ? ` von ${who}` : ""}${m.pop ? ` · ${m.pop} Bewohner` : ""}${m.vieh !== null && m.vieh !== undefined ? ` · ${m.vieh} ${m.vieh === 1 ? "Tier" : "Tiere"}` : ""}`;
+    if ($("#sk-when").textContent !== when) $("#sk-when").textContent = when;
+    skPart("#sk-top", (m.first ? `<p class="sk-est">Schätzung – wird mit jeder Prüfung genauer.</p>` : "")
+      + (m.warnings.length ? `<ul class="sk-warn">${m.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""));
+    skPart("#sk-groups", m.groups.filter(g => g.present).map(skGroupHtml).join(""));
+    skPart("#sk-cards", m.sugg.length ? m.sugg.map(skCardHtml).join("") : `<p class="sk-none">Gerade gibt es nichts vorzuschlagen.</p>`);
+    const miss = $("#sk-missing");
+    if (miss.textContent !== m.missing) miss.textContent = m.missing;
+    miss.hidden = !m.missing;
+    if (fresh && anim() !== "aus") {   // group by group (CSS per level), the lights stamp once
+      [...document.querySelectorAll("#sk-top .sk-est, #sk-top .sk-warn li, #sk-groups .sk-group, #sk-cards > *")].forEach((el, i) => { el.style.setProperty("--i", Math.min(i, 10)); el.classList.add("sk-in"); });
+      for (const el of $$("#sk-groups .sk-light")) play(el, FOKUS_STAMP, FOKUS_FADE);
+    }
+  }
+
+  $("#stock-open").addEventListener("click", () => {
+    if (!sk.open) { skOpen(); return; }
+    $("#stock-photo").scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#stock-photo-h").focus({ preventScroll: true });
+  });
+  $("#stock-close").addEventListener("click", () => skClose(true));
+  $("#stock-discard").addEventListener("click", () => skClose(true));
+  $("#stock-save").addEventListener("click", skSave);
+  $("#stock-read").addEventListener("click", skRead);
+  $("#stock-stop").addEventListener("click", () => { if (sk.ctl) sk.ctl.abort(); });
+  for (const id of ["#stock-cam", "#stock-file"]) $(id).addEventListener("change", e => { const fl = [...e.target.files]; e.target.value = ""; skAddFiles(fl); });
+  $("#stock-thumbs").addEventListener("click", e => {
+    const b = e.target.closest("[data-skrm]");
+    if (!b || sk.busy) return;
+    const [f] = sk.files.splice(+b.dataset.skrm, 1);
+    if (f) skRelease([f]);
+    skThumbs();
+  });
+  $("#stock-cost-ok").addEventListener("click", () => {
+    costSeen = true;
+    lsSet(COST_KEY, true);
+    $("#stock-cost").hidden = $("#check-cost").hidden = $("#cost-info").hidden = true;
+    ($("#stock-read").disabled ? $("#stock-file") : $("#stock-read")).focus();
+  });
+  // Typing a number is checking it; "stimmt" keeps the number as read. Then on to the next open one.
+  $("#stock-rv-body").addEventListener("input", e => {
+    const t = e.target, r = t.dataset.sk === "v" && sk.rows && sk.rows.find(x => String(x.k) === t.dataset.k);
+    if (!r) return;
+    r.vals[t.dataset.f] = stockNum(t.value);
+    r.ok.add(t.dataset.f);
+    if (sk.armed) skArm();   // still deciding: the "Trotzdem" question waits a little longer
+    skRvPaint();
+  });
+  $("#stock-rv-body").addEventListener("click", e => {
+    const b = e.target.closest('[data-sk="ok"]'), r = b && sk.rows && sk.rows.find(x => String(x.k) === b.dataset.k);
+    if (!r) return;
+    r.ok.add(b.dataset.f);
+    skRvPaint();
+    const next = $("#stock-rv-body").querySelector(".sk-n.doubt input, .sk-dline:not([hidden]) [data-sk='ok']");
+    (next || $("#stock-save")).focus();
+  });
+  // A field that gets focus never hides behind the action bar that sticks to the bottom of the screen (as in the review).
+  $("#stock-review").addEventListener("focusin", e => {
+    const t = e.target;
+    if (!t.closest || t.closest(".sk-act")) return;
+    requestAnimationFrame(() => {
+      const bar = $("#stock-review .sk-act");
+      if (!bar || document.activeElement !== t) return;
+      const b = t.getBoundingClientRect(), top = bar.getBoundingClientRect().top;
+      if (b.bottom > top - 8 && b.top < innerHeight) window.scrollBy(0, b.bottom - top + 16);
+    });
+  });
+  $("#panel-lager").addEventListener("toggle", e => {
+    const d = e.target;
+    if (d.classList && d.classList.contains("sk-group")) { if (d.open) sk.openGroups.add(d.dataset.group); else sk.openGroups.delete(d.dataset.group); }
+  }, true);
+  $("#panel-lager").addEventListener("animationend", e => { if (e.target.classList) e.target.classList.remove("sk-in"); });
+  $("#stock-line-go").addEventListener("click", () => {
+    showTab("lager", true);
+    if ($("#sk-sugg").hidden) { $("#panel-lager").focus({ preventScroll: true }); return; }
+    $("#sk-sugg").scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#sk-sugg-h").focus({ preventScroll: true });
+  });
+
   // ---------- Boot ----------
   // Old tabs keep writing AP_KEY; only local mode reads it.
   window.addEventListener("storage", e => { if (e.key === AP_KEY && state.mode === "local") { reloadApplied(); renderPlan(); } });
@@ -6235,7 +7122,7 @@ Reply with only this JSON:
       for (const el of $$(".reveal")) el.classList.remove("reveal");
       for (const el of $$(".panel.enter")) el.classList.remove("enter");
       for (const el of $$(".bump, .wrap .stamp")) el.classList.remove("bump", "stamp");
-      for (const el of $$(".rc-in, .cleared, .ck-in")) el.classList.remove("rc-in", "cleared", "ck-in");
+      for (const el of $$(".rc-in, .cleared, .ck-in, .sk-in")) el.classList.remove("rc-in", "cleared", "ck-in", "sk-in");
       if (bellEl) bellEl.classList.remove("ring");
       if (entry.open) entryTurnEnd();
     }
@@ -6273,7 +7160,11 @@ Reply with only this JSON:
   showTab(location.hash.slice(1), false);
   renderAll();
   // "vor 5 Min." grows older while the page stays open. Drawing only, nothing is saved.
-  setInterval(() => { if (!document.hidden && tracking() && Object.keys(appliedMeta).length) renderPlan(); }, 60e3);
+  setInterval(() => {
+    if (document.hidden) return;
+    if (tracking() && Object.keys(appliedMeta).length) renderPlan();
+    if (!$("#panel-lager").hidden) renderStock();   // "Geprüft vor 5 Min."
+  }, 60e3);
 
   (async () => {
     try {
@@ -6320,6 +7211,7 @@ Reply with only this JSON:
       state.ingameReady = true;   // ticks stay in this browser (AP_KEY), as before
       state.stampsReady = true;   // stamps come with the LS payload
       state.checksReady = true;   // so do the checks
+      state.stockReady = true;    // and the Lager checks
       backend = local;
       window.addEventListener("storage", e => {
         if (e.key !== LS_KEY) return;

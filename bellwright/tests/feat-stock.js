@@ -581,15 +581,19 @@ async function standIns(browser) {
       const ls = await P.evaluate(() => JSON.parse(localStorage.getItem('bellwright-arbeitsplan-v1') || 'null'));
       const docs = ls && ls.stock ? Object.values(ls.stock) : [];
       check('local: the check is inside the LS payload', docs.length === 1 && docs[0].rows.length === 78 && docs[0].pop === 32, ls && Object.keys(ls));
-      await P.reload();
-      const tOver = await until(() => P.evaluate(() => { const o = document.getElementById('sk-over'); return !!o && !o.hidden; }), 4000);
-      const r = await SK(P);
-      const diag = await P.evaluate(() => { const d = JSON.parse(localStorage.getItem('bellwright-arbeitsplan-v1') || 'null'); const h = id => document.getElementById(id).hidden;
+      // The next visit: a second page of this browser (not page.reload(): in a fresh headless context a localStorage write
+      // on a file:// page is sometimes lost across a reload, 13 of 120 times in a bare page without this app).
+      const Q = await A.ctx.newPage();
+      Q.on('pageerror', e => errs.push('LOC2: ' + e.message));
+      await Q.goto('file://' + process.cwd() + '/page.html#lager');
+      const tOver = await until(() => Q.evaluate(() => { const o = document.getElementById('sk-over'); return !!o && !o.hidden; }), 5000);
+      const r = await SK(Q);
+      const diag = await Q.evaluate(() => { const d = JSON.parse(localStorage.getItem('bellwright-arbeitsplan-v1') || 'null'); const h = id => document.getElementById(id).hidden;
         return { hash: location.hash, lager: !h('panel-lager'), over: !h('sk-over'), load: !h('stock-load'), empty: !h('stock-empty'), lsStock: d && d.stock ? Object.keys(d.stock).length : null, status: document.getElementById('status-text').textContent }; });
-      check('local: after a reload the overview is there', r.over && r.over.groups.length === 9, r.over ? r.over.groups.map(g => g.id) : { ...diag, waited: tOver });
-      await P.click('.sk-group[data-group="werkzeug"] summary'); await P.click('.sk-group[data-group="stein"] summary'); await P.click('.sk-group[data-group="essen"] summary');
-      await P.waitForTimeout(100);
-      const r2 = await SK(P);
+      check('local: the next page of this browser shows the overview', r.over && r.over.groups.length === 9, r.over ? r.over.groups.map(g => g.id) : { ...diag, waited: tOver });
+      await Q.click('.sk-group[data-group="werkzeug"] summary'); await Q.click('.sk-group[data-group="stein"] summary'); await Q.click('.sk-group[data-group="essen"] summary');
+      await Q.waitForTimeout(100);
+      const r2 = await SK(Q);
       check('category Werkzeuge -> Werkzeug; an unknown Rohstoff -> Claude\'s group; an unknown Proviant -> Essen', grp(r2, 'werkzeug').items.some(i => i.name === 'Spitzhacke') && grp(r2, 'stein').items.some(i => i.name === 'Sandstein') && grp(r2, 'essen').items.some(i => i.name === 'Brot')
         && grp(r2, 'werkzeug').light !== null && !r2.over.missing, { w: grp(r2, 'werkzeug'), missing: r2.over.missing });
       await A.ctx.close();
