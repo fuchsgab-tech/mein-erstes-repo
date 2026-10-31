@@ -756,3 +756,28 @@ TEST (feat-stock.js): stub sample with the fixture rows (two overlapping photos 
 one unsure number, "2.115"); assert merge, grouping, totals, traffic lights for the real data (Tierfutter knapp with 11
 animals, Seil knapp, Essen viel at 32 Bewohnern, spoiled-food warning), suggestions text, trend after a second stubbed
 check, read-only, errors, 360/390/1280, voll/ruhig/aus per the animation skill, tabs still fit at 360 px.
+
+====================================================================================================
+BUILD 18b. Vorschläge pro Rohstoff statt Job zurückstellen (approved by the user 2026-10-31: "Ja bau es so") | effort S-M
+User decision: suggestions should be per RESOURCE based on the stock, without naming buildings ("es sind ja so viele
+Gebäude"). Never suggest putting a whole job back (e.g. "Ernte kann zurückgestellt werden" is wrong because Ernte also
+brings stone, clay and ore).
+- "Knapp" list (top of the suggestions): per item, e.g. "Seil 4 – knapp, mehr herstellen." For the group-level stocks
+  Essen and Tierfutter one line each ("Tierfutter 7 bei 11 Tieren – knapp, mehr herstellen."). Below each knapp line keep
+  the job-raise hint with the current importance ("Dafür wichtiger stellen: Handwerk – gerade „normal“."), merging
+  identical jobs across lines.
+- "Reichlich" list: per item, e.g. "Rohstein 737 – reichlich, kann etwas runtergestellt werden." Essen as one group line
+  ("Essen 807 für 32 Bewohner – reichlich, kann etwas runtergestellt werden."). NO job names in this list, and no
+  job-level "zurückstellen" suggestions anywhere any more.
+- Only items players make or gather ON PURPOSE get hints: Baumstamm, Holz, Holzplanke, Hartholzstamm, Hartholzplanke,
+  Rohstein, Granit, Schlamm, Stampflehm, Torf, all ores, all bars, all nails, Seil, Einfache Schnur, Riemen, Leder,
+  Leinen, Baumwollbolzen, Grobes Tierfutter, plus the Essen group. By-products (Federn, Fell, Pelz, Fischschuppe,
+  Hirschgeweih, Wolfszahn, Weiße Perle, seeds, Dünger, Moos, Regenwürmer …) never get hints. Give every purposeful item a
+  knapp and a viel threshold (extend the existing key-item table sensibly; they stay "Schätzung"); trend logic
+  (falling fast -> knapp) applies per item as before.
+- At most 5 lines per list, sorted: knapp by urgency (amount ÷ minimum, smallest first), reichlich by excess
+  (amount ÷ viel-threshold, largest first); "+ n weitere" expands the rest. Groups/traffic lights/warnings stay as they are.
+- The Plan line stays ("Lager: Tierfutter und Seil knapp → Vorschläge ansehen"), built from the knapp list.
+TEST: update feat-stock.js – real fixture: knapp list Tierfutter, Seil (+ Leinen if its threshold makes it knapp) with
+Handwerk/Landwirtschaft/Tierhaltung hints; reichlich list contains Rohstein and Essen, never Federn/Fell; no text
+"zurückgestellt" with a job name anywhere; limit 5 + "weitere"; trend per item.
