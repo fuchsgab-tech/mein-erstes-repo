@@ -156,7 +156,7 @@ const fails = [];
 let passes = 0;
 const check = (name, ok, detail) => { if (ok) passes++; else fails.push(name + (detail !== undefined ? ' -> ' + JSON.stringify(detail).slice(0, 1200) : '')); };
 const errs = [];
-async function section(name, fn) { try { await fn(); } catch (e) { check(`${name}: runs to the end`, false, String(e && e.stack || e).split('\n').slice(0, 3).join(' | ')); } }
+async function section(name, fn) { if (process.env.ONLY && !process.env.ONLY.split(',').some(o => name.startsWith(o))) return; try { await fn(); } catch (e) { check(`${name}: runs to the end`, false, String(e && e.stack || e).split('\n').slice(0, 3).join(' | ')); } }
 async function phone(browser, srv, cfg, { width = 390, height = 844, hash = '#plan', noFonts = false } = {}) {
   const mobile = width < 900;
   const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: mobile, isMobile: mobile });
@@ -180,6 +180,40 @@ async function until(fn, max = 3000) {
   const t0 = Date.now();
   while (Date.now() - t0 < max) { if (await fn()) return Date.now() - t0; await sleep(30); }
   return -1;
+}
+// The next visit of this device (instead of page.reload()). Headless Chromium now and then cuts a page off from the
+// browser's localStorage (measured on a bare page, 2026-10-30: about 1 page in 100): that page still reads its own writes,
+// but they never reach the store, or a new page starts with an empty store. A reload then starts without what the app
+// saved, and "after a reload" checks flake (a second page alone flakes the same way: 3 of 80). So: what the app wrote is
+// read in its own page; a neutral page of the same origin (this script, as text) waits until the store has exactly that,
+// else writes it (the test browser lost it, not the app); the next page counts only if it starts with exactly that, else
+// another one opens. Each time the test browser lost something is reported as a note, never hidden.
+const notes = [];
+async function nextVisit(ctx, from, keys, srv, cfg, hash = '#lager') {
+  const wrote = await from.evaluate(ks => Object.fromEntries(ks.map(k => [k, localStorage.getItem(k)])), keys);
+  const has = pg => pg.evaluate(w => Object.entries(w).every(([k, v]) => localStorage.getItem(k) === v), wrote);
+  for (let i = 0; i < 4; i++) {
+    const h = await ctx.newPage();
+    await h.goto('file://' + __filename);
+    const ok = (await until(() => has(h), 2000)) >= 0;
+    if (!ok) { notes.push(`${cfg.name}: the test browser lost a localStorage write (${keys.join(', ')}), written again`); await h.evaluate(w => { for (const [k, v] of Object.entries(w)) { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } }, wrote); }
+    await h.close();
+    if (ok) break;
+  }
+  for (let i = 0; i < 4; i++) {
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push((cfg.name || '?') + ' (next visit): ' + e.message));
+    page.on('console', m => { if (m.type() === 'error' && !/fonts\.g(oogleapis|static)\.com|Failed to load resource/.test(m.text())) errs.push((cfg.name || '?') + ' (next visit) console: ' + m.text()); });
+    if (srv) { srv.pages.add(page); page.on('close', () => srv.pages.delete(page)); }
+    await page.addInitScript(ks => { window.__lsAtStart = Object.fromEntries(ks.map(k => { try { return [k, localStorage.getItem(k)]; } catch (e) { return [k, undefined]; } })); }, keys);
+    await page.addInitScript(STUB, cfg);
+    await page.goto('file://' + process.cwd() + '/page.html' + hash);
+    await page.waitForTimeout(600);
+    if (await page.evaluate(w => Object.entries(w).every(([k, v]) => window.__lsAtStart[k] === v), wrote)) return page;
+    notes.push(`${cfg.name}: a page of the test browser started without localStorage, opened another`);
+    await page.close();
+  }
+  throw new Error('the test browser kept losing localStorage');
 }
 const owner = { id: 'u_a', owner: true, can: true };
 const lena = { id: 'u_b', owner: false, can: true };
@@ -310,6 +344,20 @@ async function standIns(browser) {
     const sf = mo.sugg.find(x => x.key === 'futter');
     check('a job already "dringend" / switched off is said so', sf && JSON.stringify(sf.jobs) === JSON.stringify(['Landwirtschaft ist schon „dringend“.', 'Tierhaltung ist bei euch abgeschaltet.']), sf);
     check('no checks: nothing', T.stockView([], S) === null);
+    // A second check where the last Rohstoffe photo is missing (Riemen … Zinnerz not on it): the trend compares only what
+    // is on both checks, so a missing photo is no "falling fast" (Erz 80 of 157 would read "reicht noch etwa 1 Prüfung").
+    const cut = L.rows.filter(r => r.category === 'Proviant' || r.name < 'Riemen');
+    const mp = T.stockView([{ id: 'k0', ...docOf(AT0) }, { id: 'k1', ...docOf(AT1, cut) }], S);
+    const gp = id => mp.groups.find(g => g.id === id);
+    check('partial second check: no false "knapp" from a missing photo (Erz okay, no Erz suggestion)', gp('erz').light === 'okay' && !mp.knapp.includes('Erz') && !mp.sugg.some(x => x.key === 'Erz'), [gp('erz').light, gp('erz').why, mp.knapp]);
+    check('partial second check: the trend counts only what is on both checks ("gleich", not "↓ 1.244")', gp('stein').trend === 'gleich seit 28.10.' && gp('erz').trend === 'gleich seit 28.10.' && gp('stoff').trend === 'gleich seit 28.10.',
+      ['stein', 'erz', 'stoff'].map(id => gp(id).trend));
+    // A number saved as unreadable (null) is not "0 im Lager": Seil without its number is not judged.
+    const mn = T.stockView([{ id: 'k1', ...docOf(AT1, L.rows.map(r => r.name === 'Seil' ? { ...r, lager: null } : r)) }], S);
+    check('an unreadable number is not 0: Seil (null) is not "knapp"', !mn.knapp.includes('Seil') && mn.groups.find(g => g.id === 'stoff').light === 'okay', [mn.knapp, mn.groups.find(g => g.id === 'stoff').why]);
+    // Honest wording: the limits stay estimates after the first check too.
+    check('first check: estimate note', m.est === 'Schätzung – wird mit jeder Prüfung genauer.', m.est);
+    check('later checks: still called an estimate, plus the trend', m2.est === 'Schätzung – die Ampel nutzt Richtwerte und den Verlauf seit der letzten Prüfung.', m2.est);
   });
 
   const browser = await chromium.launch();
@@ -448,6 +496,68 @@ async function standIns(browser) {
       await A.ctx.close(); await B.ctx.close();
     });
 
+    // ===== 1b) Every number of the result can be corrected (a confidently misread one too): tap the number, type =====
+    // The review stays compact on a phone: a number is plain text in a 44 px tap target, not a field; only the tapped one
+    // becomes a field. Emptying a number makes it open again (amber, asked about once), like an unreadable one.
+    for (const w of [360, 390]) {
+      await section('1b) correct any number ' + w, async () => {
+        const srv = makeServer(seedAll());
+        const A = await phone(browser, srv, { name: 'ED' + w, inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: w, height: 780, hash: '#lager' });
+        const P = A.page;
+        await readStock(P, REPLY);
+        let r = await SK(P);
+        const hint = await P.evaluate(() => { const h = document.querySelector('#stock-review .sk-hint'); return h && !h.closest('[hidden]') ? h.textContent.trim() : null; });
+        check(`${w}: the result says that every number can be corrected`, hint === 'Falsch gelesen? Tippt auf eine Zahl, um sie zu ändern.', hint);
+        await P.evaluate(() => { for (const d of document.querySelectorAll('.sk-rgroup')) d.open = true; });
+        await P.waitForTimeout(80);
+        const look = await P.evaluate(() => {
+          const row = [...document.querySelectorAll('#stock-review .sk-row')].find(x => x.querySelector('.sk-iname').textContent === 'Seil');
+          const b = row && row.querySelector('.sk-n button');
+          const rows = [...document.querySelectorAll('#stock-review .sk-row')].filter(x => !x.querySelector('.sk-tag') && x.querySelector('.sk-dline').hidden && (() => { const g = document.createRange(); g.selectNodeContents(x.querySelector('.sk-iname')); return g.getClientRects().length === 1; })());
+          return { buttons: row ? row.querySelectorAll('.sk-n button').length : 0, inputs: document.querySelectorAll('#stock-review .sk-n input').length,
+            label: b && b.getAttribute('aria-label'), text: b && b.textContent, h: b && Math.round(b.getBoundingClientRect().height), bw: b && Math.round(b.getBoundingClientRect().width),
+            cw: b && Math.round(b.parentElement.getBoundingClientRect().width), rowMax: Math.max(...rows.map(x => x.getBoundingClientRect().height)), nrows: rows.length };
+        });
+        check(`${w}: a sure number is a button (not a field): three in a row, only the unreadable one is a field`, look.buttons === 3 && look.inputs === 1, look);
+        check(`${w}: the button names the item, the column and the number`, look.label === 'Seil, Lager 4 – ändern' && look.text === '4', look);
+        check(`${w}: the tap target is >= 44 px tall and stays in its column`, look.h >= 44 && look.bw <= look.cw, look);
+        check(`${w}: the result stays compact: a one-line row is at most 46 px`, look.nrows > 40 && look.rowMax <= 46, { rowMax: look.rowMax, n: look.nrows });
+        await P.locator('#stock-review .sk-row', { has: P.locator('.sk-iname', { hasText: /^Seil$/ }) }).locator('.sk-n button').first().click();
+        await P.waitForTimeout(60);
+        const ed = await P.evaluate(() => { const a = document.activeElement; return a && { tag: a.tagName, type: a.type, value: a.value, label: a.getAttribute('aria-label'), doubt: !!a.closest('.doubt'), sel: a.selectionStart === undefined ? null : true }; });
+        check(`${w}: tapping the number makes it a field with the number, focused (not amber)`, ed && ed.tag === 'INPUT' && ed.type === 'number' && ed.value === '4' && ed.label === 'Seil, Lager' && !ed.doubt, ed);
+        await P.keyboard.press('Control+A'); await P.keyboard.type('14'); await P.waitForTimeout(60);
+        r = await SK(P);
+        check(`${w}: the corrected number stays, nothing becomes open`, rvRow(r, 'Seil').n[0] === '14' && !rvRow(r, 'Seil').doubt && r.rv.openText === '1 unsichere Zahl ist gelb markiert. Prüft sie kurz.', { seil: rvRow(r, 'Seil'), open: r.rv.openText });
+        // keyboard: Tab to a number, Enter opens it
+        await P.locator('#stock-review .sk-row', { has: P.locator('.sk-iname', { hasText: /^Federn$/ }) }).locator('.sk-n button').first().focus();
+        await P.keyboard.press('Enter'); await P.waitForTimeout(60);
+        const fe = await P.evaluate(() => { const a = document.activeElement; return a && { tag: a.tagName, value: a.value }; });
+        check(`${w}: keyboard: Enter on a number opens it ("2.115" as 2115)`, fe && fe.tag === 'INPUT' && fe.value === '2115', fe);
+        // emptying a number: open again, asked about once
+        await P.keyboard.press('Control+A'); await P.keyboard.press('Backspace'); await P.waitForTimeout(60);
+        r = await SK(P);
+        check(`${w}: an emptied number is open again (amber) and counted`, rvRow(r, 'Federn').doubt && r.rv.openText === '2 unsichere Zahlen sind gelb markiert. Prüft sie kurz.', { f: rvRow(r, 'Federn'), open: r.rv.openText });
+        await P.keyboard.type('2116'); await P.waitForTimeout(60);
+        r = await SK(P);
+        check(`${w}: typed again: checked`, !rvRow(r, 'Federn').doubt && rvRow(r, 'Federn').n[0] === '2116' && r.rv.openText === '1 unsichere Zahl ist gelb markiert. Prüft sie kurz.', { f: rvRow(r, 'Federn'), open: r.rv.openText });
+        await P.keyboard.press('Control+A'); await P.keyboard.type('12115'); await P.waitForTimeout(60);
+        const fit = await P.evaluate(() => { const a = document.activeElement; return { v: a.value, sw: a.scrollWidth, cw: a.clientWidth }; });
+        check(`${w}: a five-digit number fits its field (no digit hidden)`, fit.v === '12115' && fit.sw <= fit.cw, fit);
+        await P.keyboard.press('Control+A'); await P.keyboard.type('2116'); await P.waitForTimeout(60);
+        await P.fill('.sk-row .sk-n.doubt input', '2'); await P.waitForTimeout(60);
+        const sc = await P.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth }));
+        check(`${w}: with fields open: no horizontal scroll`, sc.sw <= sc.vw, sc);
+        await P.click('#stock-save');
+        await until(() => srv.docs('stock').length === 1);
+        const doc = (srv.docs('stock')[0] || [])[1];
+        const by = new Map((doc ? doc.rows : []).map(x => [x.name, x]));
+        check(`${w}: saved with the corrections (Seil 14, Federn 2116), the rest as read`, doc && by.get('Seil').lager === 14 && by.get('Federn').lager === 2116 && by.get('Eisenerz').unterwegs === 2 && by.get('Baumstamm').lager === 70 && by.get('Seil').reserviert === 0,
+          doc && [by.get('Seil'), by.get('Federn')]);
+        await A.ctx.close();
+      });
+    }
+
     // ===== 2) Second check: trend, falling fast, prefilled Bewohner/Vieh, keep the latest 12 =====
     await section('2) trend and keep 12', async () => {
       const now = Date.now(), day = 864e5;
@@ -478,7 +588,7 @@ async function standIns(browser) {
       const since = `seit ${dm(AT0)}`;
       check('trend per group: "↓ 16 seit …" (Holz), "↓ 700" (Essen), "↑ 5" (Tierfutter), "gleich" (Stoff)', grp(r, 'holz').trend === `↓ 16 ${since}` && grp(r, 'essen').trend === `↓ 700 ${since}` && grp(r, 'futter').trend === `↑ 5 ${since}` && grp(r, 'stoff').trend === `gleich ${since}`,
         ['holz', 'essen', 'futter', 'stoff'].map(g => grp(r, g).trend));
-      check('no estimate note from the second check on', r.over.est === null, r.over.est);
+      check('from the second check on: still an estimate, plus the trend', r.over.est === 'Schätzung – die Ampel nutzt Richtwerte und den Verlauf seit der letzten Prüfung.', r.over.est);
       check('Essen falls fast: knapp although above the minimum, "reicht bei diesem Verbrauch noch etwa 1 Prüfung"', grp(r, 'essen').light === 'knapp' && grp(r, 'essen').why === 'für 32 Bewohner · reicht bei diesem Verbrauch noch etwa 1 Prüfung', [grp(r, 'essen').light, grp(r, 'essen').why]);
       check('suggestions: Essen knapp with Kochen, Landwirtschaft, Jagen, Ernte', r.sugg.cards.map(c => c.key).join() === 'futter,Seil,essen' && JSON.stringify(r.sugg.cards[2].jobs) === JSON.stringify([up('Kochen', 'cooking'), up('Landwirtschaft', 'farming'), up('Jagen', 'hunting'), up('Ernte', 'harvesting')]), r.sugg.cards);
       await P.click('#tab-plan'); await P.waitForTimeout(150);
@@ -560,6 +670,35 @@ async function standIns(browser) {
       await A.ctx.close();
     });
 
+    // ===== 4b) A screenshot pasted or dropped on the Lager tab goes to "Lager prüfen" (never into the villager import) =====
+    await section('4b) paste and drop', async () => {
+      const srv = makeServer(seedAll());
+      const A = await phone(browser, srv, { name: 'PD', inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: 1280, height: 900, hash: '#lager' });
+      const P = A.page;
+      const give = how => P.evaluate(async how => {
+        const c = document.createElement('canvas'); c.width = c.height = 8;
+        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+        const dt = new DataTransfer(); dt.items.add(new File([blob], 'lager.png', { type: 'image/png' }));
+        if (how === 'paste') document.body.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+        else { document.body.dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true })); document.body.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })); }
+      }, how);
+      const where = () => P.evaluate(() => ({ lager: !document.getElementById('panel-lager').hidden, arbeiter: !document.getElementById('panel-arbeiter').hidden,
+        stockOpen: !document.getElementById('stock-photo').hidden, stockThumbs: document.querySelectorAll('#stock-thumbs .thumb').length, importThumbs: document.querySelectorAll('#thumbs .thumb').length }));
+      await give('paste'); await P.waitForTimeout(250);
+      let w = await where();
+      check('paste on the Lager tab (closed): "Lager prüfen" opens with the picture, the villager import stays empty', w.lager && !w.arbeiter && w.stockOpen && w.stockThumbs === 1 && w.importThumbs === 0, w);
+      await P.click('#stock-close'); await P.waitForTimeout(80);
+      await give('drop'); await P.waitForTimeout(250);
+      w = await where();
+      check('drop on the Lager tab (closed): the same', w.lager && !w.arbeiter && w.stockOpen && w.stockThumbs === 1 && w.importThumbs === 0, w);
+      await P.click('#tab-plan'); await P.waitForTimeout(80);
+      await give('paste'); await P.waitForTimeout(250);
+      w = await where();
+      check('paste on the Plan tab: the villager import as before', w.arbeiter && w.importThumbs === 1, w);
+      check('nothing written', !srv.log.length);
+      await A.ctx.close();
+    });
+
     // ===== 5) Local mode (no shared list): saved inside the LS payload, unknown items by category / Claude's group =====
     await section('5) local', async () => {
       const A = await phone(browser, null, { name: 'LOC', inClaude: false, anim: 'aus' }, { hash: '#lager' });
@@ -581,11 +720,8 @@ async function standIns(browser) {
       const ls = await P.evaluate(() => JSON.parse(localStorage.getItem('bellwright-arbeitsplan-v1') || 'null'));
       const docs = ls && ls.stock ? Object.values(ls.stock) : [];
       check('local: the check is inside the LS payload', docs.length === 1 && docs[0].rows.length === 78 && docs[0].pop === 32, ls && Object.keys(ls));
-      // The next visit: a second page of this browser (not page.reload(): in a fresh headless context a localStorage write
-      // on a file:// page is sometimes lost across a reload, 13 of 120 times in a bare page without this app).
-      const Q = await A.ctx.newPage();
-      Q.on('pageerror', e => errs.push('LOC2: ' + e.message));
-      await Q.goto('file://' + process.cwd() + '/page.html#lager');
+      // The next visit of this browser (see nextVisit: not page.reload(), and not a bare second page either).
+      const Q = await nextVisit(A.ctx, P, ['bellwright-arbeitsplan-v1'], null, { name: 'LOC2', inClaude: false, anim: 'aus' });
       const tOver = await until(() => Q.evaluate(() => { const o = document.getElementById('sk-over'); return !!o && !o.hidden; }), 5000);
       const r = await SK(Q);
       const diag = await Q.evaluate(() => { const d = JSON.parse(localStorage.getItem('bellwright-arbeitsplan-v1') || 'null'); const h = id => document.getElementById(id).hidden;
@@ -630,6 +766,12 @@ async function standIns(browser) {
         await P.click('.sk-group[data-group="stoff"] summary'); await P.waitForTimeout(20);
         const open = await P.evaluate(() => { const s = getComputedStyle(document.querySelector('.sk-group[data-group="stoff"] .sk-items')); return s.animationName + ' ' + s.animationDuration; });
         check(`${lvl}: a group opens with ${lvl === 'voll' ? 'a short drop' : lvl === 'ruhig' ? 'a fade' : 'no animation'}`, lvl === 'voll' ? open === 'drop 0.25s' : lvl === 'ruhig' ? open === 'calmIn 0.15s' : open.startsWith('none'), open);
+        // Something unrelated is drawn again (another phone's change, the minute clock): the open list stays as it is.
+        await P.waitForTimeout(400);
+        await P.evaluate(() => { window.__items = document.querySelector('.sk-group[data-group="stoff"] .sk-items'); });
+        srv.broadcast('workers'); await P.waitForTimeout(60);
+        const again = await P.evaluate(() => { const it = document.querySelector('.sk-group[data-group="stoff"] .sk-items'); return { same: it === window.__items, open: it.parentElement.open, anims: it.getAnimations().filter(a => a.playState === 'running').length }; });
+        check(`${lvl}: an unrelated redraw leaves the open group alone (no new drop-in)`, again.same && again.open && !again.anims, again);
         await A.ctx.close();
       });
     }
@@ -693,6 +835,7 @@ async function standIns(browser) {
     }
   } finally { await browser.close(); }
   check('no page errors', !errs.length, errs.slice(0, 5));
+  for (const n of notes) console.log('NOTE ' + n);
   for (const f of fails) console.log('FAIL ' + f);
   console.log(`feat-stock: ${passes} passed, ${fails.length} failed`);
   process.exit(fails.length ? 1 : 0);

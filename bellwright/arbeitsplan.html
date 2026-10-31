@@ -479,6 +479,12 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
 .sk-n { min-width: 0; }
 .sk-n input[type="number"] { width: 100%; text-align: right; font-size: 16px; min-height: 40px; padding: 4px 6px; }
 .sk-n.doubt input[type="number"] { border-color: var(--warn); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.35), 0 0 0 1px var(--warn); }
+/* Every number of the result can be corrected: it looks like text (a faint dotted line), a tap makes it a field. */
+.sk-nb { appearance: none; display: block; width: 100%; min-height: 28px; padding: 2px 0; margin: 0; border: 0; border-radius: 4px; background: none; color: inherit; font: inherit;
+  font-variant-numeric: lining-nums tabular-nums; text-align: right; cursor: pointer; text-decoration: underline dotted color-mix(in oklab, var(--muted) 55%, transparent); text-underline-offset: 4px; }
+.sk-nb:hover { color: var(--accent-hi); text-decoration-color: currentColor; }
+.sk-nb:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sk-hint { max-width: 72ch; }
 .sk-tag, .sk-dline { grid-column: 1 / -1; font-size: 0.75rem; line-height: 1.3; }
 .sk-tag { color: var(--ember); }
 :is(.sk-row, .sk-item)[data-kind="brand"] .sk-tag, :is(.sk-row, .sk-item)[data-kind="verdorben"] .sk-tag { color: var(--bad); }
@@ -530,11 +536,14 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
   .sk-act #stock-save { flex-grow: 2; order: 2; }
   .sk-act #stock-discard { order: 1; }
   .sk-tbl, .sk-items { padding-inline: 8px; }
-  .sk-th, .sk-row, .sk-item { grid-template-columns: minmax(0, 1fr) repeat(3, 2.75rem); gap: 2px 5px; }
+  .sk-th, .sk-row, .sk-item { grid-template-columns: minmax(0, 1fr) 3rem repeat(2, 2.75rem); gap: 2px 5px; }   /* Lager: five digits fit */
+  .sk-n input[type="number"] { padding-inline: 3px; }
   .sk-iname { font-size: 0.9375rem; }   /* "Baumwollbolzen", "Unverarbeitetes" fit in one line at 360 px */
 }
 @media (pointer: coarse) {
-  #panel-lager .btn, .sk-pop input[type="number"], .sk-n input[type="number"], .stock-line .linkbtn { min-height: 44px; }
+  #panel-lager .btn, .sk-pop input[type="number"], .sk-n input[type="number"], .stock-line .linkbtn, .sk-nb { min-height: 44px; }
+  .sk-row { padding-block: 0; }   /* the 44 px number is the row: compact, and every number still a full tap target */
+  .sk-row .sk-tag { padding-bottom: 6px; }
   #stock-thumbs .thumb button { min-width: 44px; height: 44px; }
 }
 /* Zoom on the photo a card was read from: full width, "Größer" doubles it inside a scroll box (pinch works there too). */
@@ -2019,18 +2028,27 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     { id: "Seil", group: "stoff", names: ["Seil"], min: 10, viel: 100, jobs: ["crafting"] },
     { id: "Leder", group: "stoff", names: ["Leder"], min: 10, viel: 150, jobs: ["crafting", "hunting"] },
   ];
-  // Per group: the rows (with their kind) and the total that counts (burnt, spoiled and feed grain do not).
+  // Per group: the rows (with their kind), the total that counts (burnt, spoiled and feed grain do not) and, per item, the
+  // amount that counts (by: item -> Lager; for the trend, which compares only items on both checks). byItem = the built-in
+  // items by name. A number saved as unreadable (null) is shown as "?" and counts nowhere (it is not 0).
   function stockSums(doc) {
-    const g = Object.fromEntries(STOCK_GROUPS.map(x => [x.id, { rows: [], total: 0 }])), byItem = new Map();
+    const g = Object.fromEntries(STOCK_GROUPS.map(x => [x.id, { rows: [], total: 0, by: new Map() }])), byItem = new Map();
     for (const r of doc.rows) {
       const group = stockGroupOf(r.name, r.category, r.group), kind = stockKind(r.name, group), it = stockItem(r.name);
       g[group].rows.push({ name: r.name, category: r.category, lager: r.lager, reserviert: r.reserviert, unterwegs: r.unterwegs, kind });
-      if (it) byItem.set(it.name, (byItem.get(it.name) || 0) + (r.lager || 0));
-      if (kind !== "brand" && kind !== "verdorben" && kind !== "futterroh") g[group].total += r.lager || 0;
+      if (typeof r.lager !== "number") continue;
+      if (it) byItem.set(it.name, (byItem.get(it.name) || 0) + r.lager);
+      if (kind === "brand" || kind === "verdorben" || kind === "futterroh") continue;
+      g[group].total += r.lager;
+      const key = it ? it.name : stockKey(r.name);
+      g[group].by.set(key, (g[group].by.get(key) || 0) + r.lager);
     }
     return { g, byItem };
   }
-  const stockKeyAmount = (s, k) => ({ present: k.names.some(n => s.byItem.has(n)), amount: k.names.reduce((a, n) => a + (s.byItem.get(n) || 0), 0) });
+  const stockKeyAmount = (s, k) => {
+    const by = new Map(k.names.filter(n => s.byItem.has(n)).map(n => [n, s.byItem.get(n)]));
+    return { present: by.size > 0, amount: [...by.values()].reduce((a, n) => a + n, 0), by };
+  };
   // The overview of the latest check (list = the cleaned docs, any order), compared with the ones before; null = no check.
   // A measure is knapp below its minimum and, from the second check on, when it falls so fast that it lasts less than three
   // more checks at this rate ("falling fast", even above the minimum); viel from its upper level.
@@ -2039,13 +2057,24 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (!docs.length) return null;
     const cur = docs[docs.length - 1], S = stockSums(cur);
     const older = docs.slice(0, -1).reverse().map(d => ({ at: d.at, s: stockSums(d) }));   // newest first
-    const prevOf = pick => { for (const o of older) { const x = pick(o.s); if (x.present) return { at: o.at, amount: x.amount }; } return null; };
-    const gPick = id => s => ({ present: s.g[id].rows.length > 0, amount: s.g[id].total });
+    // The check before this one that has the same thing: the change counts only items on both photos (a photo left out
+    // this time, or a row not read, is no drop). null = nothing to compare with.
+    const prevOf = (pick, cur) => {
+      for (const o of older) {
+        const x = pick(o.s);
+        if (!x.present) continue;
+        let d = 0, both = 0;
+        for (const [k, v] of cur.by) if (x.by.has(k)) { d += v - x.by.get(k); both++; }
+        return both ? { at: o.at, d } : null;
+      }
+      return null;
+    };
+    const gPick = id => s => ({ present: s.g[id].rows.length > 0, amount: s.g[id].total, by: s.g[id].by });
     const lasts = n => `reicht bei diesem Verbrauch noch etwa ${n} ${n === 1 ? "Prüfung" : "Prüfungen"}`;
     const two = n => String(n).padStart(2, "0");
     const since = at => { const a = new Date(at), b = new Date(cur.at); return a.toDateString() === b.toDateString() ? `seit ${two(a.getHours())}:${two(a.getMinutes())} Uhr` : `seit ${two(a.getDate())}.${two(a.getMonth() + 1)}.`; };
     function judge(amount, min, viel, pick) {
-      const prev = prevOf(pick), d = prev ? amount - prev.amount : 0;
+      const prev = prevOf(pick, pick(S)), d = prev ? prev.d : 0;
       const fast = d < 0 && amount > 0 && amount / -d < 3, n = fast ? Math.max(1, Math.floor(amount / -d)) : 0;
       return { amount, fast, n, light: amount < min || fast ? "knapp" : amount >= viel ? "viel" : "okay", sev: amount < min ? amount / Math.max(1, min) : fast ? 1 + amount / -d : 9 };
     }
@@ -2055,7 +2084,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const entries = [];   // the things with a light: {key, light, label, sev, why, jobs, where}
     const groups = STOCK_GROUPS.map(G => {
       const s = S.g[G.id], present = s.rows.length > 0;
-      const prev = present ? prevOf(gPick(G.id)) : null, d = prev ? s.total - prev.amount : 0;
+      const prev = present ? prevOf(gPick(G.id), gPick(G.id)(S)) : null, d = prev ? prev.d : 0;
       const out = { id: G.id, label: G.label, quiet: !!G.quiet, present, light: null, total: s.total, why: "", items: s.rows,
         trend: prev ? `${d < 0 ? `↓ ${stockFmt(-d)}` : d > 0 ? `↑ ${stockFmt(d)}` : "gleich"} ${since(prev.at)}` : null };
       if (!present) return out;
@@ -2112,7 +2141,9 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (br.length) warnings.push(`Angebranntes Essen ${stockFmt(total(br))} (${br.map(r => `${r.name} ${stockFmt(r.lager)}`).join(", ")}) – zählt nicht als Essen.`);
     const miss = groups.filter(g => !g.present && !g.quiet), cats = [...new Set(miss.map(g => STOCK_GROUP[g.id].cat))];
     const missing = miss.length ? `Nicht auf den Fotos: ${joinDe(cats.map(c => `${miss.filter(g => STOCK_GROUP[g.id].cat === c).map(g => g.label).join(" · ")} (Kategorie „${c}“)`))}.` : "";
-    return { at: cur.at, by: cur.by, pop, vieh, first: !older.length, groups, warnings, missing, sugg, knapp: names, line };
+    // The limits are estimates from the first check on; from the second check on the trend adds to them (said so, honestly).
+    const est = older.length ? "Schätzung – die Ampel nutzt Richtwerte und den Verlauf seit der letzten Prüfung." : "Schätzung – wird mit jeder Prüfung genauer.";
+    return { at: cur.at, by: cur.by, pop, vieh, first: !older.length, est, groups, warnings, missing, sugg, knapp: names, line };
   }
 
   // ---------- The planner ----------
@@ -6079,7 +6110,7 @@ Reply with only this JSON:
     if (!hasFiles(e)) return;
     e.preventDefault();
     photoBox.classList.remove("over");
-    if (skTakes()) { skAddFiles(e.dataTransfer.files); return; }   // into the open "Lager prüfen" instead
+    if (skTakes()) { skTake(e.dataTransfer.files); return; }   // on the Lager tab: into "Lager prüfen" instead
     if (ckTakes()) { ckAddFiles(e.dataTransfer.files); return; }   // into the open "Spiel prüfen" instead
     if (photoUsable()) { openPhoto(); addFiles(e.dataTransfer.files); }
   });
@@ -6092,7 +6123,7 @@ Reply with only this JSON:
     const files = [...((e.clipboardData && e.clipboardData.files) || [])].filter(f => String(f.type).startsWith("image/"));
     if (!files.length) return;
     e.preventDefault();
-    if (toStock) { skAddFiles(files); return; }
+    if (toStock) { skTake(files); return; }
     if (toCheck) { ckAddFiles(files); return; }
     openPhoto();
     addFiles(files);
@@ -6607,8 +6638,9 @@ Reply with only this JSON:
   // checking: an unsure or unreadable number is an amber field. "Speichern" writes one 'stock' doc and, in the same action,
   // deletes the ones beyond the latest 12 (one Rückgängig for both). The overview and the suggestions (stockView) never change
   // anything by themselves. Read-only viewers may read and look, not save. Drawing never writes.
-  // sk.rows = [{k, name, category, group, kind, claude, vals: {lager, reserviert, unterwegs}, unsure: Set(field), ok: Set(field)}]
-  // (ok = an unsure number the players checked: typed or "stimmt").
+  // sk.rows = [{k, name, category, group, kind, claude, vals: {lager, reserviert, unterwegs}, unsure: Set(field), ok: Set(field),
+  // edit: Set(field)}] (ok = an unsure number the players checked: typed or "stimmt"; edit = a sure number tapped to correct it:
+  // a field from then on). Every number can be corrected; one left empty is open again, like an unreadable one.
   const SK_MAX = 8;
   const STOCK_COL = { lager: "Lager", reserviert: "reserviert", unterwegs: "unterwegs" };
   const STOCK_ERR = { ...PHOTO_ERR, rate_limited: "Euer Claude-Limit ist gerade erreicht. Versucht es später noch einmal." };
@@ -6650,7 +6682,7 @@ Reply with only this JSON:
       if (old) { skMerge(old, { name, category, vals, unsure }); merged++; continue; }
       if (rows.length >= STOCK_MAX_ROWS) continue;
       const group = stockGroupOf(name, category, o.group);
-      const row = { k: ++sk.seq, name, category, group, kind: stockKind(name, group), claude: o.group, vals, unsure, ok: new Set() };
+      const row = { k: ++sk.seq, name, category, group, kind: stockKind(name, group), claude: o.group, vals, unsure, ok: new Set(), edit: new Set() };
       byKey.set(key, row);
       rows.push(row);
     }
@@ -6679,7 +6711,9 @@ Reply with only this JSON:
   const skOpenCount = () => sk.rows ? sk.rows.reduce((n, r) => n + [...r.unsure].filter(f => !r.ok.has(f)).length, 0) : 0;
   const skLocked = () => locked() || (state.mode === "db" && !state.stockReady);
   const skAvail = () => photoOk();
-  const skTakes = () => sk.open && !$("#panel-lager").hidden && skAvail();
+  // A picture pasted or dropped while the Lager tab is in view is a Lager photo (opens "Lager prüfen" if needed).
+  const skTakes = () => !$("#panel-lager").hidden && skAvail();
+  function skTake(files) { if (!sk.open) skOpen(); skAddFiles(files); }
   function skLatest() { let best = null, id = null; for (const [k, d] of Object.entries(stocks)) if (!best || d.at > best.at) { best = d; id = k; } return { id, doc: best }; }
 
   // ----- the result, checked before saving -----
@@ -6689,9 +6723,13 @@ Reply with only this JSON:
       ? `<span>${STOCK_COL[f]}: nicht lesbar – tragt die Zahl ein</span>`
       : `<span>${STOCK_COL[f]}: unsicher gelesen</span><button type="button" class="btn small" data-sk="ok" data-k="${r.k}" data-f="${f}" data-focus="ok:${r.k}:${f}">stimmt</button>`).join("");
   }
+  // A number as a field (unsure, or tapped to correct it); the doubt is painted by skRvPaint.
+  const skField = (r, f) => `<input type="number" min="0" max="9999999" inputmode="numeric" data-sk="v" data-k="${r.k}" data-f="${f}" data-focus="v:${r.k}:${f}" value="${r.vals[f] === null ? "" : r.vals[f]}" aria-label="${esc(`${r.name}, ${STOCK_COL[f]}`)}">`;
   function skRowHtml(r) {
-    const cells = STOCK_FIELDS.map(f => !r.unsure.has(f) ? `<span class="sk-n">${stockFmt(r.vals[f])}</span>`
-      : `<span class="sk-n${r.ok.has(f) ? "" : " doubt"}" data-f="${f}"><input type="number" min="0" max="9999999" inputmode="numeric" data-sk="v" data-k="${r.k}" data-f="${f}" data-focus="v:${r.k}:${f}" value="${r.vals[f] === null ? "" : r.vals[f]}" aria-label="${esc(`${r.name}, ${STOCK_COL[f]}`)}"></span>`).join("");
+    // A sure number is plain text in a tap target ("tap a number to correct it"), so the list stays compact on a phone.
+    const cells = STOCK_FIELDS.map(f => !r.unsure.has(f) && !r.edit.has(f)
+      ? `<span class="sk-n"><button type="button" class="sk-nb" data-sk="e" data-k="${r.k}" data-f="${f}" data-focus="e:${r.k}:${f}" aria-label="${esc(`${r.name}, ${STOCK_COL[f]} ${stockFmt(r.vals[f])} – ändern`)}">${stockFmt(r.vals[f])}</button></span>`
+      : `<span class="sk-n${r.unsure.has(f) && !r.ok.has(f) ? " doubt" : ""}" data-f="${f}">${skField(r, f)}</span>`).join("");
     const dl = skDline(r);
     return `<div class="sk-row" data-k="${r.k}"${r.kind ? ` data-kind="${r.kind}"` : ""}><span class="sk-iname">${esc(r.name)}</span>${cells}`
       + (r.kind ? `<span class="sk-tag">${STOCK_TAG[r.kind]}</span>` : "") + `<span class="sk-dline"${dl ? "" : " hidden"}>${dl}</span></div>`;
@@ -6699,6 +6737,7 @@ Reply with only this JSON:
   function skRvHtml() {
     const open = r => [...r.unsure].some(f => !r.ok.has(f));
     return `<h3 id="stock-rv-title" tabindex="-1">Ergebnis</h3><p class="sk-sum"></p><p class="sk-ro" hidden>Nur ansehen: Ihr seht das Ergebnis, speichern könnt ihr hier nicht.</p>`
+      + `<p class="sk-hint muted small">Falsch gelesen? Tippt auf eine Zahl, um sie zu ändern.</p>`
       + `<div class="sk-pop"><label>Bewohner<input type="number" id="stock-pop" min="1" max="99999" inputmode="numeric" value="${sk.pop ?? ""}"></label>`
       + `<label>Vieh (optional)<input type="number" id="stock-vieh" min="0" max="99999" inputmode="numeric" value="${sk.vieh ?? ""}"></label>`
       + `<p class="muted small">Steht im Spiel oben im Fenster bei „Bevölkerung“ und „Vieh“. Daran misst die App, ob Essen und Tierfutter reichen.</p></div>`
@@ -6717,6 +6756,7 @@ Reply with only this JSON:
     const se = box.querySelector(".sk-sum");
     if (se.textContent !== sum) se.textContent = sum;
     box.querySelector(".sk-ro").hidden = !ro;
+    box.querySelector(".sk-hint").hidden = ro;
     const oe = box.querySelector(".sk-open"), ot = open ? `${open === 1 ? "1 unsichere Zahl ist" : open + " unsichere Zahlen sind"} gelb markiert. Prüft sie kurz.` : "";
     if (oe.textContent !== ot) oe.textContent = ot;
     oe.hidden = !open;
@@ -6724,7 +6764,7 @@ Reply with only this JSON:
       if (!r.unsure.size) continue;
       const el = box.querySelector(`.sk-row[data-k="${r.k}"]`);
       if (!el) continue;
-      for (const c of el.querySelectorAll(".sk-n[data-f]")) c.classList.toggle("doubt", !r.ok.has(c.dataset.f));
+      for (const c of el.querySelectorAll(".sk-n[data-f]")) c.classList.toggle("doubt", r.unsure.has(c.dataset.f) && !r.ok.has(c.dataset.f));
       const dl = el.querySelector(".sk-dline"), h = skDline(r);
       if (dl.dataset.h !== h) { dl.innerHTML = h; dl.dataset.h = h; }
       dl.hidden = !h;
@@ -6922,21 +6962,22 @@ Reply with only this JSON:
   }
   const skItemHtml = r => `<div class="sk-item"${r.kind ? ` data-kind="${r.kind}"` : ""}><span class="sk-iname">${esc(r.name)}</span>`
     + STOCK_FIELDS.map(f => `<span class="sk-n">${stockFmt(r[f])}</span>`).join("") + (r.kind ? `<span class="sk-tag">${STOCK_TAG[r.kind]}</span>` : "") + `</div>`;
-  function skGroupHtml(g) {
+  function skGroupHtml(g, withOpen = true) {
     const sub = (g.trend ? `<span class="sk-trend">${esc(g.trend)}</span>` : "") + (g.why ? `<span class="sk-why">${esc(g.why)}</span>` : "");
-    return `<details class="sk-group" data-group="${g.id}"${g.light ? ` data-light="${g.light}"` : ""}${sk.openGroups.has(g.id) ? " open" : ""}>`
+    return `<details class="sk-group" data-group="${g.id}"${g.light ? ` data-light="${g.light}"` : ""}${withOpen && sk.openGroups.has(g.id) ? " open" : ""}>`
       + `<summary data-focus="g:${g.id}"><span class="sk-name">${esc(g.label)}</span>${g.light ? `<span class="sk-light ${g.light}">${g.light}</span>` : ""}`
       + `<span class="sk-total">${stockFmt(g.total)}</span>${sub ? `<span class="sk-sub">${sub}</span>` : ""}</summary>`
       + `<div class="sk-items">${SK_TH}${g.items.map(skItemHtml).join("")}</div></details>`;
   }
   const skCardHtml = s => `<article class="sk-card" data-key="${esc(s.key)}" data-light="${s.light}"><h4>${esc(s.title)}</h4><p class="sk-card-why">${esc(s.why)}</p>`
     + `<ul class="sk-jobs">${s.jobs.map(j => `<li>${esc(j)}</li>`).join("")}</ul></article>`;
-  // One part of the overview, replaced only when it changed (a focused summary keeps its focus).
-  function skPart(sel, html) {
-    if (sk.parts[sel] === html) return;
+  // One part of the overview, replaced only when it changed (a focused summary keeps its focus). key = what counts as a
+  // change (the groups: without their open state, which the page already shows; a redraw never drops an open list in again).
+  function skPart(sel, html, key = html) {
+    if (sk.parts[sel] === key) return;
     const el = $(sel), act = document.activeElement, fk = act && el.contains(act) ? act.dataset.focus : null;
     el.innerHTML = html;
-    sk.parts[sel] = html;
+    sk.parts[sel] = key;
     if (fk) { const t = el.querySelector(`[data-focus="${CSS.escape(fk)}"]`); if (t) t.focus({ preventScroll: true }); }
   }
   function renderStockLine(m) {
@@ -6962,9 +7003,10 @@ Reply with only this JSON:
     const who = m.by ? names.get(m.by) || "" : "";
     const when = `Geprüft ${relTime(m.at)}${who ? ` von ${who}` : ""}${m.pop ? ` · ${m.pop} Bewohner` : ""}${m.vieh !== null && m.vieh !== undefined ? ` · ${m.vieh} ${m.vieh === 1 ? "Tier" : "Tiere"}` : ""}`;
     if ($("#sk-when").textContent !== when) $("#sk-when").textContent = when;
-    skPart("#sk-top", (m.first ? `<p class="sk-est">Schätzung – wird mit jeder Prüfung genauer.</p>` : "")
+    skPart("#sk-top", `<p class="sk-est">${esc(m.est)}</p>`
       + (m.warnings.length ? `<ul class="sk-warn">${m.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""));
-    skPart("#sk-groups", m.groups.filter(g => g.present).map(skGroupHtml).join(""));
+    const shown = m.groups.filter(g => g.present);
+    skPart("#sk-groups", shown.map(g => skGroupHtml(g)).join(""), shown.map(g => skGroupHtml(g, false)).join(""));
     skPart("#sk-cards", m.sugg.length ? m.sugg.map(skCardHtml).join("") : `<p class="sk-none">Gerade gibt es nichts vorzuschlagen.</p>`);
     const miss = $("#sk-missing");
     if (miss.textContent !== m.missing) miss.textContent = m.missing;
@@ -7003,12 +7045,24 @@ Reply with only this JSON:
   $("#stock-rv-body").addEventListener("input", e => {
     const t = e.target, r = t.dataset.sk === "v" && sk.rows && sk.rows.find(x => String(x.k) === t.dataset.k);
     if (!r) return;
-    r.vals[t.dataset.f] = stockNum(t.value);
-    r.ok.add(t.dataset.f);
+    const f = t.dataset.f, v = stockNum(t.value);
+    r.vals[f] = v;
+    if (v === null) { r.unsure.add(f); r.ok.delete(f); } else r.ok.add(f);
     if (sk.armed) skArm();   // still deciding: the "Trotzdem" question waits a little longer
     skRvPaint();
   });
   $("#stock-rv-body").addEventListener("click", e => {
+    const nb = e.target.closest('[data-sk="e"]'), rn = nb && sk.rows && sk.rows.find(x => String(x.k) === nb.dataset.k);
+    if (rn) {   // a number read for sure, but wrong: it becomes a field (the row keeps its height)
+      const f = nb.dataset.f, cell = nb.parentElement;
+      rn.edit.add(f);
+      cell.dataset.f = f;
+      cell.innerHTML = skField(rn, f);
+      const inp = cell.querySelector("input");
+      inp.focus();
+      try { inp.select(); } catch (x) { /* ignore */ }
+      return;
+    }
     const b = e.target.closest('[data-sk="ok"]'), r = b && sk.rows && sk.rows.find(x => String(x.k) === b.dataset.k);
     if (!r) return;
     r.ok.add(b.dataset.f);

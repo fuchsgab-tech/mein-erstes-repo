@@ -199,6 +199,40 @@ async function until(fn, max = 3000) {
   while (Date.now() - t0 < max) { if (await fn()) return Date.now() - t0; await sleep(30); }
   return -1;
 }
+// The next visit of this device (instead of page.reload()). Headless Chromium now and then cuts a page off from the
+// browser's localStorage (measured on a bare page, 2026-10-30: about 1 page in 100): that page still reads its own writes,
+// but they never reach the store, or a new page starts with an empty store. A reload then starts without what the app
+// saved, and "after a reload" checks flake (a second page alone flakes the same way: 3 of 80). So: what the app wrote is
+// read in its own page; a neutral page of the same origin (this script, as text) waits until the store has exactly that,
+// else writes it (the test browser lost it, not the app); the next page counts only if it starts with exactly that, else
+// another one opens. Each time the test browser lost something is reported as a note, never hidden.
+const notes = [];
+async function nextVisit(ctx, from, keys, srv, cfg, hash = '#plan') {
+  const wrote = await from.evaluate(ks => Object.fromEntries(ks.map(k => [k, localStorage.getItem(k)])), keys);
+  const has = pg => pg.evaluate(w => Object.entries(w).every(([k, v]) => localStorage.getItem(k) === v), wrote);
+  for (let i = 0; i < 4; i++) {
+    const h = await ctx.newPage();
+    await h.goto('file://' + __filename);
+    const ok = (await until(() => has(h), 2000)) >= 0;
+    if (!ok) { notes.push(`${cfg.name}: the test browser lost a localStorage write (${keys.join(', ')}), written again`); await h.evaluate(w => { for (const [k, v] of Object.entries(w)) { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } }, wrote); }
+    await h.close();
+    if (ok) break;
+  }
+  for (let i = 0; i < 4; i++) {
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push((cfg.name || '?') + ' (next visit): ' + e.message));
+    page.on('console', m => { if (m.type() === 'error' && !/fonts\.g(oogleapis|static)\.com|Failed to load resource/.test(m.text())) errs.push((cfg.name || '?') + ' (next visit) console: ' + m.text()); });
+    if (srv) { srv.pages.add(page); page.on('close', () => srv.pages.delete(page)); }
+    await page.addInitScript(ks => { window.__lsAtStart = Object.fromEntries(ks.map(k => { try { return [k, localStorage.getItem(k)]; } catch (e) { return [k, undefined]; } })); }, keys);
+    await page.addInitScript(STUB, cfg);
+    await page.goto('file://' + process.cwd() + '/page.html' + hash);
+    await page.waitForTimeout(600);
+    if (await page.evaluate(w => Object.entries(w).every(([k, v]) => window.__lsAtStart[k] === v), wrote)) return page;
+    notes.push(`${cfg.name}: a page of the test browser started without localStorage, opened another`);
+    await page.close();
+  }
+  throw new Error('the test browser kept losing localStorage');
+}
 const owner = { id: 'u_a', owner: true, can: true };
 const lena = { id: 'u_b', owner: false, can: true };
 const viewer = { id: 'u_ro', owner: false, can: false };
@@ -295,7 +329,8 @@ async function same(label, page, e) {
     await section('1) owner and Lena', async () => {
       check('fixture: 10 villagers differ from the plan', DIFF_IDS.length === 10, DIFF_IDS.map(id => NAME[id]));
       const srv = makeServer(seedAll());
-      const A = await phone(browser, srv, { name: 'A', inClaude: true, writable: true, user: owner, anim: 'aus' });
+      const cfgA = { name: 'A', inClaude: true, writable: true, user: owner, anim: 'aus' };
+      const A = await phone(browser, srv, cfgA);
       const B = await phone(browser, srv, { name: 'B', inClaude: true, writable: true, user: lena, anim: 'aus' }, { width: 1280, height: 900 });
       const P = A.page;
       let r = await MM(P);
@@ -343,8 +378,11 @@ async function same(label, page, e) {
       check('"Nur diese zeigen": only the 10 villagers, the chip "Alle zeigen", focus on it', canon(r.ids) === canon(DIFF_IDS) && r.filter && r.filter.all === 'Alle zeigen' && !(r.banner && r.banner.only) && await P.evaluate(() => document.activeElement && document.activeElement.id === 'mm-all'), { ids: r.ids.map(i => NAME[i]), filter: r.filter });
       check('the other phone keeps showing everybody', (await MM(B.page)).ids.length === 28);
       await P.screenshot({ path: path.join(SHOTS, 'flow-390-filter.png') });
-      await P.reload(); await P.waitForTimeout(600);
-      check('the filter stays on this device after a reload', canon((await MM(P)).ids) === canon(DIFF_IDS));
+      check('"Nur diese zeigen" is stored on this device', (await P.evaluate(k => localStorage.getItem(k), FILTER_KEY)) === 'true');
+      const Q = await nextVisit(A.ctx, P, [FILTER_KEY], srv, cfgA);   // the next visit (see nextVisit: not P.reload())
+      await until(async () => (await MM(Q)).ids.length === DIFF_IDS.length, 3000);
+      check('the filter stays on this device after a reload', canon((await MM(Q)).ids) === canon(DIFF_IDS), (await MM(Q)).ids.length);
+      await Q.close();
       await P.click('[data-view="table"]'); await P.waitForTimeout(100);
       r = await MM(P);
       check('the filter holds in the table view too', r.view === 'table' && canon(r.ids) === canon(DIFF_IDS), r.ids.length);
@@ -495,7 +533,8 @@ async function same(label, page, e) {
     // ===== 6) Local mode: the checks live inside the LS payload =====
     await section('6) local mode', async () => {
       const LS_KEY = 'bellwright-arbeitsplan-v1', AP_KEY = 'bellwright-arbeitsplan-eingetragen-v1';
-      const A = await phone(browser, null, { name: 'L', inClaude: false, anim: 'aus', seedLs: { [LS_KEY]: { settings: F.settings, workers: F.workers, prefs: {} }, [AP_KEY]: anchorOf(F.ingame) } });
+      const cfgL = { name: 'L', inClaude: false, anim: 'aus', seedLs: { [LS_KEY]: { settings: F.settings, workers: F.workers, prefs: {} }, [AP_KEY]: anchorOf(F.ingame) } };
+      const A = await phone(browser, null, cfgL);
       await applyCheck(A.page);
       await A.page.waitForTimeout(300);
       const ls = await A.page.evaluate(k => JSON.parse(localStorage.getItem(k)), LS_KEY);
@@ -503,9 +542,9 @@ async function same(label, page, e) {
       check('local: "Übernehmen" keeps the 28 checks inside the LS payload', !bad.length, bad.map(w => w.name));
       let r = await MM(A.page);
       check('local: 13 marks at the 10, the banner', Object.keys(r.marks).length === 13 && Object.keys(r.badges).length === 10 && r.banner && r.banner.lead === LEAD(13, 10), r.banner);
-      await A.page.reload(); await A.page.waitForTimeout(600);
-      r = await MM(A.page);
-      check('local: still there after a reload', Object.keys(r.marks).length === 13);
+      const Q = await nextVisit(A.ctx, A.page, [LS_KEY, AP_KEY], null, { ...cfgL, seedLs: null });   // the next visit (not reload)
+      r = await MM(Q);
+      check('local: still there after a reload', Object.keys(r.marks).length === 13, Object.keys(r.marks).length);
       await A.ctx.close();
     });
 
@@ -772,6 +811,7 @@ async function same(label, page, e) {
     });
   } finally { await browser.close(); }
   check('no page errors', !errs.length, errs.slice(0, 5));
+  for (const n of notes) console.log('NOTE ' + n);
   for (const f of fails) console.log('FAIL ' + f);
   console.log(`feat-mismatch: ${passes} passed, ${fails.length} failed`);
   process.exit(fails.length ? 1 : 0);
