@@ -7,6 +7,11 @@
 // population 32, livestock 11), lager-*.jpg = those photos; check-live.json = the group's roster and settings (the
 // importance each suggestion names). The sample stub answers with the transcription laid out like three photos: two
 // overlapping Rohstoffe photos (5 rows twice), the Proviant photo (cut-off names), "2.115" for Federn, one unreadable number.
+// BUILD 18b "Vorschläge pro Rohstoff": the suggestions are two lists per RESOURCE, no buildings, never "put a job back":
+// "Knapp" (per item, Essen and Tierfutter as one line each; most urgent = amount ÷ minimum first; below each line the job to
+// raise with its importance, a job named once and later lines say "Auch dafür: …") and "Reichlich" (per item, Essen as one
+// line; largest amount ÷ viel-level first; no job names). At most 5 lines each, "+ n weitere" shows the rest. Only items the
+// players make or gather on purpose get a line (by-products like Federn or Fell never do).
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -55,16 +60,51 @@ const FOOD = sum(L.rows, r => groupOf(r) === 'essen' && !BURNT.includes(r.name) 
 const TOTAL = Object.fromEntries(GROUPS.map(g => [g, g === 'essen' ? FOOD : g === 'futter' ? sum(L.rows, r => r.name === 'Grobes Tierfutter') : sum(L.rows, r => groupOf(r) === g)]));
 const S = T.normSettings(F.settings);
 const IMP = ['', 'unwichtig', 'nebenbei', 'normal', 'wichtig', 'dringend'];
-const up = (label, id) => `${label} ist gerade „${IMP[S.jobs[id].imp]}“ – „dringend“ wäre besser.`;
-const down = (label, id) => `${label} ist gerade „${IMP[S.jobs[id].imp]}“ – kann etwas zurückgestellt werden.`;
+// A job to raise, with its importance from the group's settings ("Handwerk – gerade „normal“").
+const up = (label, id) => `${label} – gerade „${IMP[S.jobs[id].imp]}“`;
+const raise = (...ps) => `Dafür wichtiger stellen: ${ps.map(([l, id]) => up(l, id)).join(' · ')}.`;
+const KN = ' – knapp, mehr herstellen.', RE = ' – reichlich, kann etwas runtergestellt werden.';
 const LIGHTS = { essen: 'viel', holz: 'okay', stein: 'okay', erz: 'okay', stoff: 'knapp', futter: 'knapp', saatgut: null, sonstiges: null };
-const SUGG = [
-  { key: 'futter', light: 'knapp', title: 'Tierfutter knapp', why: '7 Tierfutter bei 11 Tieren.', jobs: [up('Landwirtschaft', 'farming'), up('Tierhaltung', 'animals')] },
-  { key: 'Seil', light: 'knapp', title: 'Seil knapp', why: 'Seil: 4 im Lager.', jobs: [up('Handwerk', 'crafting')] },
-  { key: 'essen', light: 'viel', title: 'Essen viel', why: `${FOOD} Essen für 32 Bewohner.`, jobs: [down('Jagen', 'hunting'), down('Ernte', 'harvesting')] },
+// The real data: Leinen 1 of 5 (0.2), Tierfutter 7 of 33 for 11 animals (0.21), Seil 4 of 10 (0.4); Handwerk named once.
+const KNAPP = [
+  { key: 'Leinen', text: 'Leinen 1' + KN, hint: raise(['Handwerk', 'crafting']) },
+  { key: 'futter', text: 'Tierfutter 7 bei 11 Tieren' + KN, hint: raise(['Landwirtschaft', 'farming'], ['Tierhaltung', 'animals']) },
+  { key: 'Seil', text: 'Seil 4' + KN, hint: 'Auch dafür: Handwerk.' },
+];
+// Essen 807 of 640 for 32 (1.26), Rohstein 737 of 600 (1.23). No job names.
+const VIEL = [
+  { key: 'essen', text: `Essen ${FOOD} für 32 Bewohner` + RE, hint: null },
+  { key: 'Rohstein', text: 'Rohstein 737' + RE, hint: null },
+];
+// The items the players make or gather on purpose (the only ones with a line), and what never gets one.
+const PURPOSEFUL = ['Baumstamm', 'Holz', 'Holzplanke', 'Hartholzstamm', 'Hartholzplanke', 'Rohstein', 'Granit', 'Schlamm', 'Stampflehm', 'Torf',
+  'Kupfererz', 'Zinnerz', 'Eisenerz', 'Kupferbarren', 'Zinnbarren', 'Bronzebarren', 'Eisenbarren', 'Kupfernägel', 'Eisennägel',
+  'Seil', 'Einfache Schnur', 'Riemen', 'Leder', 'Leinen', 'Baumwollbolzen'];
+const BYPRODUCT = L.rows.filter(r => r.category === 'Rohstoffe' && !PURPOSEFUL.includes(r.name) && r.name !== 'Grobes Tierfutter').map(r => r.name);
+const JOB_LABELS = ['Bau', 'Lieferung', 'Karawanenträger', 'Karawanenwache', 'Holzfällen', 'Ernte', 'Landwirtschaft', 'Jagen', 'Tierhaltung', 'Kochen', 'Handwerk', 'Schmelzen', 'Forschung'];
+const BUILDINGS = /Sägegrube|Minenlager|Werkzeugmacher|Rennofen|Schmelzofen|Schmiede/;
+const lines = list => (Array.isArray(list) ? list : []).map(s => ({ key: s.key, text: s.text, hint: s.hint || null }));
+// Many things knapp and reichlich at once (7 each): the order and "+ 2 weitere".
+const MANY_KNAPP = [
+  { key: 'Seil', text: 'Seil 0' + KN, hint: raise(['Handwerk', 'crafting']) },
+  { key: 'Leinen', text: 'Leinen 1' + KN, hint: 'Auch dafür: Handwerk.' },
+  { key: 'futter', text: 'Tierfutter 7 bei 11 Tieren' + KN, hint: raise(['Landwirtschaft', 'farming'], ['Tierhaltung', 'animals']) },
+  { key: 'Holzplanke', text: 'Holzplanke 9' + KN, hint: 'Auch dafür: Handwerk.' },
+  { key: 'Kupfererz', text: 'Kupfererz 5' + KN, hint: raise(['Ernte', 'harvesting']) },
+  { key: 'Baumstamm', text: 'Baumstamm 13' + KN, hint: raise(['Holzfällen', 'woodcutting']) },
+  { key: 'Granit', text: 'Granit 7' + KN, hint: 'Auch dafür: Ernte.' },
+];
+const MANY_VIEL = [
+  { key: 'Rohstein', text: 'Rohstein 1.800' + RE, hint: null },
+  { key: 'Schlamm', text: 'Schlamm 800' + RE, hint: null },
+  { key: 'Torf', text: 'Torf 450' + RE, hint: null },
+  { key: 'essen', text: `Essen ${FOOD} für 32 Bewohner` + RE, hint: null },
+  { key: 'Holz', text: 'Holz 480' + RE, hint: null },
+  { key: 'Riemen', text: 'Riemen 220' + RE, hint: null },
+  { key: 'Einfache Schnur', text: 'Einfache Schnur 210' + RE, hint: null },
 ];
 const WARN = ['Verdorbene Nahrung 79 – Essen verdirbt. Ein Vorratskeller hält Essen länger frisch.', 'Angebranntes Essen 8 (Angebrannter Fisch 6, Angebrannter Pilz 2) – zählt nicht als Essen.'];
-const LINE = 'Lager: Tierfutter und Seil knapp → Vorschläge ansehen';
+const LINE = 'Lager: Leinen, Tierfutter und Seil knapp → Vorschläge ansehen';
 const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
 // The sample's answer: three photos as the lead transcribed them. Rohstoffe photo 1 = rows 0..34, photo 2 = rows 30..59
@@ -84,6 +124,8 @@ let IMGS = IMG_FILES;   // the group's real photos; without them (the repo copy 
 // A saved check as the app writes it (for seeding): the fixture rows with their groups.
 const docOf = (at, rows = L.rows, extra = {}) => ({ at, by: 'u_b', pop: 32, vieh: 11, rows: rows.map(r => ({ name: r.name, category: r.category, lager: r.lager, reserviert: r.reserviert, unterwegs: r.unterwegs, group: groupOf(r) })), ...extra });
 const withRows = (changes) => L.rows.map(r => r.name in changes ? { ...r, lager: changes[r.name] } : r);
+const MANY = withRows({ Seil: 0, Leinen: 1, 'Grobes Tierfutter': 7, Holzplanke: 9, Kupfererz: 5, Baumstamm: 13, Granit: 7,
+  Rohstein: 1800, Schlamm: 800, Torf: 450, Holz: 480, Riemen: 220, 'Einfache Schnur': 210 });
 
 // ---------- fake server and page stub (lazy collections) ----------
 function makeServer(seed = {}) {
@@ -257,7 +299,11 @@ const SK = page => page.evaluate(() => {
     } : null,
     sugg: vis($('#sk-sugg-h')) ? {
       head: t($('#sk-sugg-h')), note: t($('.sk-sugg-note')), none: vis($('.sk-none')) ? t($('.sk-none')) : null,
-      cards: [...document.querySelectorAll('.sk-card')].filter(vis).map(c => ({ key: c.dataset.key, light: c.dataset.light, title: t(c.querySelector('h4')), why: t(c.querySelector('.sk-card-why')), jobs: [...c.querySelectorAll('.sk-jobs li')].map(t) })),
+      lists: [...document.querySelectorAll('#sk-sugg .sk-list')].filter(vis).map(c => ({ light: c.dataset.light, title: t(c.querySelector('h4')),
+        lines: [...c.querySelectorAll('.sk-lines > li')].filter(vis).map(li => ({ key: li.dataset.key, text: t(li.querySelector('.sk-say')), hint: t(li.querySelector('.sk-do')) })),
+        hidden: [...c.querySelectorAll('.sk-lines > li')].filter(li => !vis(li)).length,
+        more: c.querySelector('.sk-more') && vis(c.querySelector('.sk-more')) ? t(c.querySelector('.sk-more')) : null })),
+      text: t($('#sk-sugg')),
     } : null,
     line: vis($('#stock-line')) ? t($('#stock-line')) : null,
   };
@@ -274,6 +320,7 @@ async function readStock(page, reply, files = IMGS) {
   await readDone(page);
 }
 const grp = (r, id) => r.over && r.over.groups.find(g => g.id === id);
+const sl = (r, light) => r.sugg && r.sugg.lists.find(l => l.light === light);
 const rvRow = (r, name) => { for (const g of (r.rv ? r.rv.groups : [])) { const x = g.rows.find(y => y.name === name); if (x) return { ...x, group: g.id }; } return null; };
 const storeRows = rows => rows.map(r => ({ name: r.name, category: r.category, lager: r.lager, reserviert: r.reserviert, unterwegs: r.unterwegs }));
 
@@ -311,12 +358,37 @@ async function standIns(browser) {
     const totals = Object.fromEntries(m.groups.filter(g => g.present).map(g => [g.id, g.total]));
     check('totals: Essen without burnt/spoiled food, Tierfutter = the feed itself (not Getreide/Weizen/Stroh), the others the sum', GROUPS.filter(g => g !== 'werkzeug').every(g => totals[g] === TOTAL[g]), { got: totals, want: TOTAL });
     const why = Object.fromEntries(m.groups.filter(g => g.present).map(g => [g.id, g.why]));
-    check('why: "für 32 Bewohner", "bei 11 Tieren", "Seil 4 knapp"', why.essen === 'für 32 Bewohner' && why.futter === 'bei 11 Tieren' && why.stoff === 'Seil 4 knapp', why);
+    check('why: "für 32 Bewohner", "bei 11 Tieren", "Seil 4 und Leinen 1 knapp"', why.essen === 'für 32 Bewohner' && why.futter === 'bei 11 Tieren' && why.stoff === 'Seil 4 und Leinen 1 knapp', why);
     check('warnings: spoiled food (Vorratskeller) and burnt food', JSON.stringify(m.warnings) === JSON.stringify(WARN), m.warnings);
-    check('knapp, most urgent first: Tierfutter (7 of 33) before Seil (4 of 10)', JSON.stringify(m.knapp) === '["Tierfutter","Seil"]', m.knapp);
-    check('the Plan line', m.line === LINE, m.line);
-    check('suggestions: the knapp ones (importance from the settings, "dringend wäre besser"), then Essen viel without the jobs a knapp group needs',
-      JSON.stringify(m.sugg) === JSON.stringify(SUGG), m.sugg);
+    check('knapp, most urgent first (amount ÷ minimum): Leinen (1 of 5) before Tierfutter (7 of 33) before Seil (4 of 10)', JSON.stringify(m.knapp) === '["Leinen","Tierfutter","Seil"]', m.knapp);
+    check('the Plan line, built from the knapp list', m.line === LINE, m.line);
+    const ms = m.sugg || {};
+    check('knapp list per item: "Seil 4 – knapp, mehr herstellen.", Tierfutter as one line "bei 11 Tieren"; below each the job to raise with its importance, Handwerk named once',
+      JSON.stringify(lines(ms.knapp || [])) === JSON.stringify(KNAPP), ms.knapp);
+    check('reichlich list: Essen as one line "für 32 Bewohner", then Rohstein 737 (largest excess first), no hints',
+      JSON.stringify(lines(ms.viel || [])) === JSON.stringify(VIEL), ms.viel);
+    const all = JSON.stringify(m);
+    check('no job is ever "zurückgestellt" any more', !/zurückgestellt|zurückstellen/.test(all), all.match(/[^"]*zurückgestellt[^"]*/));
+    check('the reichlich list names no job', (ms.viel || []).every(x => !JOB_LABELS.some(l => x.text.includes(l))), ms.viel);
+    check('no building is named (Sägegrube, Minenlager, Werkzeugmacher …)', !BUILDINGS.test(all), all.match(BUILDINGS));
+    check('by-products never get a line (Federn 2.115, Fell 179, Pelz 102 …)', [...(ms.knapp || []), ...(ms.viel || [])].every(x => !BYPRODUCT.includes(x.key)) && !/Federn|Fell|Pelz/.test(JSON.stringify(ms)), ms);
+    // Every purposeful item has a minimum and a viel level: all at 0 -> each one knapp; all plentiful -> each one reichlich.
+    // By-products at 0 or plentiful never show up.
+    const keysOf = l => (l || []).map(x => x.key).sort();
+    const want = [...PURPOSEFUL, 'essen', 'futter'].sort();
+    const z = T.stockView([{ id: 'z', ...docOf(AT1, L.rows.map(r => ({ ...r, lager: 0 }))) }], S);
+    check('all at 0: every purposeful item (+ Essen, Tierfutter) is knapp, nothing else', JSON.stringify(keysOf(z.sugg && z.sugg.knapp)) === JSON.stringify(want) && !(z.sugg.viel || []).length,
+      { got: keysOf(z.sugg && z.sugg.knapp), want });
+    const h = T.stockView([{ id: 'h', ...docOf(AT1, L.rows.map(r => ({ ...r, lager: 900000 }))) }], S);
+    check('all plentiful: every purposeful item (+ Essen, Tierfutter) is reichlich, nothing else', JSON.stringify(keysOf(h.sugg && h.sugg.viel)) === JSON.stringify(want) && !(h.sugg.knapp || []).length,
+      { got: keysOf(h.sugg && h.sugg.viel), want });
+    // The order with many lines (the list keeps all of them; the page shows 5 and "+ n weitere").
+    const mm = T.stockView([{ id: 'm', ...docOf(AT1, MANY) }], S);
+    check('many knapp: sorted by amount ÷ minimum, smallest first; a job named once, later lines "Auch dafür: …"', JSON.stringify(lines(mm.sugg.knapp)) === JSON.stringify(MANY_KNAPP), mm.sugg.knapp);
+    check('many reichlich: sorted by amount ÷ viel-level, largest first', JSON.stringify(lines(mm.sugg.viel)) === JSON.stringify(MANY_VIEL), mm.sugg.viel);
+    check('many: the Plan line names the 3 most urgent', mm.line === 'Lager: Seil, Leinen, Tierfutter und 4 weitere knapp → Vorschläge ansehen', mm.line);
+    const allZ = JSON.stringify([z, mm, T.stockView([{ id: 'w', ...docOf(AT1, [...L.rows.map(r => ({ ...r, lager: 0 })), { name: 'Spitzhacke', category: 'Werkzeuge', lager: 1, reserviert: 0, unterwegs: 0 }]) }], S)]);
+    check('no building named anywhere (planks, ore, tools knapp: no Sägegrube, Minenlager, Werkzeugmacher)', !BUILDINGS.test(allZ) && /Werkzeug 1 für 32 Bewohner – knapp, mehr herstellen\./.test(allZ), allZ.match(BUILDINGS));
     check('missing: "Nicht auf den Fotos: Werkzeug (Kategorie „Werkzeuge“)."', m.missing === 'Nicht auf den Fotos: Werkzeug (Kategorie „Werkzeuge“).', m.missing);
     // trend: the check of 28.10. had 16 more Baumstamm, 700 more Rote Bete (Essen falls fast), 2 Tierfutter
     const prev = { id: 'k0', ...docOf(AT0, withRows({ Baumstamm: 86, 'Rote Bete': 884, 'Grobes Tierfutter': 2 })) };
@@ -327,10 +399,20 @@ async function standIns(browser) {
       && g2('futter').trend === '↑ 5 seit 28.10.' && g2('stoff').trend === 'gleich seit 28.10.', ['holz', 'essen', 'futter', 'stoff'].map(id => g2(id).trend));
     check('falling fast: Essen knapp although above the minimum, "reicht bei diesem Verbrauch noch etwa 1 Prüfung"', g2('essen').light === 'knapp' && g2('essen').why === 'für 32 Bewohner · reicht bei diesem Verbrauch noch etwa 1 Prüfung', [g2('essen').light, g2('essen').why]);
     check('falling slowly (Baumstamm 86 -> 70) stays okay', g2('holz').light === 'okay');
-    check('knapp order with the trend: below the minimum first', JSON.stringify(m2.knapp) === '["Tierfutter","Seil","Essen"]' && m2.line === 'Lager: Tierfutter, Seil und Essen knapp → Vorschläge ansehen', [m2.knapp, m2.line]);
-    const se = m2.sugg.find(x => x.key === 'essen');
-    check('Essen knapp: Kochen, Landwirtschaft, Jagen and Ernte more important; no "Essen viel" any more', se && se.light === 'knapp' && se.why === `${FOOD} Essen für 32 Bewohner. Reicht bei diesem Verbrauch noch etwa 1 Prüfung.`
-      && JSON.stringify(se.jobs) === JSON.stringify([up('Kochen', 'cooking'), up('Landwirtschaft', 'farming'), up('Jagen', 'hunting'), up('Ernte', 'harvesting')]) && !m2.sugg.some(x => x.light === 'viel' && x.key === 'essen'), se);
+    check('knapp order with the trend: below the minimum first', JSON.stringify(m2.knapp) === '["Leinen","Tierfutter","Seil","Essen"]' && m2.line === 'Lager: Leinen, Tierfutter, Seil und 1 weitere knapp → Vorschläge ansehen', [m2.knapp, m2.line]);
+    const k2 = (m2.sugg && m2.sugg.knapp) || [], se = k2.find(x => x.key === 'essen');
+    check('Essen knapp (falling fast): one line with the reason; Kochen, Jagen, Ernte to raise, Landwirtschaft already named at Tierfutter', se && k2.indexOf(se) === 3
+      && se.text === `Essen ${FOOD} für 32 Bewohner – knapp, mehr herstellen. Reicht bei diesem Verbrauch noch etwa 1 Prüfung.`
+      && se.hint === `${raise(['Kochen', 'cooking'], ['Jagen', 'hunting'], ['Ernte', 'harvesting'])} Auch dafür: Landwirtschaft.`, se);
+    check('… and Essen is not reichlich any more (only Rohstein)', JSON.stringify(lines(m2.sugg.viel)) === JSON.stringify([VIEL[1]]), m2.sugg.viel);
+    // The trend per item: Holz 180 -> 130 lasts about 2 more checks (knapp although above its minimum of 30), while the
+    // group's sum stays the same (Baumstamm 20 -> 70); Rohstein 900 -> 737 falls slowly and stays reichlich.
+    const mt = T.stockView([{ id: 'k0', ...docOf(AT0, withRows({ Holz: 180, Baumstamm: 20, Rohstein: 900 })) }, { id: 'k1', ...docOf(AT1) }], S);
+    const gt = id => mt.groups.find(g => g.id === id), kt = (mt.sugg && mt.sugg.knapp) || [];
+    check('trend per item: Holz falls fast -> knapp line with "Reicht … noch etwa 2 Prüfungen", after the ones below their minimum',
+      JSON.stringify(lines(kt)) === JSON.stringify([...KNAPP, { key: 'Holz', text: 'Holz 130 – knapp, mehr herstellen. Reicht bei diesem Verbrauch noch etwa 2 Prüfungen.', hint: raise(['Holzfällen', 'woodcutting']) }]), kt);
+    check('trend per item: the Holz group is knapp although its sum is "gleich"', gt('holz').light === 'knapp' && gt('holz').trend === 'gleich seit 28.10.' && gt('holz').why === 'Holz reicht bei diesem Verbrauch noch etwa 2 Prüfungen', [gt('holz').light, gt('holz').trend, gt('holz').why]);
+    check('trend per item: Rohstein falling slowly stays reichlich', JSON.stringify(lines(mt.sugg.viel)) === JSON.stringify(VIEL), mt.sugg.viel);
     // Vieh and Bewohner unknown, no Vieh at all
     const mu = T.stockView([{ id: 'k1', ...docOf(AT1, L.rows, { vieh: null, pop: null }) }], S);
     const gu = id => mu.groups.find(g => g.id === id);
@@ -338,23 +420,49 @@ async function standIns(browser) {
     check('Bewohner unknown: Essen without a light, "Bewohnerzahl fehlt"', gu('essen').light === null && gu('essen').why === 'Bewohnerzahl fehlt', [gu('essen').light, gu('essen').why]);
     const m0 = T.stockView([{ id: 'k1', ...docOf(AT1, L.rows, { vieh: 0 }) }], S);
     const f0 = m0.groups.find(g => g.id === 'futter');
-    check('no Vieh: Tierfutter without a light, "Ohne Vieh braucht ihr kein Tierfutter.", no suggestion', f0.light === null && f0.why === 'Ohne Vieh braucht ihr kein Tierfutter.' && !m0.sugg.some(x => x.key === 'futter'), f0);
+    check('no Vieh: Tierfutter without a light, "Ohne Vieh braucht ihr kein Tierfutter.", no line', f0.light === null && f0.why === 'Ohne Vieh braucht ihr kein Tierfutter.' && ![...(m0.sugg.knapp || []), ...(m0.sugg.viel || [])].some(x => x.key === 'futter'), f0);
+    const ku = (mu.sugg.knapp || []).find(x => x.key === 'futter');
+    check('Vieh unknown: the Tierfutter line without "bei … Tieren"; Bewohner unknown: no Essen line', ku && ku.text === 'Tierfutter 7' + KN && ![...(mu.sugg.knapp || []), ...(mu.sugg.viel || [])].some(x => x.key === 'essen'), [ku, mu.sugg.viel]);
     const S2 = clone(S); S2.jobs.animals.on = false; S2.jobs.farming.imp = 5;
     const mo = T.stockView([{ id: 'k1', ...docOf(AT1) }], T.normSettings(S2));
-    const sf = mo.sugg.find(x => x.key === 'futter');
-    check('a job already "dringend" / switched off is said so', sf && JSON.stringify(sf.jobs) === JSON.stringify(['Landwirtschaft ist schon „dringend“.', 'Tierhaltung ist bei euch abgeschaltet.']), sf);
+    const sf = (mo.sugg.knapp || []).find(x => x.key === 'futter');
+    check('a job already "dringend" / switched off is said so (not "wichtiger stellen")', sf && sf.hint === 'Landwirtschaft ist schon „dringend“. Tierhaltung ist bei euch abgeschaltet.', sf);
+    const S3 = clone(S); S3.jobs.animals.imp = 5; S3.jobs.farming.imp = 5;
+    const sf3 = (T.stockView([{ id: 'k1', ...docOf(AT1) }], T.normSettings(S3)).sugg.knapp || []).find(x => x.key === 'futter');
+    check('two jobs already "dringend": "Landwirtschaft und Tierhaltung sind schon „dringend“."', sf3 && sf3.hint === 'Landwirtschaft und Tierhaltung sind schon „dringend“.', sf3);
     check('no checks: nothing', T.stockView([], S) === null);
     // A second check where the last Rohstoffe photo is missing (Riemen … Zinnerz not on it): the trend compares only what
     // is on both checks, so a missing photo is no "falling fast" (Erz 80 of 157 would read "reicht noch etwa 1 Prüfung").
     const cut = L.rows.filter(r => r.category === 'Proviant' || r.name < 'Riemen');
     const mp = T.stockView([{ id: 'k0', ...docOf(AT0) }, { id: 'k1', ...docOf(AT1, cut) }], S);
     const gp = id => mp.groups.find(g => g.id === id);
-    check('partial second check: no false "knapp" from a missing photo (Erz okay, no Erz suggestion)', gp('erz').light === 'okay' && !mp.knapp.includes('Erz') && !mp.sugg.some(x => x.key === 'Erz'), [gp('erz').light, gp('erz').why, mp.knapp]);
+    const erzItems = IN.erz;
+    check('partial second check: no false "knapp" from a missing photo (Erz okay, no ore/bar/nail line)', gp('erz').light === 'okay' && !mp.knapp.some(n => erzItems.includes(n)) && !(mp.sugg.knapp || []).some(x => erzItems.includes(x.key)), [gp('erz').light, gp('erz').why, mp.knapp]);
     check('partial second check: the trend counts only what is on both checks ("gleich", not "↓ 1.244")', gp('stein').trend === 'gleich seit 28.10.' && gp('erz').trend === 'gleich seit 28.10.' && gp('stoff').trend === 'gleich seit 28.10.',
       ['stein', 'erz', 'stoff'].map(id => gp(id).trend));
     // A number saved as unreadable (null) is not "0 im Lager": Seil without its number is not judged.
     const mn = T.stockView([{ id: 'k1', ...docOf(AT1, L.rows.map(r => r.name === 'Seil' ? { ...r, lager: null } : r)) }], S);
-    check('an unreadable number is not 0: Seil (null) is not "knapp"', !mn.knapp.includes('Seil') && mn.groups.find(g => g.id === 'stoff').light === 'okay', [mn.knapp, mn.groups.find(g => g.id === 'stoff').why]);
+    check('an unreadable number is not 0: Seil (null) is not "knapp", no Seil line', !mn.knapp.includes('Seil') && mn.groups.find(g => g.id === 'stoff').why === 'Leinen 1 knapp' && ![...(mn.sugg.knapp || []), ...(mn.sugg.viel || [])].some(x => x.key === 'Seil'), [mn.knapp, mn.groups.find(g => g.id === 'stoff').why]);
+    // The same for a group's own number: Grobes Tierfutter unreadable is not "Tierfutter 0 – knapp" (Getreide, Weizen and
+    // Stroh are readable but do not count), all Proviant unreadable is not "Essen 0", a tool without its number is not
+    // "Werkzeug 0". Only spoiled food readable IS nothing to eat (Essen 0, knapp). A check with no readable number: nothing.
+    const nul = f => L.rows.map(r => f(r) ? { ...r, lager: null } : r);
+    const mf = T.stockView([{ id: 'k1', ...docOf(AT1, nul(r => r.name === 'Grobes Tierfutter')) }], S), ff = mf.groups.find(g => g.id === 'futter');
+    check('Tierfutter unreadable: no light, "Zahl nicht lesbar", no Tierfutter line, not in the Plan line', ff.light === null && ff.why === 'Zahl nicht lesbar'
+      && ![...(mf.sugg.knapp || []), ...(mf.sugg.viel || [])].some(x => x.key === 'futter') && !mf.knapp.includes('Tierfutter'), [ff.light, ff.why, mf.knapp]);
+    const SPOIL = ['Verdorbene Nahrung', 'Angebrannter Fisch', 'Angebrannter Pilz'];
+    const me = T.stockView([{ id: 'k1', ...docOf(AT1, nul(r => r.category === 'Proviant' && !SPOIL.includes(r.name))) }], S), fe = me.groups.find(g => g.id === 'essen');
+    check('all food unreadable (spoiled and burnt readable): Essen without a light, "Zahlen nicht lesbar", no Essen line', fe.light === null && fe.why === 'Zahlen nicht lesbar'
+      && ![...(me.sugg.knapp || []), ...(me.sugg.viel || [])].some(x => x.key === 'essen'), [fe.light, fe.why]);
+    const ms0 = T.stockView([{ id: 'k1', ...docOf(AT1, L.rows.filter(r => r.category !== 'Proviant' || SPOIL.includes(r.name))) }], S);
+    check('only spoiled and burnt food: Essen 0 is knapp (nothing to eat)', ms0.groups.find(g => g.id === 'essen').light === 'knapp' && (ms0.sugg.knapp || [])[0] && ms0.sugg.knapp[0].text === 'Essen 0 für 32 Bewohner' + KN, ms0.sugg.knapp);
+    const tool = { name: 'Spitzhacke', category: 'Werkzeuge', lager: null, reserviert: 0, unterwegs: 0 };
+    const mw = T.stockView([{ id: 'k1', ...docOf(AT1, [...L.rows, tool]) }], S), fw = mw.groups.find(g => g.id === 'werkzeug');
+    check('a tool without its number: Werkzeug without a light, "Zahl nicht lesbar", no line', fw.present && fw.light === null && fw.why === 'Zahl nicht lesbar'
+      && ![...(mw.sugg.knapp || []), ...(mw.sugg.viel || [])].some(x => x.key === 'werkzeug'), [fw.light, fw.why]);
+    const me0 = T.stockView([{ id: 'k1', ...docOf(AT1, nul(() => true)) }], S);
+    check('no readable number at all: no light, no line, no Plan line', me0.groups.every(g => g.light === null) && !(me0.sugg.knapp || []).length && !(me0.sugg.viel || []).length && me0.line === '',
+      { lights: me0.groups.map(g => [g.id, g.light]), sugg: me0.sugg, line: me0.line });
     // Honest wording: the limits stay estimates after the first check too.
     check('first check: estimate note', m.est === 'Schätzung – wird mit jeder Prüfung genauer.', m.est);
     check('later checks: still called an estimate, plus the trend', m2.est === 'Schätzung – die Ampel nutzt Richtwerte und den Verlauf seit der letzten Prüfung.', m2.est);
@@ -448,7 +556,7 @@ async function standIns(browser) {
       check('overview: "Geprüft gerade eben von Gabriel · 32 Bewohner · 11 Tiere", estimate note', r.over && r.over.when === 'Geprüft gerade eben von Gabriel · 32 Bewohner · 11 Tiere' && r.over.est === 'Schätzung – wird mit jeder Prüfung genauer.', r.over && [r.over.when, r.over.est]);
       check('overview: the groups with traffic light, total, why', r.over && JSON.stringify(r.over.groups.map(g => [g.id, g.name, g.light, g.total])) === JSON.stringify(GROUPS.filter(g => g !== 'werkzeug').map(g => [g, LABEL[g], LIGHTS[g], fmt(TOTAL[g])]))
         && grp(r, 'essen').lightText === 'viel' && grp(r, 'stoff').lightText === 'knapp' && grp(r, 'holz').lightText === 'okay' && grp(r, 'saatgut').lightText === null
-        && grp(r, 'essen').why === 'für 32 Bewohner' && grp(r, 'futter').why === 'bei 11 Tieren' && grp(r, 'stoff').why === 'Seil 4 knapp', r.over && r.over.groups.map(g => [g.id, g.light, g.total, g.why]));
+        && grp(r, 'essen').why === 'für 32 Bewohner' && grp(r, 'futter').why === 'bei 11 Tieren' && grp(r, 'stoff').why === 'Seil 4 und Leinen 1 knapp', r.over && r.over.groups.map(g => [g.id, g.light, g.total, g.why]));
       check('overview: groups collapsed, no trend on the first check', r.over.groups.every(g => !g.open && !g.trend));
       check('overview: warnings for spoiled and burnt food', JSON.stringify(r.over.warn) === JSON.stringify(WARN), r.over.warn);
       check('overview: "Nicht auf den Fotos: Werkzeug (Kategorie „Werkzeuge“)."', r.over.missing === 'Nicht auf den Fotos: Werkzeug (Kategorie „Werkzeuge“).', r.over.missing);
@@ -457,8 +565,10 @@ async function standIns(browser) {
       const ess = grp(r, 'essen');
       check('Essen opens: 15 items with Lager / reserviert / unterwegs, raw / burnt / spoiled marked', ess.open && ess.items.length === 15 && JSON.stringify(ess.items.find(i => i.name === 'Kleines Stück rohes Flei…').n) === '["12","3","0"]'
         && RAW.every(n => ess.items.find(i => i.name === n).tag === 'roh – muss noch zubereitet werden') && ess.items.find(i => i.name === 'Verdorbene Nahrung').tag === 'verdorben – zählt nicht' && ess.items.find(i => i.name === 'Angebrannter Fisch').tag === 'angebrannt – zählt nicht', ess.items.slice(0, 4));
-      check('suggestions: Tierfutter and Seil knapp, Essen viel, each job with its importance', r.sugg && r.sugg.head === 'Vorschläge'
-        && JSON.stringify(r.sugg.cards) === JSON.stringify(SUGG.map(s => ({ key: s.key, light: s.light, title: s.title, why: s.why, jobs: s.jobs }))), r.sugg && r.sugg.cards);
+      check('suggestions: two lists "Knapp" and "Reichlich"', r.sugg && r.sugg.head === 'Vorschläge' && JSON.stringify(r.sugg.lists.map(l => [l.light, l.title])) === '[["knapp","Knapp"],["viel","Reichlich"]]', r.sugg && r.sugg.lists.map(l => [l.light, l.title]));
+      check('Knapp: Leinen, Tierfutter, Seil per item, each with the job to raise and its importance (Handwerk once)', sl(r, 'knapp') && JSON.stringify(sl(r, 'knapp').lines) === JSON.stringify(KNAPP) && !sl(r, 'knapp').more && !sl(r, 'knapp').hidden, sl(r, 'knapp'));
+      check('Reichlich: Essen and Rohstein, no job names', sl(r, 'viel') && JSON.stringify(sl(r, 'viel').lines) === JSON.stringify(VIEL) && !sl(r, 'viel').more, sl(r, 'viel'));
+      check('nothing on the page says a job "kann zurückgestellt werden", no building, no Federn/Fell', !/zurückgestellt/.test(r.sugg.text) && !BUILDINGS.test(r.sugg.text) && !/Federn|Fell\b/.test(r.sugg.text), r.sugg.text);
       check('suggestions say that nothing changes by itself, with "Zu den Einstellungen"', r.sugg.note === 'Die App ändert nichts von selbst. Die Wichtigkeit stellt ihr unter Einstellungen ein. Zu den Einstellungen', r.sugg.note);
       await P.screenshot({ path: path.join(SHOTS, 'flow-390-overview.png'), fullPage: true });
       await P.click('.sk-sugg-note [data-goto="jobs"]'); await P.waitForTimeout(150);
@@ -479,7 +589,7 @@ async function standIns(browser) {
       await B.page.click('#tab-lager'); await B.page.waitForTimeout(150);
       const rb2 = await SK(B.page);
       check('the other phone shows the same overview and suggestions', rb2.over && JSON.stringify(Object.fromEntries(rb2.over.groups.map(g => [g.id, g.light]))) === JSON.stringify(LIGHTS)
-        && rb2.sugg && JSON.stringify(rb2.sugg.cards.map(c => c.title)) === JSON.stringify(SUGG.map(s => s.title)), rb2.over && rb2.over.groups.map(g => [g.id, g.light]));
+        && rb2.sugg && JSON.stringify(rb2.sugg.lists.map(l => l.lines.map(x => x.key))) === JSON.stringify([KNAPP.map(x => x.key), VIEL.map(x => x.key)]), rb2.over && rb2.over.groups.map(g => [g.id, g.light]));
       check('no writes from drawing (the other phone wrote nothing)', !srv.log.some(x => x.who === 'B'));
       // A second check, taken back at once with Rückgängig: the first one stays.
       await readStock(P, REPLY);
@@ -590,9 +700,13 @@ async function standIns(browser) {
         ['holz', 'essen', 'futter', 'stoff'].map(g => grp(r, g).trend));
       check('from the second check on: still an estimate, plus the trend', r.over.est === 'Schätzung – die Ampel nutzt Richtwerte und den Verlauf seit der letzten Prüfung.', r.over.est);
       check('Essen falls fast: knapp although above the minimum, "reicht bei diesem Verbrauch noch etwa 1 Prüfung"', grp(r, 'essen').light === 'knapp' && grp(r, 'essen').why === 'für 32 Bewohner · reicht bei diesem Verbrauch noch etwa 1 Prüfung', [grp(r, 'essen').light, grp(r, 'essen').why]);
-      check('suggestions: Essen knapp with Kochen, Landwirtschaft, Jagen, Ernte', r.sugg.cards.map(c => c.key).join() === 'futter,Seil,essen' && JSON.stringify(r.sugg.cards[2].jobs) === JSON.stringify([up('Kochen', 'cooking'), up('Landwirtschaft', 'farming'), up('Jagen', 'hunting'), up('Ernte', 'harvesting')]), r.sugg.cards);
+      const k2 = sl(r, 'knapp');
+      check('suggestions: Essen knapp (falling fast) after Leinen, Tierfutter, Seil, with Kochen, Jagen, Ernte to raise and "Auch dafür: Landwirtschaft."', k2 && k2.lines.map(c => c.key).join() === 'Leinen,futter,Seil,essen'
+        && k2.lines[3].text === `Essen ${FOOD} für 32 Bewohner – knapp, mehr herstellen. Reicht bei diesem Verbrauch noch etwa 1 Prüfung.`
+        && k2.lines[3].hint === `${raise(['Kochen', 'cooking'], ['Jagen', 'hunting'], ['Ernte', 'harvesting'])} Auch dafür: Landwirtschaft.`, k2);
+      check('… Reichlich: only Rohstein now', sl(r, 'viel') && JSON.stringify(sl(r, 'viel').lines) === JSON.stringify([VIEL[1]]), sl(r, 'viel'));
       await P.click('#tab-plan'); await P.waitForTimeout(150);
-      check('Plan line: "Lager: Tierfutter, Seil und Essen knapp → Vorschläge ansehen"', (await SK(P)).line === 'Lager: Tierfutter, Seil und Essen knapp → Vorschläge ansehen', (await SK(P)).line);
+      check('Plan line: "Lager: Leinen, Tierfutter, Seil und 1 weitere knapp → Vorschläge ansehen"', (await SK(P)).line === 'Lager: Leinen, Tierfutter, Seil und 1 weitere knapp → Vorschläge ansehen', (await SK(P)).line);
       // Rückgängig brings the deleted one back
       const n1 = srv.log.length;
       await P.click('#toast .toast-act');
@@ -612,7 +726,7 @@ async function standIns(browser) {
       check('read-only: the Plan line shows', r.line === LINE, r.line);
       await P.click('#tab-lager'); await P.waitForTimeout(150);
       r = await SK(P);
-      check('read-only: the overview and the suggestions', r.over && r.over.groups.length === 8 && r.sugg && r.sugg.cards.length === 3, r.over && r.over.groups.length);
+      check('read-only: the overview and the suggestions', r.over && r.over.groups.length === 8 && r.sugg && r.sugg.lists.length === 2 && JSON.stringify(sl(r, 'knapp').lines) === JSON.stringify(KNAPP), r.over && r.over.groups.length);
       check('read-only: "Lager prüfen (Foto)" is there (checking is allowed)', r.open && r.open.shown);
       await readStock(P, REPLY);
       r = await SK(P);
@@ -830,6 +944,127 @@ async function standIns(browser) {
         const bar = await P.evaluate(() => { const b = document.querySelector('#stock-review .sk-act').getBoundingClientRect(); return { bottom: Math.round(b.bottom), vh: innerHeight, end: Math.round(document.getElementById('stock-review').getBoundingClientRect().bottom) }; });
         check(`${w}: the review's action bar stays at the bottom while scrolling`, bar.end > bar.vh ? Math.abs(bar.bottom - bar.vh) <= 1 : bar.bottom <= bar.vh, bar);
         await P.screenshot({ path: path.join(SHOTS, `stock-${w}-review-rows.png`) });
+        await A.ctx.close();
+      });
+    }
+
+    // ===== 8) BUILD 18b: the lists per resource on the page — real data and 7 + 7 lines (5 shown, "+ 2 weitere") =====
+    const SHOTS_I = path.resolve(__dirname, '../shots-stock-items');
+    fs.mkdirSync(SHOTS_I, { recursive: true });
+    const measureSugg = P => P.evaluate(() => {
+      const vis = el => !el.closest('[hidden]') && el.getClientRects().length > 0;
+      const box = document.getElementById('sk-sugg');
+      const small = [...box.querySelectorAll('button')].filter(vis).filter(e => e.getBoundingClientRect().height < 44).map(e => e.textContent.trim().slice(0, 30) + ':' + Math.round(e.getBoundingClientRect().height));
+      const wide = [...document.querySelectorAll('#panel-lager *')].filter(vis).filter(e => e.getBoundingClientRect().right > innerWidth + 0.5).map(e => e.className || e.tagName).slice(0, 5);
+      return { sw: document.documentElement.scrollWidth, vw: innerWidth, small, wide };
+    });
+    for (const w of [360, 390, 1280]) {
+      await section('8) item lists ' + w, async () => {
+        const srv = makeServer(seedAll({ k1: docOf(Date.now() - 3600e3) }));
+        const A = await phone(browser, srv, { name: 'IL' + w, inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: w, height: 800, hash: '#lager' });
+        let r = await SK(A.page);
+        check(`${w}: real data: Knapp (3 lines with hints) and Reichlich (2 lines), no "weitere"`, sl(r, 'knapp') && sl(r, 'viel') && JSON.stringify(sl(r, 'knapp').lines) === JSON.stringify(KNAPP)
+          && JSON.stringify(sl(r, 'viel').lines) === JSON.stringify(VIEL) && !sl(r, 'knapp').more && !sl(r, 'viel').more, r.sugg && r.sugg.lists);
+        // A job and its importance ("Landwirtschaft – gerade „normal“") never break across two lines.
+        const broken = await A.page.evaluate(() => {
+          const out = [];
+          for (const el of document.querySelectorAll('#sk-sugg .sk-do')) {
+            const nodes = [], walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            let txt = '';
+            while (walk.nextNode()) { nodes.push([walk.currentNode, txt.length]); txt += walk.currentNode.data; }
+            const at = i => { let k = nodes.length - 1; while (k > 0 && nodes[k][1] > i) k--; return [nodes[k][0], i - nodes[k][1]]; };
+            for (const mt of txt.matchAll(/\S+[\s ]–[\s ]gerade[\s ]„[^“]+“/g)) {
+              const r = document.createRange(); r.setStart(...at(mt.index)); r.setEnd(...at(mt.index + mt[0].length));
+              const tops = new Set([...r.getClientRects()].filter(x => x.width > 0).map(x => Math.round(x.top)));
+              if (tops.size > 1) out.push(mt[0]);
+            }
+          }
+          return out;
+        });
+        check(`${w}: real data: a job and its importance stay on one line`, !broken.length, broken);
+        if (w === 1280) {
+          const cols = await A.page.evaluate(() => { const c = document.getElementById('sk-cards').getBoundingClientRect(), [k, v] = [...document.querySelectorAll('#sk-cards .sk-list')].map(e => e.getBoundingClientRect());
+            return { k: [Math.round(k.left), Math.round(k.right), Math.round(k.top)], v: [Math.round(v.left), Math.round(v.right), Math.round(v.top)], c: [Math.round(c.left), Math.round(c.right)] }; });
+          check('1280: Knapp and Reichlich side by side, together filling the row', cols.k[2] === cols.v[2] && cols.k[0] === cols.c[0] && cols.k[1] < cols.v[0] && Math.abs(cols.v[1] - cols.c[1]) <= 1, cols);
+        }
+        let m = await measureSugg(A.page);
+        check(`${w}: real data: no horizontal scroll`, m.sw <= m.vw && !m.wide.length, m);
+        if (w < 900) check(`${w}: real data: every control of the suggestions >= 44 px`, !m.small.length, m.small);
+        await A.page.locator('#sk-sugg').screenshot({ path: path.join(SHOTS_I, `items-${w}-real.png`) });
+        await A.ctx.close();
+
+        const srv2 = makeServer(seedAll({ k1: docOf(Date.now() - 3600e3, MANY) }));
+        const B = await phone(browser, srv2, { name: 'IM' + w, inClaude: true, writable: true, user: owner, anim: 'aus' }, { width: w, height: 800, hash: '#lager' });
+        const Q = B.page;
+        r = await SK(Q);
+        const kn = sl(r, 'knapp'), vi = sl(r, 'viel');
+        check(`${w}: 7 knapp: the 5 most urgent shown, then "+ 2 weitere"`, kn && JSON.stringify(kn.lines) === JSON.stringify(MANY_KNAPP.slice(0, 5)) && kn.hidden === 2 && kn.more === '+ 2 weitere', kn);
+        check(`${w}: 7 reichlich: the 5 largest shown, then "+ 2 weitere"`, vi && JSON.stringify(vi.lines) === JSON.stringify(MANY_VIEL.slice(0, 5)) && vi.hidden === 2 && vi.more === '+ 2 weitere', vi);
+        m = await measureSugg(Q);
+        check(`${w}: 7 + 7: no horizontal scroll`, m.sw <= m.vw && !m.wide.length, m);
+        if (w < 900) check(`${w}: 7 + 7: "+ 2 weitere" and every other control >= 44 px`, !m.small.length, m.small);
+        await Q.locator('#sk-sugg').screenshot({ path: path.join(SHOTS_I, `items-${w}-many.png`) });
+        if (w === 1280) {   // keyboard: Tab reaches "+ 2 weitere", Enter opens it
+          await Q.focus('.sk-list[data-light="knapp"] .sk-more'); await Q.keyboard.press('Enter');
+        } else await Q.click('.sk-list[data-light="knapp"] .sk-more');
+        await Q.waitForTimeout(120);
+        r = await SK(Q);
+        const kn2 = sl(r, 'knapp');
+        check(`${w}: "+ 2 weitere" shows the rest in order, the button goes, Reichlich stays as it was`, kn2 && JSON.stringify(kn2.lines) === JSON.stringify(MANY_KNAPP) && !kn2.hidden && !kn2.more
+          && sl(r, 'viel').more === '+ 2 weitere' && sl(r, 'viel').lines.length === 5, kn2);
+        const foc = await Q.evaluate(() => { const a = document.activeElement; return a && a.closest && a.closest('.sk-lines') ? a.dataset.key : (a && (a.id || a.className || a.tagName)); });
+        check(`${w}: focus moves to the first line it showed`, foc === 'Baumstamm', foc);
+        srv2.broadcast('workers'); await Q.waitForTimeout(120);
+        r = await SK(Q);
+        check(`${w}: an unrelated redraw keeps the list open`, sl(r, 'knapp').lines.length === 7 && !sl(r, 'knapp').more, sl(r, 'knapp'));
+        m = await measureSugg(Q);
+        check(`${w}: opened: no horizontal scroll`, m.sw <= m.vw && !m.wide.length, m);
+        await Q.locator('#sk-sugg').screenshot({ path: path.join(SHOTS_I, `items-${w}-many-open.png`) });
+        check(`${w}: nothing written`, !srv2.log.length, srv2.log.slice(0, 2));
+        if (w === 390) {   // Another phone saves a check where Baumstamm is nearly gone: it moves up to the 2nd line, keeps the focus
+          await Q.evaluate(() => { const li = document.querySelector('#sk-cards .sk-lines > li[data-key="Baumstamm"]'); if (li) li.focus(); });
+          srv2.col('stock').set('k2', docOf(Date.now(), MANY.map(x => x.name === 'Baumstamm' ? { ...x, lager: 1 } : x))); srv2.broadcast('stock');
+          await until(async () => { const z = sl(await SK(Q), 'knapp'); return z && z.lines[1] && z.lines[1].key === 'Baumstamm'; }, 3000);
+          const z = sl(await SK(Q), 'knapp');
+          const f2 = await Q.evaluate(() => { const a = document.activeElement; return a && a.dataset ? a.dataset.key || a.tagName : null; });
+          check('390: a new check from another phone: the line in focus keeps the focus where it moved to, the list stays open', z && z.lines[1].key === 'Baumstamm' && z.lines.length === 7 && f2 === 'Baumstamm', { keys: z && z.lines.map(x => x.key), f2 });
+        }
+        await B.ctx.close();
+      });
+    }
+    // A read-only viewer sees the same lists and can open "+ 2 weitere" (nothing is written).
+    await section('8) read-only more', async () => {
+      const srv = makeServer(seedAll({ k1: docOf(Date.now() - 3600e3, MANY) }));
+      const V = await phone(browser, srv, { name: 'IV', inClaude: true, writable: false, user: viewer, anim: 'aus' }, { hash: '#lager' });
+      let r = await SK(V.page);
+      check('read-only: 5 + "+ 2 weitere" in both lists', sl(r, 'knapp') && sl(r, 'knapp').more === '+ 2 weitere' && sl(r, 'viel').more === '+ 2 weitere', r.sugg && r.sugg.lists);
+      await V.page.click('.sk-list[data-light="viel"] .sk-more'); await V.page.waitForTimeout(120);
+      r = await SK(V.page);
+      check('read-only: "+ 2 weitere" shows the rest of Reichlich, nothing written', JSON.stringify(sl(r, 'viel').lines) === JSON.stringify(MANY_VIEL) && !srv.log.length, sl(r, 'viel'));
+      await V.ctx.close();
+    });
+    // Nothing knapp and nothing reichlich (only Proviant photographed, Essen in between): "Gerade gibt es nichts vorzuschlagen."
+    await section('8) nothing to suggest', async () => {
+      const rows = L.rows.filter(r => r.category === 'Proviant').map(r => r.name === 'Rote Bete' ? { ...r, lager: 0 } : r);
+      const srv = makeServer(seedAll({ k1: docOf(Date.now() - 3600e3, rows) }));
+      const A = await phone(browser, srv, { name: 'IN', inClaude: true, writable: true, user: owner, anim: 'aus' }, { hash: '#lager' });
+      const r = await SK(A.page);
+      check('only Proviant, Essen okay: no lists, "Gerade gibt es nichts vorzuschlagen."', r.sugg && !r.sugg.lists.length && r.sugg.none === 'Gerade gibt es nichts vorzuschlagen.' && r.line === null, r.sugg);
+      await A.ctx.close();
+    });
+    // The rest comes in like the rows of a list (voll: rise 220 ms; ruhig: a 150 ms fade; aus: at once).
+    for (const lvl of ['voll', 'ruhig', 'aus']) {
+      await section('8) reveal ' + lvl, async () => {
+        const srv = makeServer(seedAll({ k1: docOf(Date.now() - 3600e3, MANY) }));
+        const A = await phone(browser, srv, { name: 'IR' + lvl, inClaude: true, writable: true, user: owner, anim: lvl }, { hash: '#lager' });
+        const P = A.page;
+        await P.waitForTimeout(600);
+        await P.click('.sk-list[data-light="knapp"] .sk-more'); await P.waitForTimeout(20);
+        const an = await P.evaluate(() => [...document.querySelectorAll('.sk-list[data-light="knapp"] .sk-lines > li')].slice(5).map(e => { const s = getComputedStyle(e); return s.animationName + ' ' + s.animationDuration; }));
+        const want = lvl === 'voll' ? 'rise 0.22s' : lvl === 'ruhig' ? 'calmIn 0.15s' : null;
+        check(`${lvl}: the 2 lines shown ${want ? `come in (${want})` : 'appear at once'}`, an.length === 2 && an.every(x => want ? x === want : x.startsWith('none')), an);
+        await P.waitForTimeout(900);
+        check(`${lvl}: no animation classes left behind`, (await P.evaluate(() => document.querySelectorAll('#panel-lager .sk-in').length)) === 0);
         await A.ctx.close();
       });
     }

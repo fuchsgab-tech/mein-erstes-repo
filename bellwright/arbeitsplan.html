@@ -451,7 +451,8 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
 /* Vorrats-Check (Lager tab): the photos as in "Spiel prüfen" (.check, .drop, .thumbs), the result as a review with the
    sticky .ck-act bar; rows grouped in <details>, the three numbers right-aligned, an unsure one as an amber input. The
    overview: one <details> per group with a traffic light (dot + word: knapp red, okay green, viel brass), total, trend and
-   why, the items inside; then the suggestion cards. On the Plan tab one line leads there when something is knapp. */
+   why, the items inside; then the suggestions: two cards, Knapp and Reichlich, one line per resource (5, then "+ n weitere").
+   On the Plan tab one line leads there when something is knapp. */
 .stock-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .sk-body, .sk-view, .sk-over, .sk-sugg { display: grid; gap: 12px; min-width: 0; }
 .sk-view { gap: 22px; }
@@ -519,14 +520,22 @@ input.vh:focus-visible + label.btn { outline: 2px solid var(--accent-hi); outlin
 .sk-missing { font-size: 0.9375rem; color: var(--muted); overflow-wrap: anywhere; }
 .sk-sugg h3 { color: var(--accent-hi); }
 .sk-sugg-note { max-width: 72ch; display: flex; flex-wrap: wrap; align-items: center; gap: 0 10px; }   /* the 44 px link does not stretch the lines */
-.sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 10px; align-items: start; min-width: 0; }
+.sk-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 10px; align-items: start; min-width: 0; }   /* the two lists fill the row */
 .sk-card { display: grid; gap: 6px; min-width: 0; padding: 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--bad); border-radius: var(--radius); }
 .sk-card[data-light="viel"] { border-left-color: var(--accent); }
 .sk-card h4 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: var(--step-1); line-height: 1.15; color: var(--accent-hi); }
 .sk-card[data-light="knapp"] h4 { color: var(--bad); }
-.sk-card-why { font-size: 0.9375rem; }
-.sk-jobs { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; font-size: 0.9375rem; }
-.sk-jobs li::marker { color: var(--accent); }
+/* The two lists (Knapp, Reichlich): one line per resource, the name and amount bold, the job hint small under it. */
+.sk-lines { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; font-size: 0.9375rem; }
+.sk-lines > li { min-width: 0; overflow-wrap: break-word; }
+.sk-lines > li::marker { color: var(--accent); }
+.sk-list[data-light="knapp"] .sk-lines > li::marker { color: var(--bad); }
+.sk-lines > li:focus { outline: none; }
+.sk-lines > li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.sk-list { max-width: 80ch; }   /* a list alone does not stretch over the whole page */
+.sk-do { display: block; margin-top: 2px; font-size: var(--step--1); color: var(--muted); }
+.sk-nw { white-space: nowrap; }   /* "Landwirtschaft – gerade „normal“" stays on one line */
+.sk-more { justify-self: start; }
 .sk-none { color: var(--good); }
 .stock-line { display: flex; align-items: center; min-width: 0; padding: 2px 12px; background: var(--field); border: 1px solid var(--line); border-left: 3px solid var(--bad); border-radius: var(--radius); }
 .stock-line .linkbtn { font-size: 0.9375rem; color: var(--fg); text-align: left; min-height: 36px; }
@@ -2014,31 +2023,33 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   // The doc as it is written (a copy; the same shape in the LS payload).
   const stockDoc = s => ({ at: s.at, by: s.by, pop: s.pop, vieh: s.vieh,
     rows: s.rows.map(r => ({ name: r.name, category: r.category, lager: r.lager, reserviert: r.reserviert, unterwegs: r.unterwegs, group: r.group })) });
-  // Key items with a minimum (below = knapp) and a level from which there is "viel"; jobs = what makes more of it (as in the
-  // game's job list), where = the building, said with the job. Absent items are not judged (nothing known about them).
+  // The items the players make or gather on purpose, each with a minimum (below = knapp) and a level from which there is
+  // "viel" (estimates); jobs = what makes more of it, as in the game's job list (no buildings: there are too many). Only
+  // these items get a line in the suggestions; by-products (Federn, Fell, seeds …) never do. Absent items are not judged.
   const STOCK_KEYS = [
-    { id: "Baumstamm", group: "holz", names: ["Baumstamm"], min: 20, viel: 300, jobs: ["woodcutting"] },
-    { id: "Holz", group: "holz", names: ["Holz"], min: 30, viel: 400, jobs: ["woodcutting"] },
-    { id: "Holzplanke", group: "holz", names: ["Holzplanke"], min: 30, viel: 300, jobs: ["crafting"], where: { crafting: "Sägegrube" } },
-    { id: "Rohstein", group: "stein", names: ["Rohstein"], min: 40, viel: 600, jobs: ["harvesting"] },
-    { id: "Schlamm", group: "stein", names: ["Schlamm"], min: 20, viel: 400, jobs: ["harvesting"] },
-    { id: "Erz", group: "erz", names: ["Kupfererz", "Zinnerz", "Eisenerz"], min: 15, viel: 300, jobs: ["harvesting"], where: { harvesting: "Minenlager" } },
-    { id: "Barren", group: "erz", names: ["Kupferbarren", "Zinnbarren", "Bronzebarren", "Eisenbarren"], min: 15, viel: 150, jobs: ["smelting", "crafting"] },
-    { id: "Nägel", group: "erz", names: ["Kupfernägel", "Eisennägel"], min: 20, viel: 200, jobs: ["smelting", "crafting"] },
-    { id: "Seil", group: "stoff", names: ["Seil"], min: 10, viel: 100, jobs: ["crafting"] },
-    { id: "Leder", group: "stoff", names: ["Leder"], min: 10, viel: 150, jobs: ["crafting", "hunting"] },
-  ];
+    ["holz", ["woodcutting"], [["Baumstamm", 20, 300], ["Holz", 30, 400], ["Hartholzstamm", 10, 150]]],
+    ["holz", ["crafting"], [["Holzplanke", 30, 300], ["Hartholzplanke", 5, 100]]],
+    ["stein", ["harvesting"], [["Rohstein", 40, 600], ["Granit", 10, 200], ["Schlamm", 20, 400], ["Stampflehm", 10, 150], ["Torf", 20, 300]]],
+    ["erz", ["harvesting"], [["Kupfererz", 10, 250], ["Zinnerz", 10, 250], ["Eisenerz", 10, 250]]],
+    ["erz", ["smelting"], [["Kupferbarren", 3, 100], ["Zinnbarren", 3, 100], ["Bronzebarren", 3, 100], ["Eisenbarren", 3, 100]]],
+    ["erz", ["crafting"], [["Kupfernägel", 10, 200], ["Eisennägel", 10, 200]]],
+    ["stoff", ["crafting"], [["Seil", 10, 100], ["Einfache Schnur", 10, 200], ["Riemen", 10, 200]]],
+    ["stoff", ["crafting", "hunting"], [["Leder", 10, 150]]],
+    ["stoff", ["crafting"], [["Leinen", 5, 100], ["Baumwollbolzen", 5, 150]]],
+  ].flatMap(([group, jobs, list]) => list.map(([id, min, viel]) => ({ id, group, names: [id], min, viel, jobs })));
   // Per group: the rows (with their kind), the total that counts (burnt, spoiled and feed grain do not) and, per item, the
   // amount that counts (by: item -> Lager; for the trend, which compares only items on both checks). byItem = the built-in
-  // items by name. A number saved as unreadable (null) is shown as "?" and counts nowhere (it is not 0).
+  // items by name. A number saved as unreadable (null) is shown as "?" and counts nowhere (it is not 0); unread = how many
+  // rows that would count have no number.
   function stockSums(doc) {
-    const g = Object.fromEntries(STOCK_GROUPS.map(x => [x.id, { rows: [], total: 0, by: new Map() }])), byItem = new Map();
+    const g = Object.fromEntries(STOCK_GROUPS.map(x => [x.id, { rows: [], total: 0, by: new Map(), unread: 0 }])), byItem = new Map();
     for (const r of doc.rows) {
       const group = stockGroupOf(r.name, r.category, r.group), kind = stockKind(r.name, group), it = stockItem(r.name);
+      const counts = kind !== "brand" && kind !== "verdorben" && kind !== "futterroh";
       g[group].rows.push({ name: r.name, category: r.category, lager: r.lager, reserviert: r.reserviert, unterwegs: r.unterwegs, kind });
-      if (typeof r.lager !== "number") continue;
+      if (typeof r.lager !== "number") { if (counts) g[group].unread++; continue; }
       if (it) byItem.set(it.name, (byItem.get(it.name) || 0) + r.lager);
-      if (kind === "brand" || kind === "verdorben" || kind === "futterroh") continue;
+      if (!counts) continue;
       g[group].total += r.lager;
       const key = it ? it.name : stockKey(r.name);
       g[group].by.set(key, (g[group].by.get(key) || 0) + r.lager);
@@ -2076,12 +2087,14 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     function judge(amount, min, viel, pick) {
       const prev = prevOf(pick, pick(S)), d = prev ? prev.d : 0;
       const fast = d < 0 && amount > 0 && amount / -d < 3, n = fast ? Math.max(1, Math.floor(amount / -d)) : 0;
-      return { amount, fast, n, light: amount < min || fast ? "knapp" : amount >= viel ? "viel" : "okay", sev: amount < min ? amount / Math.max(1, min) : fast ? 1 + amount / -d : 9 };
+      return { amount, fast, n, light: amount < min || fast ? "knapp" : amount >= viel ? "viel" : "okay", sev: amount < min ? amount / Math.max(1, min) : fast ? 1 + amount / -d : 9,
+        over: amount / Math.max(1, viel) };
     }
     const fastWhy = j => j.fast ? ` · ${lasts(j.n)}` : "";
     const fastSay = j => j.fast ? ` R${lasts(j.n).slice(1)}.` : "";
     const { pop, vieh } = cur, tiere = n => `${n} ${n === 1 ? "Tier" : "Tieren"}`;
-    const entries = [];   // the things with a light: {key, light, label, sev, why, jobs, where}
+    const entries = [];   // the things with a light: {key, label, say, light, sev, over, fast, jobs}
+    const add = (key, label, say, j, jobs) => entries.push({ key, label, say, light: j.light, sev: j.sev, over: j.over, fast: fastSay(j), jobs });
     const groups = STOCK_GROUPS.map(G => {
       const s = S.g[G.id], present = s.rows.length > 0;
       const prev = present ? prevOf(gPick(G.id), gPick(G.id)(S)) : null, d = prev ? prev.d : 0;
@@ -2089,21 +2102,22 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         trend: prev ? `${d < 0 ? `↓ ${stockFmt(-d)}` : d > 0 ? `↑ ${stockFmt(d)}` : "gleich"} ${since(prev.at)}` : null };
       if (!present) return out;
       if (G.quiet) { out.why = `${s.rows.length} ${s.rows.length === 1 ? "Sorte" : "Sorten"}`; return out; }
+      // Essen, Tierfutter and Werkzeug are judged by their total: not when none of the numbers that count could be read.
+      if (["essen", "futter", "werkzeug"].includes(G.id) && !s.by.size && s.unread) { out.why = `${s.unread === 1 ? "Zahl" : "Zahlen"} nicht lesbar`; return out; }
       if (G.id === "essen") {
         if (!pop) { out.why = "Bewohnerzahl fehlt"; return out; }
         const j = judge(s.total, 5 * pop, 20 * pop, gPick("essen"));
         Object.assign(out, { light: j.light, why: `für ${pop} Bewohner${fastWhy(j)}` });
-        entries.push({ key: "essen", light: j.light, label: "Essen", sev: j.sev, why: `${stockFmt(s.total)} Essen für ${pop} Bewohner.${fastSay(j)}`,
-          jobs: j.light === "knapp" ? ["cooking", "farming", "hunting", "harvesting"] : ["farming", "hunting", "harvesting"] });   // a lot of food still has to be cooked
+        add("essen", "Essen", `Essen ${stockFmt(s.total)} für ${pop} Bewohner`, j, ["cooking", "farming", "hunting", "harvesting"]);
       } else if (G.id === "futter") {
         if (vieh === 0) { out.why = "Ohne Vieh braucht ihr kein Tierfutter."; return out; }
         const known = vieh > 0, j = judge(s.total, known ? 3 * vieh : 20, known ? 15 * vieh : 200, gPick("futter"));
         Object.assign(out, { light: j.light, why: `${known ? `bei ${tiere(vieh)}` : "Vieh unbekannt"}${fastWhy(j)}` });
-        entries.push({ key: "futter", light: j.light, label: "Tierfutter", sev: j.sev, why: `${stockFmt(s.total)} Tierfutter${known ? ` bei ${tiere(vieh)}` : ""}.${fastSay(j)}`, jobs: ["farming", "animals"] });
+        add("futter", "Tierfutter", `Tierfutter ${stockFmt(s.total)}${known ? ` bei ${tiere(vieh)}` : ""}`, j, ["farming", "animals"]);
       } else if (G.id === "werkzeug") {
         const j = judge(s.total, pop ? Math.max(5, Math.ceil(pop / 4)) : 5, pop ? 2 * pop : 50, gPick("werkzeug"));
         Object.assign(out, { light: j.light, why: `${pop ? `für ${pop} Bewohner` : "Bewohnerzahl fehlt"}${fastWhy(j)}` });
-        entries.push({ key: "werkzeug", light: j.light, label: "Werkzeug", sev: j.sev, why: `${stockFmt(s.total)} Werkzeuge${pop ? ` für ${pop} Bewohner` : ""}.${fastSay(j)}`, jobs: ["crafting"], where: { crafting: "Werkzeugmacher" } });
+        add("werkzeug", "Werkzeug", `Werkzeug ${stockFmt(s.total)}${pop ? ` für ${pop} Bewohner` : ""}`, j, ["crafting"]);
       } else {
         const ks = STOCK_KEYS.filter(k => k.group === G.id).map(k => ({ k, x: stockKeyAmount(S, k) })).filter(o => o.x.present)
           .map(o => ({ k: o.k, j: judge(o.x.amount, o.k.min, o.k.viel, s2 => stockKeyAmount(s2, o.k)) }));
@@ -2112,26 +2126,31 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         out.light = low.length ? "knapp" : ks.every(o => o.j.light === "viel") ? "viel" : "okay";
         out.why = [below.length ? `${joinDe(below.map(o => `${o.k.id} ${stockFmt(o.j.amount)}`))} knapp` : "",
           ...low.filter(o => !below.includes(o)).map(o => `${o.k.id} ${lasts(o.j.n)}`)].filter(Boolean).join(" · ");
-        for (const o of low) entries.push({ key: o.k.id, light: "knapp", label: o.k.id, sev: o.j.sev, why: `${o.k.id}: ${stockFmt(o.j.amount)} im Lager.${fastSay(o.j)}`, jobs: o.k.jobs, where: o.k.where });
-        if (out.light === "viel") entries.push({ key: G.id, light: "viel", label: G.label, sev: 9, why: `${joinDe(ks.map(o => `${o.k.id} ${stockFmt(o.j.amount)}`))} im Lager.`,
-          jobs: [...new Set(ks.flatMap(o => o.k.jobs))], where: Object.assign({}, ...ks.map(o => o.k.where || {})) });
+        for (const o of ks) add(o.k.id, o.k.id, `${o.k.id} ${stockFmt(o.j.amount)}`, o.j, o.k.jobs);
       }
       return out;
     });
-    // Suggestions: what is knapp first (the most urgent first), then what there is a lot of. Each names the job as the game
-    // does and its importance in the settings; a job that something knapp needs is never suggested to be put back.
+    // Suggestions per resource, nothing applied. "Knapp": the most urgent first (amount ÷ minimum; falling fast comes after
+    // everything below its minimum), each with the jobs that make more of it and their importance in the settings; a job is
+    // named once, a later line says "Auch dafür: …". "Reichlich": the largest excess first (amount ÷ viel-level), without any
+    // job: a whole job is never put back, it makes other things too (Ernte also brings stone, clay and ore).
     const knapp = entries.filter(e => e.light === "knapp").sort((a, b) => a.sev - b.sev);
-    const need = new Set(knapp.flatMap(e => e.jobs));
-    const job = (e, id) => JOB[id].label + (e.where && e.where[id] ? ` (${e.where[id]})` : "");
+    const plenty = entries.filter(e => e.light === "viel").sort((a, b) => b.over - a.over);
     const cfg = id => (settings && settings.jobs && settings.jobs[id]) || { on: true, imp: 3 };
-    const sugg = knapp.map(e => ({ key: e.key, light: "knapp", title: `${e.label} knapp`, why: e.why, jobs: e.jobs.map(id => {
-      const c = cfg(id);
-      return !c.on ? `${job(e, id)} ist bei euch abgeschaltet.` : c.imp >= 5 ? `${job(e, id)} ist schon „dringend“.` : `${job(e, id)} ist gerade „${IMP_LABEL[c.imp]}“ – „dringend“ wäre besser.`;
-    }) }));
-    for (const e of entries.filter(x => x.light === "viel")) {
-      const jobs = e.jobs.filter(id => !need.has(id) && cfg(id).on && cfg(id).imp > 1).map(id => `${job(e, id)} ist gerade „${IMP_LABEL[cfg(id).imp]}“ – kann etwas zurückgestellt werden.`);
-      if (jobs.length) sugg.push({ key: e.key, light: "viel", title: `${e.label} viel`, why: e.why, jobs });
-    }
+    const jobNames = ids => joinDe(ids.map(id => JOB[id].label)), are = ids => ids.length > 1 ? "sind" : "ist";
+    const named = new Set();
+    const sugg = {
+      knapp: knapp.map(e => {
+        const own = e.jobs.filter(id => !named.has(id)), again = e.jobs.filter(id => named.has(id));
+        for (const id of own) named.add(id);
+        const raise = own.filter(id => cfg(id).on && cfg(id).imp < 5), top = own.filter(id => cfg(id).on && cfg(id).imp >= 5), off = own.filter(id => !cfg(id).on);
+        const hint = [raise.length ? `Dafür wichtiger stellen: ${raise.map(id => `${JOB[id].label} – gerade „${IMP_LABEL[cfg(id).imp]}“`).join(" · ")}.` : "",
+          top.length ? `${jobNames(top)} ${are(top)} schon „dringend“.` : "", off.length ? `${jobNames(off)} ${are(off)} bei euch abgeschaltet.` : "",
+          again.length ? `Auch dafür: ${jobNames(again)}.` : ""].filter(Boolean).join(" ");
+        return { key: e.key, say: e.say, text: `${e.say} – knapp, mehr herstellen.${e.fast}`, hint };
+      }),
+      viel: plenty.map(e => ({ key: e.key, say: e.say, text: `${e.say} – reichlich, kann etwas runtergestellt werden.` })),
+    };
     const names = knapp.map(e => e.label);
     const line = names.length ? `Lager: ${names.length > 3 ? `${names.slice(0, 3).join(", ")} und ${names.length - 3} weitere` : joinDe(names)} knapp → Vorschläge ansehen` : "";
     const bad = kind => S.g.essen.rows.filter(r => r.kind === kind && r.lager > 0), total = rs => rs.reduce((a, r) => a + r.lager, 0);
@@ -6645,7 +6664,7 @@ Reply with only this JSON:
   const STOCK_COL = { lager: "Lager", reserviert: "reserviert", unterwegs: "unterwegs" };
   const STOCK_ERR = { ...PHOTO_ERR, rate_limited: "Euer Claude-Limit ist gerade erreicht. Versucht es später noch einmal." };
   const sk = { open: false, files: [], reading: [], ctl: null, busy: false, rows: null, merged: 0, pop: null, vieh: null, seq: 0,
-    armed: 0, armT: null, msg: "", lastId: undefined, openGroups: new Set(), parts: {}, memo: { key: "", m: null } };
+    armed: 0, armT: null, msg: "", lastId: undefined, openGroups: new Set(), more: new Set(), parts: {}, memo: { key: "", m: null } };
   function stockPrompt() {
     return `These images are phone photos or screenshots of the video game Bellwright (a medieval settlement builder), usually a TV screen photographed from the couch. They show the settlement window's tab "Lager" (the village storage): at the top a category dropdown (one of ${STOCK_CATS.join(", ")}; "Alle" shows every category), a search field, then a list with one row per item: an icon, the item name and three numbers under three chest icons: "lager" (a plain chest: in storage), "reserviert" (a chest with an hourglass: reserved) and "unterwegs" (an arrow into a chest: on the way to storage). The images are numbered from 0 in the order they are attached. They can overlap, because the list was scrolled between the photos. Photos of a TV can be tilted, blurry or show glare and moiré stripes: read every digit carefully.
 
@@ -6969,8 +6988,18 @@ Reply with only this JSON:
       + `<span class="sk-total">${stockFmt(g.total)}</span>${sub ? `<span class="sk-sub">${sub}</span>` : ""}</summary>`
       + `<div class="sk-items">${SK_TH}${g.items.map(skItemHtml).join("")}</div></details>`;
   }
-  const skCardHtml = s => `<article class="sk-card" data-key="${esc(s.key)}" data-light="${s.light}"><h4>${esc(s.title)}</h4><p class="sk-card-why">${esc(s.why)}</p>`
-    + `<ul class="sk-jobs">${s.jobs.map(j => `<li>${esc(j)}</li>`).join("")}</ul></article>`;
+  // The suggestions: one card per list ("knapp" = Knapp, "viel" = Reichlich), the first SK_MORE lines, the rest behind
+  // "+ n weitere" (sk.more = the lists opened here, they stay open). Every line can take the focus (tabindex -1), so a
+  // redraw finds the focused one again wherever it moved. The name and amount of a line are bold.
+  const SK_MORE = 5;
+  function skListHtml(id, title, list) {
+    if (!list.length) return "";
+    const open = sk.more.has(id), rest = list.length - SK_MORE;
+    return `<section class="sk-card sk-list" data-light="${id}" aria-labelledby="sk-l-${id}"><h4 id="sk-l-${id}">${title}</h4><ul class="sk-lines">`
+      + list.map((s, i) => `<li data-key="${esc(s.key)}" tabindex="-1" data-focus="l:${esc(s.key)}"${i < SK_MORE || open ? "" : " hidden"}>`
+        + `<span class="sk-say"><b>${esc(s.say)}</b>${esc(s.text.slice(s.say.length))}</span>${s.hint ? `<span class="sk-do">${esc(s.hint).replace(/\S+ – gerade „[^“]+“/g, '<span class="sk-nw">$&</span>')}</span>` : ""}</li>`).join("")
+      + `</ul>${rest > 0 && !open ? `<button type="button" class="linkbtn sk-more" data-more="${id}" data-focus="more:${id}">+ ${rest} weitere</button>` : ""}</section>`;
+  }
   // One part of the overview, replaced only when it changed (a focused summary keeps its focus). key = what counts as a
   // change (the groups: without their open state, which the page already shows; a redraw never drops an open list in again).
   function skPart(sel, html, key = html) {
@@ -7007,7 +7036,7 @@ Reply with only this JSON:
       + (m.warnings.length ? `<ul class="sk-warn">${m.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""));
     const shown = m.groups.filter(g => g.present);
     skPart("#sk-groups", shown.map(g => skGroupHtml(g)).join(""), shown.map(g => skGroupHtml(g, false)).join(""));
-    skPart("#sk-cards", m.sugg.length ? m.sugg.map(skCardHtml).join("") : `<p class="sk-none">Gerade gibt es nichts vorzuschlagen.</p>`);
+    skPart("#sk-cards", skListHtml("knapp", "Knapp", m.sugg.knapp) + skListHtml("viel", "Reichlich", m.sugg.viel) || `<p class="sk-none">Gerade gibt es nichts vorzuschlagen.</p>`);
     const miss = $("#sk-missing");
     if (miss.textContent !== m.missing) miss.textContent = m.missing;
     miss.hidden = !m.missing;
@@ -7086,6 +7115,16 @@ Reply with only this JSON:
     if (d.classList && d.classList.contains("sk-group")) { if (d.open) sk.openGroups.add(d.dataset.group); else sk.openGroups.delete(d.dataset.group); }
   }, true);
   $("#panel-lager").addEventListener("animationend", e => { if (e.target.classList) e.target.classList.remove("sk-in"); });
+  // "+ n weitere": the rest of that list comes in like rows (CSS per level), the focus goes to the first line it showed.
+  $("#sk-cards").addEventListener("click", e => {
+    const b = e.target.closest("[data-more]");
+    if (!b) return;
+    sk.more.add(b.dataset.more);
+    renderStock();
+    const shown = [...$$(`#sk-cards .sk-list[data-light="${b.dataset.more}"] .sk-lines > li`)].slice(SK_MORE);
+    if (anim() !== "aus") shown.forEach((el, i) => { el.style.setProperty("--i", Math.min(i, 10)); el.classList.add("sk-in"); });
+    if (shown[0]) shown[0].focus();
+  });
   $("#stock-line-go").addEventListener("click", () => {
     showTab("lager", true);
     if ($("#sk-sugg").hidden) { $("#panel-lager").focus({ preventScroll: true }); return; }
