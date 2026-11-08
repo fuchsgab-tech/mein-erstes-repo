@@ -392,7 +392,8 @@ const openOrder = page => page.evaluate(() => [...document.querySelectorAll('.wp
     const doc = srv.ingame.get('w_agnes');
     check('Fertig on A clears the card on B within ~1 s', waited >= 0 && waited <= 1200, waited);
     check('Fertig writes the shared ingame doc {vals = plan, by, at}', doc && doc.by === 'u_owner' && JSON.stringify(doc.vals) === JSON.stringify(pvA) && Object.keys(doc).sort().join() === 'at,by,vals', doc);
-    check('no worker doc touched', srv.log.every(l => l.c === 'ingame'), srv.log);
+    // BUILD 20: each writer's phone notes when it was open ('players', its own doc); entering touches nothing else.
+    check('no worker doc touched', srv.log.every(l => l.c === 'ingame' || (l.c === 'players' && ['u_owner', 'u_lena'].includes(l.id))), srv.log);
     await A.page.waitForTimeout(900);
     e = await E(A.page);
     check('A moved on to Bertram', e.name === 'Bertram', e.name);

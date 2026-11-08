@@ -1958,6 +1958,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     stockDenied: false,     // db: the stock never comes (refused or connection lost): the Lager tab shows without it
     duoReady: false,        // db: the shared split ('duo/current') has arrived; "Zu zweit eintragen" waits for it
     playersReady: false,    // db: the players' figures ('players') have arrived; your "seen" is written after that
+    canWrite: null,         // db: the platform said this viewer may write (true), may not (false), or nothing (null)
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -3999,9 +4000,10 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (box.hidden) box.hidden = false;
     if (figUid) figPaint(false);   // the bigger view follows what the person does
   }
-  // Your "seen" time: on open (once the figures arrived) and every 5 minutes while the app is visible. Writers only.
+  // Your "seen" time: on open (once the figures arrived) and every 5 minutes while the app is visible. Only for viewers
+  // the platform calls writers: nobody did anything, so a refused write must never turn the page to "Nur ansehen".
   function crewSeen(force) {
-    if (state.mode !== "db" || !myId || locked() || !state.playersReady || document.hidden) return;
+    if (state.mode !== "db" || !myId || locked() || state.canWrite !== true || !state.playersReady || document.hidden) return;
     const now = Date.now();
     if (!force && now - seenAt < SEEN_EVERY) return;
     seenAt = now;
@@ -7907,6 +7909,7 @@ Reply with only this JSON:
       myId = typeof id === "string" ? id : "";
       // false = the platform says this viewer cannot write; null = unknown: keep the inputs, a refused write decides.
       if (shared && can === false) state.readOnly = true;
+      if (shared) state.canWrite = can === true ? true : can === false ? false : null;
     }
     state.userKnown = true;
     renderAll();
