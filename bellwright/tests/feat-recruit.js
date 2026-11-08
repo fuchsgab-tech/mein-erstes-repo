@@ -282,7 +282,9 @@ const sameResult = (c, e) => c.main === e.main && c.why === e.why && c.gap === e
       check('"Bester Kandidat" on the one with the biggest team effect, only there', r.cards.map(c => c.best).join() === [0, 1, 2].map(i => i === best).join(), { best, ds: [e1.d, e2.d, e3.d], shown: r.cards.map(c => c.best) });
       check('"Bester Kandidat": Rolf (7/10 researcher), not the 2/3 cook', best === 1 && r.cards[1].best && !r.cards[2].best, { ds: [e1.d, e2.d, e3.d], team: r.cards.map(c => c.team) });
       check('three candidates: "+ Kandidat" disabled', r.add.disabled, r.add);
-      check('nothing written to the shared list while checking', !srv.log.length, srv.log);
+      // BUILD 20: opening the app notes when this phone was open ('players', the viewer's own doc); nothing else.
+      const own = l => l.c === 'players' && l.id === owner.id;
+      check('nothing written to the shared list while checking', srv.log.every(own), srv.log);
       const ls = await P.evaluate(k => JSON.parse(localStorage.getItem(k)), REC_KEY);
       check('the candidates are kept on this device (localStorage)', Array.isArray(ls) && ls.length === 3 && ls[0].name === 'Mara', ls);
       await P.screenshot({ path: path.join(SHOTS, 'recruit-390.png') });
@@ -322,7 +324,7 @@ const sameResult = (c, e) => c.main === e.main && c.why === e.why && c.gap === e
       await P.click('#recruit-open'); await P.waitForTimeout(250);
       r = await R(P);
       check('reopened: one empty candidate again', r.cards.length === 1 && !r.cards[0].name && !r.cards[0].main, r.cards);
-      check('only Anwerben/Rückgängig wrote anything (workers + stamps)', srv.log.every(l => l.c === 'workers' || l.c === 'stamps'), srv.log.map(l => l.c));
+      check('only Anwerben/Rückgängig wrote anything (workers + stamps)', srv.log.every(l => l.c === 'workers' || l.c === 'stamps' || own(l)), srv.log.map(l => l.c));
       await A.ctx.close();
     });
 

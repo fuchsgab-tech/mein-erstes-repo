@@ -139,7 +139,10 @@ function makeServer(seed = {}) {
   srv.write = async (who, op, c, id, d) => {
     await sleep(60);
     if (op === 'set') col(c).set(id, clone(d)); else col(c).delete(id);
-    srv.log.push({ who, op, c, id, d: d && clone(d) });
+    // BUILD 20: every writer's phone notes when it was open ('players', its own doc). That is not what these checks are
+    // about, so it goes to its own log; srv.log keeps everything else.
+    if (c === 'players') (srv.seenLog = srv.seenLog || []).push({ who, op, id });
+    else srv.log.push({ who, op, c, id, d: d && clone(d) });
     setTimeout(() => srv.broadcast(c), 10);
   };
   return srv;

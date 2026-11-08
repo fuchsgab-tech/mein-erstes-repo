@@ -260,7 +260,8 @@ const sameKeys = (o, keys) => !!o && Object.keys(o).sort().join() === [...keys].
       await O.page.reload(); await O.page.waitForTimeout(500);
       const s2 = await O.page.evaluate(k => JSON.parse(localStorage.getItem(k) || 'null'), SEEN_KEY);
       check('first seen: one entry per villager on this device, kept across a reload', s1 && Object.keys(SEED_W).every(id => s1[id] > NOW - 60e3) && JSON.stringify(s1) === JSON.stringify(s2), { s1, s2 });
-      check('first seen: nothing written to the shared list', !srv4.log.length, srv4.log);
+      // BUILD 20: each visit notes when this phone was open ('players', the viewer's own doc); no stamps, nothing else.
+      check('first seen: nothing written to the shared list', srv4.log.every(l => l.c === 'players' && l.id === owner.id), srv4.log);
       check('first seen today: the cards say "Werte von heute"', Object.values(await fresh(O.page)).every(x => x.t === 'Werte von heute'));
       await O.ctx.close();
       const X = await phone(browser, null, { name: 'X', seedLs: { [SEEN_KEY]: {} } }, { hash: '#plan' });
