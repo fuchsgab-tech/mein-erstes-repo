@@ -3815,15 +3815,22 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     return -1;
   }
   // ---------- Zu zweit eintragen: two players, two phones, each enters one part ----------
-  // The open villagers (the Eintragen queue, in plan order = the game's list) are cut into two blocks with about the
-  // same numbers to change. The split is shared ('duo/current', see duoCur) so both phones show the same parts and who
+  // The open villagers are cut into two blocks with about the same numbers to change, in the order of the game's list:
+  // the game sorts villagers by name (the app's roster keeps the order they were added in, so late ones stand last). The split is shared ('duo/current', see duoCur) so both phones show the same parts and who
   // took which; it is saved with the first pick. Each part opens the usual Eintragen-Modus; the tick-off stays the
   // shared 'ingame' one, so each phone sees the other's progress. Done first: take over the last half of the other
   // part's open villagers (from its end). Shared mode only (one device keeps its own ticks: nothing to share).
   const DUO_MAX = 12 * 3600e3;   // a saved split older than this is not offered again
   let duoShown = false, duoOpener = null, duoHtml = "", lastDuo = null;
   const duoWeight = (plan, w) => Math.max(1, entryRows(plan, w).filter(r => r.chg).length);   // a villager is one visit at least
-  function duoSplit(plan, queue) {
+  const duoColl = (() => { try { return new Intl.Collator("de", { sensitivity: "base", numeric: true }); } catch (e) { return null; } })();
+  function duoSort(plan, ids) {
+    const nm = id => { const w = plan.team.find(x => x.id === id); return (w && w.name) || ""; };
+    const cmp = (x, y) => duoColl ? duoColl.compare(x, y) : x.localeCompare(y);
+    return ids.slice().sort((x, y) => cmp(nm(x), nm(y)) || ids.indexOf(x) - ids.indexOf(y));
+  }
+  function duoSplit(plan, ids) {
+    const queue = duoSort(plan, ids);
     const ws = queue.map(id => { const w = plan.team.find(x => x.id === id); return w ? duoWeight(plan, w) : 1; });
     const tot = ws.reduce((a, x) => a + x, 0);
     let best = 1, bestD = Infinity, pre = 0;

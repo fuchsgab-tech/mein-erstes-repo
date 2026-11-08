@@ -40,7 +40,8 @@ const STATS = [
   { labourer: [4, 5], harvesting: [7, 8], farming: [3, 4], cooking: [3, 4], crafting: [3, 4], researching: [5, 9], hunting: [2, 4] },
   { labourer: [8, 10], harvesting: [2, 3], farming: [2, 3], cooking: [2, 3], crafting: [4, 6], researching: [1, 2], hunting: [6, 9] },
 ];
-const SEED_W = Object.fromEntries(NAMES.map((n, i) => ['w_' + n.toLowerCase(), { name: n, role: 'worker', traits: '', order: i + 1, stats: st(STATS[i]) }]));
+// Cilli joined late: last in the app's roster (order 99), but the game lists villagers by name, so she is third there.
+const SEED_W = Object.fromEntries(NAMES.map((n, i) => ['w_' + n.toLowerCase(), { name: n, role: 'worker', traits: '', order: n === 'Cilli' ? 99 : i + 1, stats: st(STATS[i]) }]));
 // Everyone stands on 5 everywhere in the game (as entered long ago): every number the plan wants other than 5 is open.
 const FIVES = Object.fromEntries(T.JOBS.map(j => [j.id, 5]));
 const INGAME = Object.fromEntries(Object.keys(SEED_W).map(id => [id, { vals: FIVES, by: 'u_old', at: Date.now() - 2 * 864e5 }]));
@@ -209,9 +210,11 @@ const noOverflow = page => page.evaluate(() => document.documentElement.scrollWi
     check('chooser opens, focus on its heading', await vis(PA, '#duo') && await PA.evaluate(() => document.activeElement && document.activeElement.id === 'duo-title'));
     const pa = await parts(PA);
     check('two parts', pa.length === 2, pa);
-    const order = ow.map(x => x.id), w = ow.map(x => x.n), tot = sum(w);
+    check('setup: Cilli comes last in the app (joined late)', ow[ow.length - 1].name === 'Cilli', ow.map(x => x.name));
+    const game = ow.slice().sort((x, y) => x.name.localeCompare(y.name, 'de'));   // the game's list: by name
+    const order = game.map(x => x.id), w = game.map(x => x.n), tot = sum(w);
     const all = [...pa[0].ids, ...pa[1].ids];
-    check('the parts are the open villagers in plan order, part 1 first, nobody twice', JSON.stringify(all) === JSON.stringify(order), { all, order });
+    check('the parts are the open villagers in the game\'s order (by name), part 1 first, nobody twice', JSON.stringify(all) === JSON.stringify(order), { all, order });
     const c = pa[0].ids.length;
     const best = Math.min(...Array.from({ length: order.length - 1 }, (_, i) => Math.abs(2 * sum(w.slice(0, i + 1)) - tot)));
     check('balanced by the numbers to change (the best cut there is)', c > 0 && c < order.length && Math.abs(2 * sum(w.slice(0, c)) - tot) === best, { c, w, best });
