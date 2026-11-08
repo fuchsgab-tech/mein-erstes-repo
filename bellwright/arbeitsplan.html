@@ -826,6 +826,35 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 .entry-banner .btn.entry-banner-go { min-height: 48px; padding-inline: 18px; font-size: 1.0625rem; }
 @media (pointer: coarse) { .entry-banner .btn.entry-banner-go { min-height: 52px; } .entry-banner .btn.entry-banner-later { min-height: 44px; min-width: 44px; } }
 @media (max-width: 560px) { .entry-banner .row { width: 100%; flex-wrap: nowrap; } .entry-banner .btn.entry-banner-go { flex: 1 1 auto; } }
+/* Zu zweit eintragen. In the banner the button sits between "Jetzt im Spiel eintragen" and "Später"; on phones the big
+   button gets its own line and the two smaller ones share the next. The chooser: two part cards side by side (stacked
+   on phones), the one to take highlighted. In the Eintragen-Modus "Teil 1" leads the top line and the partner's
+   progress is a pill with an ember dot. */
+.entry-banner .btn.entry-banner-duo { min-height: 44px; }
+@media (max-width: 560px) {
+  .entry-banner .row.duo-on { flex-wrap: wrap; }
+  .entry-banner .row.duo-on .btn.entry-banner-go { flex: 1 1 100%; }
+  .entry-banner .row.duo-on .btn.entry-banner-duo { flex: 1 1 auto; }
+}
+.duo { display: grid; gap: 12px; justify-content: stretch; border-left-color: var(--ember); }
+.duo-head { display: grid; gap: 2px; }
+.duo-head h3 { margin: 0; font-family: var(--font-display); font-size: var(--step-1); color: var(--accent-hi); line-height: 1.2; }
+.duo-head h3:focus { outline: none; }
+.duo-head h3:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 3px; border-radius: 4px; }
+.duo-parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px; }
+.duo-part { display: grid; gap: 4px; align-content: start; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--field); }
+.duo-part.mine { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.duo-part.taken { opacity: 0.85; }
+.duo-k { margin: 0; font-family: var(--font-display); font-size: var(--step-1); color: var(--accent-hi); line-height: 1.2; }
+.duo-range { margin: 0; overflow-wrap: anywhere; }
+.duo-meta { margin: 0; }
+.duo-who { margin: 0; font-size: var(--step--1); color: var(--ember); font-weight: 700; }
+.duo-part .btn { margin-top: 6px; min-height: 44px; width: 100%; }
+.duo-foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.duo-foot .btn { min-height: 44px; }
+.entry-duo { flex: none; font-family: var(--font-display); font-size: var(--step-0); color: var(--on-accent); background: var(--accent-hi); border-radius: 999px; padding: 1px 10px; line-height: 1.5; }
+.entry-pill.mate::before { background: var(--ember); box-shadow: 0 0 8px var(--ember); }
+.entry-finale [data-e="duo-take"] { min-height: 48px; }
 .fokus-mark { display: none; }
 .fokus .fokus-mark { display: inline-flex; align-items: center; font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em; line-height: 1.4; color: var(--on-accent); background: var(--accent-hi); border-radius: 999px; padding: 1px 8px; margin-left: 8px; white-space: nowrap; vertical-align: 0.2em; box-shadow: 0 1px 2px rgb(0 0 0 / 0.45); }
 .wp-card.fokus { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 15%, var(--surface-2)), color-mix(in oklab, var(--accent) 8%, var(--surface))); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); border-top-color: var(--accent-hi); }
@@ -1096,6 +1125,9 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
    by script (play: voll scale 1.25 -> 0.95 -> 1 in 320 ms, ruhig a 150 ms fade). */
 [data-anim="voll"] .entry-banner { animation: rise 0.22s ease-out backwards; }
 [data-anim="ruhig"] .entry-banner { animation: calmIn 0.15s ease-out both; }
+/* Zu zweit eintragen: the chooser comes in like the banner (voll: rise 220 ms, ruhig: a 150 ms fade, aus: nothing). */
+[data-anim="voll"] .duo:not([hidden]) { animation: rise 0.22s ease-out backwards; }
+[data-anim="ruhig"] .duo:not([hidden]) { animation: calmIn 0.15s ease-out both; }
 /* Abweichungen zum Spiel: the banner comes in once like the entry banner; new marks stamp once by script (play: voll scale
    1.25 -> 0.95 -> 1 in 320 ms, ruhig a 150 ms fade, aus nothing); the photo line of an opened row drops in with its why. */
 [data-anim="voll"] .mm-banner { animation: rise 0.22s ease-out backwards; }
@@ -1172,6 +1204,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       <p id="entry-banner-text"></p>
       <div class="row">
         <button class="btn primary entry-banner-go" type="button" id="entry-banner-go" data-entry-open>Jetzt im Spiel eintragen</button>
+        <button class="btn entry-banner-duo" type="button" id="duo-open" data-duo-open aria-controls="duo" aria-expanded="false" hidden>Zu zweit eintragen</button>
         <button class="btn small entry-banner-later" type="button" id="entry-banner-later">Später</button>
       </div>
     </div>
@@ -1182,6 +1215,19 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         <button class="btn entry-resume-x" type="button" id="entry-resume-x" aria-label="Hinweis ausblenden">×</button>
       </div>
     </div>
+    <!-- Zu zweit eintragen: the open villagers in two blocks (the game's order, about the same numbers each); each phone
+         picks its part and gets the Eintragen-Modus with only that part. The split is shared ('duo/current'). -->
+    <section class="banner duo" id="duo" aria-labelledby="duo-title" hidden>
+      <div class="duo-head">
+        <h3 id="duo-title" tabindex="-1">Zu zweit eintragen</h3>
+        <p class="muted small">Jeder von euch trägt einen Teil ein, in der Reihenfolge wie im Spiel. Beide Teile haben etwa gleich viele Zahlen.</p>
+      </div>
+      <div class="duo-parts" id="duo-parts"></div>
+      <div class="row duo-foot">
+        <button class="btn small" type="button" id="duo-new" hidden>Neu aufteilen</button>
+        <button class="btn small" type="button" id="duo-x">Schließen</button>
+      </div>
+    </section>
 
     <!-- Spiel prüfen per Foto: photos of the game's table view ("Arbeitsprioritäten"), compared with the plan.
          The result below has its own sticky bar; nothing is saved before "Übernehmen". -->
@@ -1252,6 +1298,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         <div class="grid-title">
           <h2 id="plan-title" tabindex="-1">Prioritäten pro Arbeiter</h2>
           <button class="btn primary" type="button" id="entry-open" data-entry-open hidden>Im Spiel eintragen</button>
+          <button class="btn" type="button" id="duo-open-head" data-duo-open aria-controls="duo" aria-expanded="false" hidden>Zu zweit eintragen</button>
           <button class="btn" type="button" id="check-open" aria-controls="check" aria-expanded="false" hidden>Spiel prüfen (Foto)</button>
         </div>
         <div class="viewseg" role="group" aria-label="Ansicht">
@@ -1572,10 +1619,11 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
 <div class="entry" id="entry" role="dialog" aria-modal="true" aria-labelledby="entry-name" lang="de" hidden>
   <div class="entry-in">
     <div class="entry-top">
-      <p class="entry-prog"><span class="entry-count" id="entry-count"></span><span class="entry-dots" id="entry-dots" aria-hidden="true"></span></p>
+      <p class="entry-prog"><span class="entry-duo" id="entry-duo" hidden></span><span class="entry-count" id="entry-count"></span><span class="entry-dots" id="entry-dots" aria-hidden="true"></span></p>
       <button type="button" class="entry-x" data-e="close" aria-label="Schließen" aria-keyshortcuts="Escape">✕</button>
     </div>
     <div class="entry-notes" id="entry-notes" hidden>
+      <span class="entry-pill mate" id="entry-mate" hidden></span>
       <span class="entry-pill" id="entry-awake" hidden>Bildschirm bleibt an</span>
       <span class="entry-pill bad" id="entry-ro" hidden>Nur ansehen: Ihr könnt hier nichts abhaken.</span>
       <span class="entry-pill bad" id="entry-lost" hidden>Verbindung verloren</span>
@@ -1842,6 +1890,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     checksReady: false,     // what the photo check found ('checks') has arrived; the "Nur diese zeigen" filter waits for it
     stockReady: false,      // the Lager checks ('stock') have arrived; the Lager tab says "Lädt …" until then
     stockDenied: false,     // db: the stock never comes (refused or connection lost): the Lager tab shows without it
+    duoReady: false,        // db: the shared split ('duo/current') has arrived; "Zu zweit eintragen" waits for it
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -1869,6 +1918,19 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   let appliedMeta = {};
   // Festlegungen: {wid: {lockMain, pins}} (cleaned by cleanPrefs). db: the 'prefs' collection; local: inside LS_KEY.
   let prefs = {};
+  // Zu zweit eintragen: the shared split {at, by, a, b, whoA, whoB} (db: 'duo/current'; cleaned by cleanDuo; local: none).
+  // at = when it was split (kept through picks and take-overs), a/b = the villagers of part 1/2 in plan order,
+  // whoA/whoB = the user id that took the part ("" = free).
+  let duoCur = null;
+  function cleanDuo(d) {
+    if (!d || typeof d !== "object") return null;
+    const ids = x => Array.isArray(x) && x.length <= 500 && x.every(i => typeof i === "string" && i && i.length <= 80) ? x.slice() : null;
+    const txt = v => typeof v === "string" && v.length <= 200 ? v : "";
+    const a = ids(d.a), b = ids(d.b);
+    if (!a || !b || !(typeof d.at === "number" && isFinite(d.at) && d.at > 0)) return null;
+    return { at: d.at, by: txt(d.by), a, b, whoA: txt(d.whoA), whoB: txt(d.whoB) };
+  }
+  const duoDoc = d => ({ at: d.at, by: d.by || "", a: d.a.slice(), b: d.b.slice(), whoA: d.whoA || "", whoB: d.whoB || "" });
   // Display names for the "eingetragen von" line: memory only, never stored ("" = unknown).
   const names = new Map();
   const namesAsked = new Set();
@@ -3304,6 +3366,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     turnT: null,          // a page turn is running (the old page is an .entry-ghost until then)
     lock: null, waking: false, tip: false,   // screen wake lock
     lastWid: null,        // the villager shown last: "Hier warst du" in the plan once the mode closes
+    duo: null,            // Zu zweit eintragen: {k, at, a, b} = this phone's part (0/1) of the split made at `at`
   };
   let tipShown = false;   // the screen-lock tip was shown in this page load (covers browsers that block storage)
   let resumeChecked = false, resumeOffer = null;  // the resume banner is decided once, when the plan can first be tracked
@@ -3330,7 +3393,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   function entryAnnounce(text) { const el = $("#entry-live"); el.textContent = ""; el.textContent = text; }
   function entrySave() {
     if (entry.finale) { try { localStorage.removeItem(ENTRY_KEY); } catch (e) { /* ignore */ } return; }
-    lsSet(ENTRY_KEY, { ids: entry.ids, i: entry.i, at: Date.now() });
+    lsSet(ENTRY_KEY, entry.duo ? { ids: entry.ids, i: entry.i, at: Date.now(), duo: entry.duo } : { ids: entry.ids, i: entry.i, at: Date.now() });
   }
 
   function entryPageHtml(plan, w) {
@@ -3409,23 +3472,42 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const f = $("#entry-finale");
     const live = entry.ids.filter(id => entryWorker(id));
     const open = live.filter(id => !entryDone(id));
+    // Zu zweit eintragen: this part is done, the other one maybe not yet (its open villagers, from its saved split).
+    const mate = !open.length ? entryMate() : null;
+    const other = mate ? mate.ids.filter(id => !live.includes(id)) : [];
+    const oOpen = other.filter(id => !entryDone(id));
+    const all = !open.length && !oOpen.length;
+    const nm = id => entryWorker(id).name || "Ohne Namen";
     // Spiel prüfen per Foto: what is entered can be checked right away (closes the mode, opens the check on the Plan tab).
     const chk = ckAvail() ? `<button type="button" class="btn" data-e="check" data-focus="check">Jetzt mit Foto prüfen</button>` : "";
-    const html = open.length
-      ? `<h2 id="entry-name" tabindex="-1">${live.length - open.length} von ${live.length} eingetragen.</h2>`
-        + `<p>Noch offen: ${esc(joinDe(open.map(id => entryWorker(id).name || "Ohne Namen")))}.</p><button type="button" class="btn" data-e="first-open" data-focus="first-open">Noch offene ansehen</button>${chk}`
-      : `<div class="fin-fx" aria-hidden="true"><i class="fin-glow"></i></div><div class="fin-banner">${FIN_BELL}<span class="fin-rod" aria-hidden="true"></span>`
+    let html;
+    if (open.length) {
+      html = `<h2 id="entry-name" tabindex="-1">${live.length - open.length} von ${live.length} eingetragen.</h2>`
+        + `<p>Noch offen: ${esc(joinDe(open.map(nm)))}.</p><button type="button" class="btn" data-e="first-open" data-focus="first-open">Noch offene ansehen</button>${chk}`;
+    } else if (!all) {
+      // The partner still works: their progress, and the last half of their open villagers to take over (from the end,
+      // so the two of you meet in the middle). Read-only viewers only see the progress.
+      const n = locked() ? 0 : Math.floor(oOpen.length / 2);
+      const list = oOpen.length > 4 ? `${oOpen.slice(0, 3).map(nm).join(", ")} und ${oOpen.length - 3} weitere` : joinDe(oOpen.map(nm));
+      html = `<h2 id="entry-name" tabindex="-1">Dein Teil ist fertig.</h2>`
+        + `<p>${esc(mate.label)}: ${other.length - oOpen.length} von ${other.length} eingetragen. Noch offen: ${esc(list)}.</p>`
+        + (n ? `<button type="button" class="btn primary" data-e="duo-take" data-focus="duo-take">${n === 1 ? "Den letzten übernehmen" : `Die letzten ${n} übernehmen`}</button>`
+            + `<p class="muted small">Ihr arbeitet euch dann von beiden Enden aufeinander zu.</p>`
+          : `<p class="muted small">Sobald alles eingetragen ist, seht ihr es hier.</p>`);
+    } else {
+      html = `<div class="fin-fx" aria-hidden="true"><i class="fin-glow"></i></div><div class="fin-banner">${FIN_BELL}<span class="fin-rod" aria-hidden="true"></span>`
         + `<i class="fin-tail l" aria-hidden="true"></i><i class="fin-tail r" aria-hidden="true"></i>`
-        + `<div class="fin-cloth"><h2 id="entry-name" tabindex="-1">Alle ${live.length} eingetragen.</h2></div></div>`
-        + `<p>Ändert sich der Plan später, zeigen Punkte im Plan, was ihr nachziehen müsst.</p>${chk}`;
+        + `<div class="fin-cloth"><h2 id="entry-name" tabindex="-1">Alle ${live.length + other.length} eingetragen.</h2></div></div>`
+        + `<p>${mate ? "Gemeinsam geschafft. " : ""}Ändert sich der Plan später, zeigen Punkte im Plan, was ihr nachziehen müsst.</p>${chk}`;
+    }
     if (entry.finHtml !== html) {
       const act = document.activeElement;
       const fk = f.contains(act) ? act.dataset.focus || "name" : null;   // the heading has no data-focus: back to it
-      f.className = `entry-finale ${open.length ? "fin-part" : "fin-all"}`;
+      f.className = `entry-finale ${all ? "fin-all" : "fin-part"}`;
       f.innerHTML = html;
       entry.finHtml = html;
       if (fk) { const el = f.querySelector(`[data-focus="${CSS.escape(fk)}"]`) || $("#entry-name"); if (el) el.focus({ preventScroll: true }); }
-      if (!open.length && !f.hidden) entryFinaleFx(f);
+      if (all && !f.hidden) entryFinaleFx(f);
     }
   }
 
@@ -3513,11 +3595,16 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       const h = entry.ids.map((id, k) => `<i class="${!entryWorker(id) ? "gone" : entryDone(id) ? "done" : ""}${!entry.finale && k === entry.i ? " cur" : ""}"></i>`).join("");
       if (dots.innerHTML !== h) dots.innerHTML = h;
     }
+    const part = entry.duo ? `Teil ${entry.duo.k + 1}` : "", mate = entryMateText();
+    if ($("#entry-duo").textContent !== part) $("#entry-duo").textContent = part;
+    $("#entry-duo").hidden = !part;
+    if ($("#entry-mate").textContent !== mate) $("#entry-mate").textContent = mate;
+    $("#entry-mate").hidden = !mate;
     $("#entry-awake").hidden = !entry.lock;
     $("#entry-tip").hidden = !entry.tip || !!entry.lock;
     $("#entry-ro").hidden = !locked();
     $("#entry-lost").hidden = state.mode !== "lost";
-    $("#entry-notes").hidden = ["#entry-awake", "#entry-tip", "#entry-ro", "#entry-lost"].every(s => $(s).hidden);
+    $("#entry-notes").hidden = ["#entry-mate", "#entry-awake", "#entry-tip", "#entry-ro", "#entry-lost"].every(s => $(s).hidden);
     const back = $("#entry-back"), next = $("#entry-next");
     back.setAttribute("aria-disabled", String(entryFind(entry.finale ? n - 1 : entry.i - 1, -1) < 0));
     if (entry.stamping) return;   // keeps "Fertig" while the seal lands
@@ -3641,7 +3728,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (!ids.length) return;
     const act = document.activeElement;
     entry.opener = act && act !== document.body ? act : null;
-    Object.assign(entry, { open: true, ids: ids.slice(), i: 0, finale: false, tip: false, lastWid: null });
+    Object.assign(entry, { open: true, ids: ids.slice(), i: 0, finale: false, tip: false, lastWid: null, duo: from && from.duo ? { ...from.duo, a: from.duo.a.slice(), b: from.duo.b.slice() } : null });
     entry.undo.clear();
     resumeOffer = null;
     $("#entry-resume").hidden = true;
@@ -3656,7 +3743,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   function entryClose() {
     if (!entry.open) return;
     clearTimeout(entry.stampT); unlater(entry.burstT); entry.burstT = null;
-    entry.stamping = false; entry.open = false; entry.finale = false; entry.rushAt = 0;
+    entry.stamping = false; entry.open = false; entry.finale = false; entry.rushAt = 0; entry.duo = null;
     entry.undo.clear();
     entryTurnEnd();
     for (const c of $$("#entry-stage .entry-card")) c.remove();
@@ -3687,6 +3774,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       toast("Eintragen beendet, weil sich der Plan geändert hat.");
       return;
     }
+    if (entry.duo && entryDuoSync()) return;
     if (entry.finale) entryPaintFinale();
     else if (!entryWorker(entry.ids[entry.i])) { entryGo(entry.i + 1, 1); return; }   // left the team: skipped
     else if (!entry.stamping) entryPaint(false);
@@ -3717,12 +3805,201 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (!r || typeof r !== "object" || !Array.isArray(r.ids) || !r.ids.length || r.ids.length > 500 || !r.ids.every(x => typeof x === "string")
       || !Number.isInteger(r.i) || r.i < 0 || typeof r.at !== "number") return null;
     const age = Date.now() - r.at;
-    return age >= 0 && age < 3 * 3600e3 ? { ids: r.ids, i: r.i } : null;
+    const okIds = x => Array.isArray(x) && x.length <= 500 && x.every(v => typeof v === "string");
+    const d = r.duo;
+    const duo = d && typeof d === "object" && (d.k === 0 || d.k === 1) && typeof d.at === "number" && okIds(d.a) && okIds(d.b) ? { k: d.k, at: d.at, a: d.a.slice(), b: d.b.slice() } : null;
+    return age >= 0 && age < 3 * 3600e3 ? { ids: r.ids, i: r.i, duo } : null;
   }
   function entryFirstOpen(plan, ids, from) {
     for (let k = Math.max(0, from); k < ids.length; k++) { const w = plan.team.find(x => x.id === ids[k]); if (w && entryOpenFor(plan, w)) return k; }
     return -1;
   }
+  // ---------- Zu zweit eintragen: two players, two phones, each enters one part ----------
+  // The open villagers (the Eintragen queue, in plan order = the game's list) are cut into two blocks with about the
+  // same numbers to change. The split is shared ('duo/current', see duoCur) so both phones show the same parts and who
+  // took which; it is saved with the first pick. Each part opens the usual Eintragen-Modus; the tick-off stays the
+  // shared 'ingame' one, so each phone sees the other's progress. Done first: take over the last half of the other
+  // part's open villagers (from its end). Shared mode only (one device keeps its own ticks: nothing to share).
+  const DUO_MAX = 12 * 3600e3;   // a saved split older than this is not offered again
+  let duoShown = false, duoOpener = null, duoHtml = "", lastDuo = null;
+  const duoWeight = (plan, w) => Math.max(1, entryRows(plan, w).filter(r => r.chg).length);   // a villager is one visit at least
+  function duoSplit(plan, queue) {
+    const ws = queue.map(id => { const w = plan.team.find(x => x.id === id); return w ? duoWeight(plan, w) : 1; });
+    const tot = ws.reduce((a, x) => a + x, 0);
+    let best = 1, bestD = Infinity, pre = 0;
+    for (let c = 1; c < queue.length; c++) { pre += ws[c - 1]; const d = Math.abs(2 * pre - tot); if (d < bestD) { bestD = d; best = c; } }
+    return { a: queue.slice(0, best), b: queue.slice(best) };
+  }
+  // What the chooser offers: the saved split while it still holds every open villager (and is younger than 12 h),
+  // else a fresh one (saved with the first pick). null: nothing to split.
+  function duoView(plan, queue) {
+    const d = duoCur;
+    if (d && Date.now() - d.at < DUO_MAX && queue.length && queue.every(id => d.a.includes(id) || d.b.includes(id))) return { ...d, active: true };
+    if (queue.length < 2) return null;
+    return { at: 0, by: "", ...duoSplit(plan, queue), whoA: "", whoB: "", active: false };
+  }
+  function duoPartHtml(plan, view, ids, k) {
+    const wk = id => plan.team.find(w => w.id === id);
+    const live = ids.filter(id => wk(id));
+    const open = live.filter(id => entryOpenFor(plan, wk(id)));
+    const nums = open.reduce((a, id) => a + entryRows(plan, wk(id)).filter(r => r.chg).length, 0);
+    const done = live.length - open.length;
+    const nm = id => esc(wk(id).name || "Ohne Namen");
+    const range = !live.length ? "–" : live.length === 1 ? `<b>${nm(live[0])}</b>` : `<b>${nm(live[0])}</b> bis <b>${nm(live[live.length - 1])}</b>`;
+    const who = k ? view.whoB : view.whoA, otherWho = k ? view.whoA : view.whoB;
+    const mine = !!who && who === myId, taken = !!who && !mine;
+    const whoLine = mine ? `<p class="duo-who">Das bist du</p>` : taken ? `<p class="duo-who">Macht gerade: ${esc(names.get(who) || "jemand anderes")}</p>` : "";
+    const primary = open.length > 0 && !taken && !(!!myId && otherWho === myId);
+    const meta = `${live.length} Bewohner · ${open.length ? zahlen(nums) : "alles eingetragen"}${done && open.length ? ` · ${done} fertig` : ""}`;
+    const btn = `<button type="button" class="btn${primary ? " primary" : ""}" data-duo-pick="${k}"${open.length ? "" : " disabled"}>${open.length ? `Ich mache Teil ${k + 1}` : "Schon fertig"}</button>`;
+    return `<div class="duo-part${mine ? " mine" : ""}${taken ? " taken" : ""}" data-ids="${esc(ids.join(","))}"><p class="duo-k">Teil ${k + 1}</p>`
+      + `<p class="duo-range">${range}</p><p class="duo-meta muted small">${meta}</p>${whoLine}${btn}</div>`;
+  }
+  // Part of renderEntryTriggers: the two buttons (banner, grid head) and the chooser.
+  function renderDuo(plan, track, queue, on, red) {
+    const view = track && state.mode === "db" && state.duoReady && !red ? duoView(plan, queue) : null;
+    lastDuo = view;
+    const ok = !!view && queue.length > 0;
+    $("#duo-open").hidden = !(ok && on);
+    $("#duo-open").parentElement.classList.toggle("duo-on", ok && on);
+    $("#duo-open-head").hidden = !(ok && !$("#entry-open").hidden);
+    if (!ok || entry.open) duoShown = false;
+    for (const b of $$("[data-duo-open]")) b.setAttribute("aria-expanded", String(duoShown));
+    const box = $("#duo");
+    if (!duoShown) { if (!box.hidden) box.hidden = true; return; }
+    for (const u of [view.whoA, view.whoB]) if (u && u !== myId) wantNames([u]);
+    const html = [view.a, view.b].map((ids, k) => duoPartHtml(plan, view, ids, k)).join("");
+    if (duoHtml !== html) {
+      const act = document.activeElement, fk = act && $("#duo-parts").contains(act) ? act.dataset.duoPick : null;
+      $("#duo-parts").innerHTML = html;
+      duoHtml = html;
+      if (fk) { const el = $(`#duo-parts [data-duo-pick="${fk}"]`); if (el && !el.disabled) el.focus({ preventScroll: true }); else $("#duo-title").focus({ preventScroll: true }); }
+    }
+    $("#duo-new").hidden = !(view.active && !locked() && queue.length >= 2);
+    if (box.hidden) box.hidden = false;
+  }
+  function duoOpen(from) {
+    duoShown = true; duoOpener = from || null; duoHtml = "";
+    renderPlan();
+    const box = $("#duo");
+    if (box.hidden) return;
+    const r = box.getBoundingClientRect();
+    if (r.top < 0 || r.top > innerHeight - 160) box.scrollIntoView({ block: "start", behavior: scrollMode() });
+    $("#duo-title").focus({ preventScroll: true });
+  }
+  function duoClose() {
+    duoShown = false;
+    renderPlan();
+    const o = duoOpener;
+    duoOpener = null;
+    const vis = el => el && el.isConnected && !el.closest("[hidden]") && el.getClientRects().length > 0;
+    (vis(o) ? o : vis($("#entry-banner-go")) ? $("#entry-banner-go") : $("#plan-title")).focus({ preventScroll: true });
+  }
+  // "Ich mache Teil k": the split is saved (new) or this phone's name goes on the part, then the part opens.
+  function duoPick(k) {
+    const plan = lastPlan, view = lastDuo;
+    if (!plan || !view || entry.open) return;
+    const ids = (k ? view.b : view.a).filter(id => { const w = plan.team.find(x => x.id === id); return w && entryOpenFor(plan, w); });
+    if (!ids.length) return;
+    let at = view.at;
+    if (!locked() && state.mode === "db") {
+      const doc = { at: view.active ? view.at : Date.now(), by: view.active ? view.by : myId, a: view.a.slice(), b: view.b.slice(), whoA: view.whoA, whoB: view.whoB };
+      if (myId) {
+        if (k) { doc.whoB = myId; if (doc.whoA === myId) doc.whoA = ""; }
+        else { doc.whoA = myId; if (doc.whoB === myId) doc.whoB = ""; }
+      }
+      at = doc.at;
+      const same = view.active && doc.whoA === view.whoA && doc.whoB === view.whoB;
+      duoCur = doc;
+      if (!same) backend.setDuo();
+    }
+    duoShown = false; duoOpener = null;
+    $("#duo").hidden = true;
+    for (const b of $$("[data-duo-open]")) b.setAttribute("aria-expanded", "false");
+    entryOpen({ ids, i: 0, duo: { k, at, a: view.a.slice(), b: view.b.slice() } });
+  }
+  // "Neu aufteilen": a fresh split of what is open now, nobody on it (e.g. a player changed or the plan moved on).
+  function duoResplit() {
+    const plan = lastPlan;
+    if (!plan || locked() || state.mode !== "db") return;
+    const queue = entryQueue(plan);
+    if (queue.length < 2) return;
+    duoCur = { at: Math.max(Date.now(), duoCur ? duoCur.at + 1 : 0), by: myId, ...duoSplit(plan, queue), whoA: "", whoB: "" };
+    backend.setDuo();
+    duoHtml = "";
+    renderPlan();
+    $("#duo-title").focus({ preventScroll: true });
+    toast("Neu aufgeteilt. Jeder wählt seinen Teil noch einmal.");
+  }
+  for (const b of $$("[data-duo-open]")) b.addEventListener("click", () => { if (duoShown) duoClose(); else duoOpen(b); });
+  $("#duo-x").addEventListener("click", duoClose);
+  $("#duo-new").addEventListener("click", duoResplit);
+  $("#duo-parts").addEventListener("click", e => {
+    const b = e.target.closest("[data-duo-pick]");
+    if (b && !b.disabled) duoPick(+b.dataset.duoPick);
+  });
+
+  // In the Eintragen-Modus: the split this phone's part belongs to. The saved one while it is the same split (same
+  // `at`); the copy from the pick while none is saved (a viewer's fresh split, or it has not arrived); null when
+  // someone split anew (no partner any more).
+  function entrySplit() {
+    const d = entry.duo;
+    if (!d) return null;
+    if (duoCur && duoCur.at === d.at) return { a: duoCur.a, b: duoCur.b, whoA: duoCur.whoA, whoB: duoCur.whoB, live: true };
+    if (duoCur) return null;
+    return { a: d.a, b: d.b, whoA: "", whoB: "", live: false };
+  }
+  // The other part: its villagers (still in the team) and how to call it ("Lena", or "Teil 2" while nobody has it).
+  function entryMate() {
+    const p = entrySplit();
+    if (!p) return null;
+    const o = 1 - entry.duo.k, who = o ? p.whoB : p.whoA;
+    if (who && who !== myId) wantNames([who]);
+    return { p, o, ids: (o ? p.b : p.a).filter(id => entryWorker(id)), label: who && who !== myId ? names.get(who) || "Euer Mitspieler" : `Teil ${o + 1}` };
+  }
+  function entryMateText() {
+    const m = entryMate();
+    return m && m.ids.length ? `${m.label}: ${m.ids.filter(id => entryDone(id)).length} von ${m.ids.length} fertig` : "";
+  }
+  // The partner took over villagers of this part (they left it in the saved split): they leave this queue too. The one
+  // on screen going means on to the next of ours. Returns true when it switched the page.
+  function entryDuoSync() {
+    const p = entrySplit();
+    if (!p || !p.live || entry.stamping) return false;
+    entry.duo.a = p.a.slice(); entry.duo.b = p.b.slice();   // the resume copy follows take-overs
+    const mine = new Set(entry.duo.k ? p.b : p.a);
+    if (entry.ids.every(id => mine.has(id))) return false;
+    const keep = entry.ids.filter(id => mine.has(id));
+    const cur = entry.finale ? null : entry.ids[entry.i];
+    if (cur && !mine.has(cur)) {
+      const nx = entry.ids.slice(entry.i + 1).find(id => mine.has(id));
+      entry.ids = keep;
+      entryGo(nx ? keep.indexOf(nx) : keep.length, 1);
+      return true;
+    }
+    entry.ids = keep;
+    entry.i = cur ? keep.indexOf(cur) : keep.length;
+    entrySave();
+    return false;
+  }
+  // "Die letzten n übernehmen" (this part is done): the last half of the other part's open villagers move to this part.
+  function duoTake() {
+    const p = entrySplit();
+    if (!p || !p.live || !entry.finale || locked()) return;
+    const k = entry.duo.k, other = k ? p.a : p.b;
+    const oOpen = other.filter(id => entryWorker(id) && !entryDone(id) && !entry.ids.includes(id));
+    const n = Math.floor(oOpen.length / 2);
+    if (!n) return;
+    const take = oOpen.slice(oOpen.length - n), t = new Set(take);
+    const mine = (k ? p.b : p.a).concat(take), rest = other.filter(id => !t.has(id));
+    duoCur = { ...duoCur, a: k ? rest : mine, b: k ? mine : rest };
+    backend.setDuo();
+    entry.duo.a = duoCur.a.slice(); entry.duo.b = duoCur.b.slice();
+    const from = entry.ids.length;
+    entry.ids = entry.ids.concat(take);
+    entryGo(from, 1);
+  }
+
   // The open button, the sticky bar (touch) and the resume banner. Part of renderPlan.
   function renderEntryTriggers(plan, track) {
     const queue = track ? entryQueue(plan) : [], n = queue.length;
@@ -3761,6 +4038,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     }
     $("#mm-more").hidden = !rest;
     $("#entry-resume-go").classList.toggle("primary", !red);
+    renderDuo(plan, track, queue, on, red);
     syncSticky();
   }
   // The sticky bar shows when villagers are open and the banner is not on screen (hidden by "Später", or scrolled away).
@@ -3786,6 +4064,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     else if (a === "undo") entryUndo();
     else if (a === "first-open") { const k = entryFirstOpen(lastPlan, entry.ids, 0); if (k >= 0) entryGo(k, -1); }
     else if (a === "check") { entryClose(); ckOpen(); }
+    else if (a === "duo-take") duoTake();
     else if (a === "row" && entry.shown && !entry.stamping) {
       const wid = entry.ids[entry.i], job = t.dataset.job;
       const m = entry.checks.get(wid) || new Map();
@@ -4417,6 +4696,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     setStamp() { this.save(); },
     setCheck() { this.save(); },
     setStock() { this.save(); },
+    setDuo() { /* one device: nothing to share ("Zu zweit eintragen" is only offered in shared mode) */ },
     // Tick-off per browser, as before: putIngame already merged the change into `applied`.
     setIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
     deleteIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
@@ -4433,6 +4713,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     let gotT = false, sinceT = false;                      // the same for 'stamps' (when the values were last checked)
     let gotC = false, sinceC = false;                      // the same for 'checks' (what the photo check found)
     let gotK = false, sinceK = false;                      // the same for 'stock' (the Lager checks)
+    let gotD = false, sinceD = false;                      // the same for 'duo/current' (Zu zweit eintragen)
+    let srvDuo = null;                                     // the last split the server sent, to undo a refused write
     let srvStocks = {};                                    // the last Lager checks the server sent, to undo a refused write
     let srvStamps = {};                                    // the last stamps the server sent, to undo a refused write
     let srvChecks = {};                                    // the last checks the server sent, to undo a refused write
@@ -4448,7 +4730,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       if (gotT) state.stampsReady = true;
       if (gotC) state.checksReady = true;
       if (gotK) state.stockReady = true;
-      if (sinceW && sinceS && sinceI && sinceP && sinceT && sinceC && sinceK) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
+      if (gotD) state.duoReady = true;
+      if (sinceW && sinceS && sinceI && sinceP && sinceT && sinceC && sinceK && sinceD) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
     }
 
     // Resolves true when the write went through (after one retry for a transient error).
@@ -4598,6 +4881,13 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       settle();
       renderStock();
     }
+    function onDuo(snap) {
+      gotD = sinceD = true;
+      srvDuo = snap && snap.exists ? cleanDuo(snap.data && snap.data()) : null;
+      if (!pending.has("d:current")) duoCur = srvDuo;   // a pick or take-over that is not saved yet keeps the local copy
+      settle();
+      renderPlan();
+    }
     // A refused Lager write: show what the server has again, unless a newer write is on its way.
     function restoreStock(id) {
       if (pending.has("k:" + id)) return;
@@ -4683,7 +4973,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       }
     }
     function subscribe() {
-      sinceW = sinceS = sinceI = sinceP = sinceT = sinceC = sinceK = false;
+      sinceW = sinceS = sinceI = sinceP = sinceT = sinceC = sinceK = sinceD = false;
       unsubs = [
         db.collection("workers").onSnapshot(onWorkers, onListenError),
         db.doc("settings/main").onSnapshot(onSettings, onListenError),
@@ -4692,6 +4982,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         db.collection("stamps").onSnapshot(onStamps, onListenError),
         db.collection("checks").onSnapshot(onChecks, onListenError),
         db.collection("stock").onSnapshot(onStock, onListenError),
+        db.doc("duo/current").onSnapshot(onDuo, onListenError),
       ];
     }
     return {
@@ -4743,6 +5034,12 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
           const c = checks[wid], ref = db.collection("checks").doc(wid);
           return c ? ref.set({ at: c.at, by: c.by, vals: { ...c.vals }, want: { ...c.want } }) : ref.delete();
         }, ok => { if (!ok) restoreCheck(wid); });
+      },
+      // Zu zweit eintragen: set() of the whole split (duoCur) at once; a refused write shows the server's split again.
+      setDuo() {
+        schedule("d:current", 0, () => duoCur ? db.doc("duo/current").set(duoDoc(duoCur)) : Promise.resolve(), ok => {
+          if (!ok && !pending.has("d:current")) { duoCur = srvDuo; renderPlan(); }
+        });
       },
       // A Lager check: set() of the whole doc {at, by, pop, vieh, rows}; none = delete (Rückgängig, or older than the 12 kept).
       setStock(id) {

@@ -66,7 +66,7 @@ function makeServer(seed = {}) {
 // cfg: { name, inClaude, writable, user, anim, seedLs }
 function STUB(cfg) {
   try {
-    localStorage.setItem('bellwright-anim-v1', JSON.stringify(cfg.anim || 'aus'));
+    if (cfg.anim !== null) localStorage.setItem('bellwright-anim-v1', JSON.stringify(cfg.anim || 'aus'));   // null: no choice made (the app's default)
     localStorage.setItem('bellwright-kosten-info-v1', 'true');
     localStorage.setItem('bellwright-sperre-tipp-v1', 'true');
     if (cfg.seedLs && !sessionStorage.getItem('__seeded')) { sessionStorage.setItem('__seeded', '1'); for (const [k, v] of Object.entries(cfg.seedLs)) localStorage.setItem(k, JSON.stringify(v)); }
@@ -385,11 +385,11 @@ const noOverflow = page => page.evaluate(() => document.documentElement.scrollWi
       await A.ctx.close();
     }
     const srv = makeServer(seedAll());
-    const R = await phone(browser, srv, { name: 'RM', inClaude: true, writable: true, user: gabriel, anim: 'voll' }, { reduced: true });
+    const R = await phone(browser, srv, { name: 'RM', inClaude: true, writable: true, user: gabriel, anim: null }, { reduced: true });   // no choice made: reduced motion means "aus"
     await until(() => vis(R.page, '#duo-open'));
     await R.page.click('#duo-open');
     const rn = await R.page.evaluate(() => ({ name: getComputedStyle(document.getElementById('duo')).animationName, anim: document.documentElement.dataset.anim }));
-    check('reduced motion: the chooser does not rise', !/rise/.test(rn.name), rn);
+    check('reduced motion (no choice made): "aus", the chooser does not move', rn.anim === 'aus' && rn.name === 'none', rn);
     await R.ctx.close();
   });
 
