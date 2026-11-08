@@ -2,8 +2,8 @@ const { chromium } = require('playwright');
 // Fake db: set() resolves after 350ms, then echoes a snapshot; another viewer writes every 500ms; periodic refresh.
 const STUB = () => {
   // One map and one listener list per collection (workers, settings, ingame, prefs, stamps, checks, stock), so each listener gets only its own docs.
-  const docs = { workers: new Map(), settings: new Map(), ingame: new Map(), prefs: new Map(), stamps: new Map(), checks: new Map(), stock: new Map(), duo: new Map() };
-  const listeners = { workers: [], settings: [], ingame: [], prefs: [], stamps: [], checks: [], stock: [], duo: [] };
+  const docs = { workers: new Map(), settings: new Map(), ingame: new Map(), prefs: new Map(), stamps: new Map(), checks: new Map(), stock: new Map(), duo: new Map(), players: new Map() };
+  const listeners = { workers: [], settings: [], ingame: [], prefs: [], stamps: [], checks: [], stock: [], duo: [], players: [] };
   window.__server = docs;
   const snapC = c => ({ docs: [...docs[c].entries()].map(([id, d]) => ({ id, exists: true, data: () => JSON.parse(JSON.stringify(d)), metadata: {} })), size: docs[c].size, empty: !docs[c].size, metadata: {}, docChanges: () => [] });
   const snapS = () => { const d = docs.settings.get('main'); return { id: 'main', exists: !!d, data: () => d && JSON.parse(JSON.stringify(d)), metadata: {} }; };
