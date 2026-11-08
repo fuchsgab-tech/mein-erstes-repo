@@ -816,6 +816,68 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 .wp-unfix { display: flex; justify-content: flex-start; }
 .er-fest { color: var(--accent-hi); }
 
+/* Eigene Figur & wer ist online. The bar sits under the status pill: one chip per player (round token, name, what they
+   do); online = a green dot (voll: a slow ring fades out from it, paused with .motion-paused), away = an amber dot,
+   offline = grey token. Tokens are round medallions: a drawn figure on its colour (all from the palette) or the profile
+   picture; s16 next to names in lines, s64 in the picker, s96 in the bigger view. */
+.crew { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 100%; }
+.crew-m { appearance: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; padding: 4px 14px 4px 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--field); color: var(--fg); font: inherit; text-align: left; cursor: pointer; box-shadow: var(--edge); }
+.crew-m:hover { border-color: var(--line-strong); }
+.crew-m.hint { border-style: dashed; border-color: var(--accent); }
+.crew-m.off .fig { filter: grayscale(0.85); opacity: 0.75; }
+.crew-tok { position: relative; flex: none; display: inline-flex; }
+.crew-txt { display: grid; min-width: 0; line-height: 1.15; }
+.crew-txt b { font-size: 0.875rem; font-weight: 700; overflow-wrap: anywhere; }
+.crew-txt small { font-size: 0.75rem; color: var(--muted); overflow-wrap: anywhere; }
+.crew-m.on .crew-txt small { color: var(--good); }
+.crew-m.away .crew-txt small { color: var(--warn); }
+.crew-m.hint .crew-txt small { color: var(--accent-hi); }
+.crew-dot { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: var(--good); border: 2px solid var(--field); }
+.crew-m.away .crew-dot { background: var(--warn); }
+.crew-dot::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--good); opacity: 0; pointer-events: none; }
+[data-anim="voll"] .crew-m.on:not(.away) .crew-dot::after { animation: crewPulse 2.6s ease-out infinite; }
+@keyframes crewPulse { 0% { opacity: 0.65; transform: scale(0.55); } 70%, 100% { opacity: 0; transform: scale(1.3); } }
+.crew-more { align-self: center; font-size: var(--step--1); color: var(--muted); padding: 0 4px; }
+@media (max-width: 560px) { .crew { justify-content: flex-start; } }
+.fig { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: var(--surface-2); box-shadow: inset 0 0 0 2px rgb(0 0 0 / 0.22), 0 0 0 1px var(--line-strong); }
+.fig svg, .fig img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.fig.s16 { width: 16px; height: 16px; margin-right: 5px; vertical-align: -3px; box-shadow: 0 0 0 1px var(--line-strong); }
+.fig.s64 { width: 64px; height: 64px; }
+.fig.s96 { width: 96px; height: 96px; box-shadow: inset 0 0 0 3px rgb(0 0 0 / 0.22), 0 0 0 2px var(--accent); }
+.fig.q { color: var(--accent-hi); font-family: var(--font-display); font-size: 1.1rem; line-height: 1; }
+.fig.s64.q, .fig.s96.q { font-size: 2rem; }
+.fig .d { fill: var(--on-accent); }
+.fig .l { fill: var(--fg); }
+.fig .ls { fill: none; stroke: var(--fg); stroke-linecap: round; }
+.fig .ds { fill: none; stroke: var(--on-accent); stroke-linecap: round; }
+.fig[data-fig="vogt"] { background: var(--accent); }
+.fig[data-fig="schmiedin"] { background: var(--ember); }
+.fig[data-fig="jaeger"] { background: color-mix(in oklab, var(--good) 72%, var(--bg)); }
+.fig[data-fig="baeuerin"] { background: color-mix(in oklab, var(--good) 40%, var(--warn)); }
+.fig[data-fig="koechin"] { background: var(--crimson); }
+.fig[data-fig="holzfaeller"] { background: var(--line-strong); }
+.fig[data-fig="gelehrte"] { background: color-mix(in oklab, var(--muted) 72%, var(--surface)); }
+.fig[data-fig="wache"] { background: color-mix(in oklab, var(--fg) 38%, var(--line)); }
+.figdlg { width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; overflow: auto; color: var(--fg); background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--line-strong); border-top: 3px solid var(--accent); border-radius: var(--radius); box-shadow: var(--shadow); }
+.figdlg::backdrop { background: rgb(10 7 4 / 0.72); }
+.figdlg-in { display: grid; gap: 14px; padding: 18px; }
+.figdlg h2 { margin: 0; font-family: var(--font-display); font-size: var(--step-2); color: var(--accent-hi); line-height: 1.15; }
+.figdlg h2::after { display: none; }
+.figgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.figopt { appearance: none; display: grid; justify-items: center; gap: 4px; min-height: 44px; padding: 10px 4px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--field); color: var(--fg); font: inherit; font-size: 0.875rem; cursor: pointer; }
+.figopt:hover { border-color: var(--line-strong); }
+.figopt[aria-pressed="true"] { border-color: var(--accent-hi); background: color-mix(in oklab, var(--accent) 16%, var(--field)); box-shadow: inset 0 0 0 1px var(--accent-hi); }
+.figdlg-act { display: flex; justify-content: flex-end; gap: 8px; }
+.figdlg-act .btn { min-height: 44px; min-width: 120px; }
+.figview { justify-items: center; text-align: center; }
+.figview .figdlg-act { justify-content: center; }
+.crew-st { margin: 0; color: var(--muted); }
+.crew-st.on { color: var(--good); }
+.crew-st.away { color: var(--warn); }
+/* The dialog comes up like the Rekruten-Check sheet (voll 24 px + fade, 260 ms; ruhig: 150 ms fade; aus: nothing). */
+[data-anim="voll"] .figdlg[open] { animation: sheetIn 0.26s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+[data-anim="ruhig"] .figdlg[open] { animation: calmIn 0.15s ease-out both; }
+
 /* Eintragen ohne Verrutschen. The banner at the top of the Plan tab while villagers have open numbers (it stands in for
    the button next to the plan title; the sticky phone bar waits until it is scrolled away). "Hier warst du": the villager
    last worked on gets a gold edge (::before, no layout change), a warm tint and "◆ hier", in the cards and the table.
@@ -1164,6 +1226,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     </div>
     <div class="mast-side" id="mast-side">
       <span class="status" id="status" data-mode="loading"><i></i><span id="status-text">Lädt …</span></span>
+      <!-- Eigene Figur & wer ist online: you first, then the others (online first). Shared mode only. -->
+      <div class="crew" id="crew" role="group" aria-label="Wer ist da" hidden></div>
       <p class="status-line" id="status-line" hidden></p>
       <div class="status-act" id="status-act" hidden>
         <button class="btn small" type="button" id="ask-owner" hidden>Nachricht an den Besitzer kopieren</button>
@@ -1615,6 +1679,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
   <footer class="foot">Inoffizielles Fan-Tool für Bellwright. Nicht von Donkey Crew und nicht mit dem Spiel verbunden.</footer>
 </div>
 
+<!-- Eigene Figur: pick yours (8 figures or the profile picture), or see someone else's bigger. Filled by figPaint(). -->
+<dialog class="figdlg" id="figdlg" aria-labelledby="figdlg-title" lang="de"></dialog>
 <!-- Eintragen-Modus: one villager per screen. The stage holds one .entry-card per villager and the finale. -->
 <div class="entry" id="entry" role="dialog" aria-modal="true" aria-labelledby="entry-name" lang="de" hidden>
   <div class="entry-in">
@@ -1891,6 +1957,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     stockReady: false,      // the Lager checks ('stock') have arrived; the Lager tab says "Lädt …" until then
     stockDenied: false,     // db: the stock never comes (refused or connection lost): the Lager tab shows without it
     duoReady: false,        // db: the shared split ('duo/current') has arrived; "Zu zweit eintragen" waits for it
+    playersReady: false,    // db: the players' figures ('players') have arrived; your "seen" is written after that
     selected: null,         // "wid|jobId" in the table view
     view: lsGet("bellwright-arbeitsplan-view", null),
   };
@@ -1931,6 +1998,29 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     return { at: d.at, by: txt(d.by), a, b, whoA: txt(d.whoA), whoB: txt(d.whoB) };
   }
   const duoDoc = d => ({ at: d.at, by: d.by || "", a: d.a.slice(), b: d.b.slice(), whoA: d.whoA || "", whoB: d.whoB || "" });
+  // Eigene Figur & wer ist online: players = {uid: {fig, pic, seen}} (db: 'players', doc id = user id; cleaned by
+  // cleanPlayer): fig = the drawn figure ("" = none), pic = show the profile picture instead, seen = when the app was last
+  // open. Who has it open right now comes from the room (roomPeers, presence {act, part}); nothing of that is stored.
+  // Names and pictures come from the user capability (names, avatars: memory only).
+  let players = {};
+  let roomNs = null, roomPeers = [];
+  const avatars = new Map();
+  let crewHtml = "", figUid = "", figOpener = null, figHtml = "", seenAt = 0, actSent = "";
+  const FIGS = [
+    { id: "vogt", label: "Vogt", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="d" d="M24 21c0-6 3.5-9 8-9s8 3 8 9z"/><rect class="d" x="19" y="19.5" width="26" height="3.4" rx="1.7"/><path class="l" d="M39 15c3-6 8-8 13-7-4 2-8 5-11 10z"/><path class="ls" stroke-width="2.2" d="M21 50q11 10 22 0"/><circle class="l" cx="32" cy="56.5" r="3.2"/>` },
+    { id: "schmiedin", label: "Schmiedin", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="l" d="M23 27c0-6 4-10 9-10s9 4 9 10c-3-2-6-3-9-3s-6 1-9 3z"/><path class="l" d="M40 23.5l5.5-2.5-1 5.5z"/><path class="ls" stroke-width="1.6" d="M26 51l-2-6M38 51l2-6"/><path class="l" d="M25 51h14v13H25z" opacity=".85"/><path class="ls" stroke-width="3.2" d="M53 61L45 41"/><rect class="l" x="37.5" y="34" width="14" height="7" rx="1.2" transform="rotate(-23 44.5 37.5)"/>` },
+    { id: "jaeger", label: "Jäger", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="d" d="M19 41c0-16 6-28 13-31 7 3 13 15 13 31-3-5-8-8-13-8s-10 3-13 8z"/><path class="ls" stroke-width="1.4" d="M23.5 36c1-7 4.5-11 8.5-11s7.5 4 8.5 11"/><path class="ls" stroke-width="2.4" d="M49 12q13 20 0 40"/><path class="ls" stroke-width="1" d="M49 12v40"/><path class="ls" stroke-width="2" d="M17 48l-5-11M21 47l-3-12"/>` },
+    { id: "baeuerin", label: "Bäuerin", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="d" d="M38 31c3.5 4 3.5 9.5 1.2 13.5l-2.2-1c1.6-3.6 1.4-7.6-1-10.8z"/><ellipse class="l" cx="32" cy="22" rx="16" ry="3.6"/><path class="l" d="M25 22c0-5 3-8.5 7-8.5s7 3.5 7 8.5z"/><rect class="d" x="25" y="18.6" width="14" height="2" opacity=".5"/><path class="ls" stroke-width="1.8" d="M13 62V31"/><path class="l" d="M13 26c2 2 2 5 0 7-2-2-2-5 0-7zM10 32c2 1 3 4 3 6-2-1-3-3-3-6zM16 32c-2 1-3 4-3 6 2-1 3-3 3-6zM10 38c2 1 3 4 3 6-2-1-3-3-3-6zM16 38c-2 1-3 4-3 6 2-1 3-3 3-6z"/>` },
+    { id: "koechin", label: "Köchin", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="l" d="M24 23h16v-3.5c3.5 0 5.5-2.2 5.5-5S43 9.5 40 10.3C39 7.6 35.8 6 32 6s-7 1.6-8 4.3c-3-.8-5.5 1.6-5.5 4.2s2 5 5.5 5z"/><rect class="l" x="24" y="21.5" width="16" height="3.4"/><path class="ls" stroke-width="2.4" d="M50 21v23"/><path class="l" d="M44.5 44a5.5 5.5 0 0 0 11 0z"/>` },
+    { id: "holzfaeller", label: "Holzfäller", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="d" d="M23 30c0 9 4 15 9 15s9-6 9-15c-2 3-5 4.5-9 4.5S25 33 23 30z"/><path class="d" d="M23 26c0-8 4-12 9-12s9 4 9 12z"/><rect class="l" x="22.5" y="23.5" width="19" height="3.2" rx="1"/><circle class="d" cx="32" cy="13" r="2.6"/><path class="ls" stroke-width="3" d="M14 62l7-28"/><path class="l" d="M20.5 33.5c-6-4-12-3-14 2 4 4 9 5 13 4z"/>` },
+    { id: "gelehrte", label: "Gelehrte", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="d" d="M22.5 31c0-9 4-14 9.5-14s9.5 5 9.5 14c-2-4-5.5-6.5-9.5-6.5s-7.5 2.5-9.5 6.5z"/><path class="ls" stroke-width="1.5" d="M23.5 29.5c.5-6.5 4-10.5 8.5-10.5s8 4 8.5 10.5"/><path class="l" d="M19 49l13 3 13-3v11l-13 3-13-3z"/><path class="ds" stroke-width="1.3" d="M32 52v11"/><path class="l" d="M51 7c-6 5-8 12-8 19 4-6 7-12 8-19z"/><path class="ls" stroke-width="1.2" d="M43 26l-1.2 5"/>` },
+    { id: "wache", label: "Wache", art: `<circle class="d" cx="32" cy="29" r="9"/><path class="d" d="M28 36h8v9h-8z"/><path class="d" d="M12 64c0-12 9-20 20-20s20 8 20 20z"/><path class="d" d="M23 25c0-7 4-11.5 9-11.5s9 4.5 9 11.5z"/><path class="d" d="M16.5 24.5h31l-4 3.6h-23z"/><path class="ls" stroke-width="1.2" d="M17 24.5h30"/><path class="ls" stroke-width="2.2" d="M53 62V12"/><path class="l" d="M53 3l3.6 9h-7.2z"/><path class="l" d="M7 40h16v9c0 7-8 11-8 11s-8-4-8-11z"/><circle class="d" cx="15" cy="48.5" r="2.2"/>` },
+  ];
+  const FIG = Object.fromEntries(FIGS.map(f => [f.id, f]));
+  function cleanPlayer(d) {
+    if (!d || typeof d !== "object") return null;
+    return { fig: typeof d.fig === "string" && FIG[d.fig] ? d.fig : "", pic: d.pic === true, seen: typeof d.seen === "number" && isFinite(d.seen) && d.seen > 0 ? d.seen : 0 };
+  }
   // Display names for the "eingetragen von" line: memory only, never stored ("" = unknown).
   const names = new Map();
   const namesAsked = new Set();
@@ -2933,7 +3023,12 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (!miss.length) return;
     for (const id of miss) namesAsked.add(id);
     Promise.resolve().then(() => u.profiles(miss)).then(ps => {
-      for (const id of miss) { const p = ps && ps[id]; names.set(id, p && typeof p.name === "string" ? p.name.trim().slice(0, 60) : ""); }
+      for (const id of miss) {
+        const p = ps && ps[id];
+        names.set(id, p && typeof p.name === "string" ? p.name.trim().slice(0, 60) : "");
+        if (p && typeof p.avatarUrl === "string" && p.avatarUrl) avatars.set(id, p.avatarUrl);
+      }
+      renderCrew();
       renderPlan();
       renderStock();   // "Geprüft … von Lena" on the Lager tab
     }, () => { for (const id of miss) names.set(id, ""); });
@@ -3186,7 +3281,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const foot = !canTick || done ? ""
       : `<div><button type="button" class="btn small" data-applied="${esc(w.id)}" data-focus="ap:${esc(w.id)}">${hasSnap ? `${zahlen(nChg)} geändert – abhaken, wenn nachgezogen` : "Im Spiel eingetragen? Abhaken"}</button></div>`;
     const who = done ? whoWhen(w.id) : "";
-    const seal = done ? `<div class="applied-box"><span class="applied-ok${justApplied.has(w.id) ? " stamp" : ""}">im Spiel eingetragen</span>${who ? `<small class="applied-who">${esc(who)}</small>` : ""}</div>` : "";
+    const seal = done ? `<div class="applied-box"><span class="applied-ok${justApplied.has(w.id) ? " stamp" : ""}">im Spiel eingetragen</span>${who ? `<small class="applied-who">${whoFig(w.id)}${esc(who)}</small>` : ""}</div>` : "";
     const unfix = canFix && prefs[w.id]
       ? `<div class="wp-unfix"><button type="button" class="linkbtn" data-fix="clear" data-fix-k="${esc(w.id)}|" data-focus="fx:${esc(w.id)}|:clear">Alle Festlegungen lösen</button></div>` : "";
     return `<article class="wp-card" id="wp-${esc(w.id)}" data-fokus="${esc(w.id)}"><div class="wp-head"><h3 tabindex="-1" data-focus="h:${esc(w.id)}">${esc(w.name || "Ohne Namen")}${FOKUS_MARK}<span class="sub">Hauptjob: ${esc(mj ? mj.label : "–")}</span></h3>${x ? mmBadge(x) : ""}${seal}</div>${body}${unfix}${foot}</article>`;
@@ -3406,7 +3501,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const who = done ? whoWhen(w.id) : "";
     const chip = n ? `<span class="chip entry-chip">${zahlen(n)} ändern</span>` : `<span class="chip entry-chip ok">Alles passt schon</span>`;
     const skip = !ro && !done ? `<button type="button" class="linkbtn" data-e="skip" data-focus="skip" aria-keyshortcuts="ArrowRight">Überspringen</button>` : "";
-    const seal = done ? `<div class="applied-box ep-done"><span class="applied-ok">im Spiel eingetragen</span>${who ? `<small class="applied-who">${esc(who)}</small>` : ""}`
+    const seal = done ? `<div class="applied-box ep-done"><span class="applied-ok">im Spiel eingetragen</span>${who ? `<small class="applied-who">${whoFig(w.id)}${esc(who)}</small>` : ""}`
       + `${entry.undo.has(w.id) && !ro ? `<button type="button" class="linkbtn" data-e="undo" data-focus="undo">Abhaken zurücknehmen</button>` : ""}</div>` : "";
     const head = `<div class="ep-head"><h2 class="ep-name" id="entry-name" tabindex="-1">${esc(w.name || "Ohne Namen")}</h2>`
       + `<p class="ep-main">Hauptjob: ${esc(mj ? mj.label : "–")}</p>`
@@ -3739,6 +3834,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     entryGo(i, 0);
     $("#entry-name").focus({ preventScroll: true });
     entryWake();
+    crewTick();
   }
   function entryClose() {
     if (!entry.open) return;
@@ -3755,6 +3851,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     embers.hold(false);
     entryUnwake();
     renderPlan();
+    crewTick();
     if (entry.lastWid) setFokus(entry.lastWid);   // "Hier warst du": the villager last shown in the mode
     const vis = el => el && el.isConnected && !el.closest("[hidden]") && el.getClientRects().length > 0;
     const o = entry.opener;
@@ -3814,6 +3911,194 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     for (let k = Math.max(0, from); k < ids.length; k++) { const w = plan.team.find(x => x.id === ids[k]); if (w && entryOpenFor(plan, w)) return k; }
     return -1;
   }
+  // ---------- Eigene Figur & wer ist online ----------
+  // The bar under the status: you first ("Du", your figure; "Wer bist du? Wähl deine Figur" until you picked one), then the
+  // others, online first. Online = in the room right now, with what they do (their presence {act, part}); the others show
+  // when they were last there (players[uid].seen, written on open and every 5 minutes while the app is visible). Tapping
+  // your own chip opens the picker (writers only), anyone else's the bigger view. Shared mode only.
+  const SEEN_EVERY = 5 * 60e3;
+  const CREW_ACT = { plan: "schaut den Plan an", arbeiter: "bearbeitet Arbeiter", lager: "prüft das Lager", jobs: "in den Einstellungen",
+    wissen: "liest die Hilfe", fotos: "liest Fotos ein", pruefen: "prüft das Spiel per Foto" };
+  const figSvg = f => `<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">${f.art}</svg>`;
+  const figLabel = uid => { const p = players[uid]; return p && !p.pic && FIG[p.fig] ? FIG[p.fig].label : "Profilbild"; };
+  // A round token: the chosen figure, else the profile picture, else "?" (no picture known yet).
+  function figTok(uid, size = "") {
+    const p = players[uid], f = p && !p.pic && FIG[p.fig], cls = `fig${size ? " " + size : ""}`;
+    if (f) return `<span class="${cls}" data-fig="${f.id}">${figSvg(f)}</span>`;
+    const a = avatars.get(uid);
+    return a ? `<span class="${cls} pic"><img src="${esc(a)}" alt="" decoding="async"></span>` : `<span class="${cls} q" aria-hidden="true">?</span>`;
+  }
+  // The small token next to a name in a line, only for players who chose a figure or their picture.
+  function figMini(uid) {
+    const p = uid ? players[uid] : null;
+    return p && (p.pic ? avatars.has(uid) : FIG[p.fig]) ? figTok(uid, "s16") : "";
+  }
+  const whoFig = wid => { const m = appliedMeta[wid]; return m && m.by ? figMini(m.by) : ""; };
+  // What this page is doing, for the others: the tab, the Eintragen-Modus (with the part), photos, in the background.
+  function myAct() {
+    if (document.hidden) return { act: "weg", part: null };
+    if (entry.open) return { act: "entry", part: entry.duo ? entry.duo.k + 1 : null };
+    const tab = TABS.find(t => !$("#panel-" + t).hidden) || "plan";
+    if (tab === "arbeiter" && !$("#photo").hidden) return { act: "fotos", part: null };
+    if (tab === "plan" && !$("#check").hidden) return { act: "pruefen", part: null };
+    return { act: tab, part: null };
+  }
+  // The open page of uid that says most: one in the foreground before one in the background, then the latest.
+  function crewPeer(uid) {
+    let best = null;
+    for (const p of roomPeers) {
+      if (!p || p.kind !== "viewer" || p.by !== uid) continue;
+      const away = (p.presence || {}).act === "weg", bAway = best && (best.presence || {}).act === "weg";
+      if (!best || (bAway && !away) || (bAway === away && (p.updatedAt || 0) > (best.updatedAt || 0))) best = p;
+    }
+    return best;
+  }
+  function crewStatus(uid) {
+    const p = crewPeer(uid);
+    if (p) {
+      const pr = p.presence || {}, act = typeof pr.act === "string" ? pr.act : "";
+      if (act === "weg") return { on: true, away: true, text: "hat die App im Hintergrund" };
+      if (act === "entry") return { on: true, away: false, text: pr.part === 1 || pr.part === 2 ? `trägt Teil ${pr.part} ein` : "trägt ins Spiel ein" };
+      return { on: true, away: false, text: CREW_ACT[act] || "ist gerade da" };
+    }
+    const seen = (players[uid] || {}).seen || 0;
+    if (!seen) return { on: false, away: false, text: "nicht da" };
+    const r = relTime(seen);
+    return { on: false, away: false, text: r === "gerade eben" ? "eben noch da" : `zuletzt ${r}` };
+  }
+  function crewChip(uid) {
+    const me = uid === myId, pl = players[uid];
+    const hint = me && !locked() && !(pl && (pl.pic || FIG[pl.fig]));
+    const st = me ? null : crewStatus(uid);
+    const name = me ? "Du" : names.get(uid) || "Mitspieler";
+    const sub = me ? (hint ? "Wer bist du? Wähl deine Figur" : figLabel(uid)) : st.text;
+    const cls = me ? `me${hint ? " hint" : ""}` : st.on ? `on${st.away ? " away" : ""}` : "off";
+    const label = me ? (hint ? "Du. Wer bist du? Wähl deine Figur" : `Du, ${figLabel(uid)}${locked() ? "" : ". Figur ändern"}`)
+      : `${name}, ${st.on ? (st.away ? "online, im Hintergrund" : "online") : "nicht da"}: ${st.text}`;
+    return `<button type="button" class="crew-m ${cls}" data-crew="${esc(uid)}" aria-label="${esc(label)}"><span class="crew-tok">${figTok(uid)}${!me && st.on ? `<i class="crew-dot" aria-hidden="true"></i>` : ""}</span>`
+      + `<span class="crew-txt" aria-hidden="true"><b>${esc(name)}</b><small>${esc(sub)}</small></span></button>`;
+  }
+  function renderCrew() {
+    const box = $("#crew");
+    if (!box) return;
+    if (state.mode !== "db" || !myId) { if (!box.hidden) box.hidden = true; return; }
+    const ids = new Set([myId, ...Object.keys(players)]);
+    for (const p of roomPeers) if (p && p.kind === "viewer" && p.by) ids.add(p.by);
+    wantNames([...ids]);
+    const others = [...ids].filter(id => id && id !== myId);
+    const on = id => !!crewPeer(id);
+    others.sort((a, b) => (on(b) - on(a)) || ((players[b] || {}).seen || 0) - ((players[a] || {}).seen || 0));
+    const shown = others.slice(0, 6), more = others.length - shown.length;
+    const html = [myId, ...shown].map(crewChip).join("") + (more ? `<span class="crew-more">+${more}</span>` : "");
+    if (crewHtml !== html) {
+      const act = document.activeElement, fk = act && box.contains(act) ? act.dataset.crew : null;
+      box.innerHTML = html;
+      crewHtml = html;
+      if (fk) { const el = box.querySelector(`[data-crew="${CSS.escape(fk)}"]`); if (el) el.focus({ preventScroll: true }); }
+    }
+    if (box.hidden) box.hidden = false;
+    if (figUid) figPaint(false);   // the bigger view follows what the person does
+  }
+  // Your "seen" time: on open (once the figures arrived) and every 5 minutes while the app is visible. Writers only.
+  function crewSeen(force) {
+    if (state.mode !== "db" || !myId || locked() || !state.playersReady || document.hidden) return;
+    const now = Date.now();
+    if (!force && now - seenAt < SEEN_EVERY) return;
+    seenAt = now;
+    players[myId] = { ...(players[myId] || { fig: "", pic: false }), seen: now };
+    backend.setPlayer(myId, 0);
+  }
+  // Every 1.5 s (and right after a tab or the Eintragen-Modus changes): your presence when it changed, your seen time.
+  function crewTick() {
+    crewSeen(false);
+    if (roomNs) {
+      const a = myAct(), sig = JSON.stringify(a);
+      if (sig !== actSent) {
+        actSent = sig;
+        try { Promise.resolve(roomNs.presence(a)).catch(() => { actSent = ""; }); } catch (e) { actSent = ""; }
+      }
+    }
+    renderCrew();   // "zuletzt …" moves on with the clock; nothing is redrawn while it reads the same
+  }
+  async function crewStart() {
+    const r = await useSafe("room");
+    if (r && typeof r.onPeers === "function" && typeof r.presence === "function") {
+      roomNs = r;
+      try {
+        r.onPeers(ch => { roomPeers = ch && Array.isArray(ch.peers) ? ch.peers : []; renderCrew(); },
+          () => { roomNs = null; roomPeers = []; renderCrew(); });   // a terminal room error: the bar keeps the saved data
+      } catch (e) { roomNs = null; }
+    }
+    actSent = "";
+    crewTick();
+  }
+  setInterval(crewTick, 1500);
+  document.addEventListener("visibilitychange", crewTick);
+
+  // The dialog: the picker for yourself (writers), the bigger view for anyone else (and for yourself as a viewer).
+  const figPicks = uid => uid === myId && !locked() && state.mode === "db";
+  function figPaint(force) {
+    const d = $("#figdlg"), uid = figUid;
+    if (!uid) return;
+    let html;
+    if (figPicks(uid)) {
+      if (!force) return;   // the picker changes in place (focus and selection stay)
+      const pl = players[uid] || {}, cur = pl.pic ? "pic" : pl.fig || "", name = names.get(uid) || "", av = avatars.get(uid);
+      const opt = (id, tok, label) => `<button type="button" class="figopt" data-figpick="${id}" aria-pressed="${cur === id}">${tok}<span>${esc(label)}</span></button>`;
+      html = `<form method="dialog" class="figdlg-in"><h2 id="figdlg-title">Wer bist du?</h2>`
+        + `<p class="muted">${name ? `Du bist <b>${esc(name)}</b>. ` : ""}Wähl deine Figur. Die anderen sehen sie oben neben deinem Namen.</p>`
+        + `<div class="figgrid" role="group" aria-label="Figuren">`
+        + FIGS.map(f => opt(f.id, `<span class="fig s64" data-fig="${f.id}">${figSvg(f)}</span>`, f.label)).join("")
+        + opt("pic", av ? `<span class="fig s64 pic"><img src="${esc(av)}" alt=""></span>` : `<span class="fig s64 q" aria-hidden="true">?</span>`, "Profilbild")
+        + `</div><div class="figdlg-act"><button class="btn primary" type="submit" id="figdlg-ok">Fertig</button></div></form>`;
+    } else {
+      const me = uid === myId, st = me ? null : crewStatus(uid);
+      html = `<div class="figdlg-in figview">${figTok(uid, "s96")}<h2 id="figdlg-title">${esc(names.get(uid) || (me ? "Du" : "Mitspieler"))}</h2>`
+        + `<p class="muted">${esc(figLabel(uid))}</p>`
+        + (me ? `<p class="muted small">Eine Figur wählen können alle, die mitplanen dürfen.</p>` : `<p class="crew-st${st.on ? (st.away ? " away" : " on") : ""}">${esc(st.text)}</p>`)
+        + `<form method="dialog" class="figdlg-act"><button class="btn" type="submit">Schließen</button></form></div>`;
+    }
+    if (!force && html === figHtml) return;
+    const act = document.activeElement, kept = act && d.contains(act) && act.type === "submit";
+    d.innerHTML = html;
+    figHtml = html;
+    if (kept) { const b = d.querySelector('button[type="submit"]'); if (b) b.focus({ preventScroll: true }); }
+  }
+  function figOpen(uid, opener) {
+    const d = $("#figdlg");
+    if (!d || d.open || !uid) return;
+    figUid = uid; figOpener = opener || null;
+    figPaint(true);
+    try { d.showModal(); } catch (e) { d.setAttribute("open", ""); }
+    const f = d.querySelector('[data-figpick][aria-pressed="true"]') || d.querySelector("[data-figpick]") || d.querySelector('button[type="submit"]');
+    if (f) f.focus({ preventScroll: true });
+  }
+  $("#crew").addEventListener("click", e => {
+    const b = e.target.closest("[data-crew]");
+    if (b) figOpen(b.dataset.crew, b);
+  });
+  // A tap picks at once (saved for everyone, the token stamps); "Fertig" or Escape closes.
+  $("#figdlg").addEventListener("click", e => {
+    const b = e.target.closest("[data-figpick]");
+    if (!b || !figPicks(figUid)) return;
+    const id = b.dataset.figpick, cur = players[myId] || { fig: "", pic: false, seen: 0 };
+    players[myId] = { fig: id === "pic" ? cur.fig : id, pic: id === "pic", seen: Date.now() };
+    seenAt = Date.now();
+    backend.setPlayer(myId);
+    for (const o of $$("#figdlg [data-figpick]")) o.setAttribute("aria-pressed", String(o === b));
+    const t = b.querySelector(".fig");
+    if (t) play(t, FOKUS_STAMP, FOKUS_FADE);
+    renderCrew();
+    renderPlan();   // the small figure next to your name in lines
+  });
+  $("#figdlg").addEventListener("close", () => {
+    const o = figOpener, uid = figUid;
+    figUid = ""; figOpener = null; figHtml = "";
+    renderCrew();
+    const el = (o && o.isConnected && o) || $(`#crew [data-crew="${CSS.escape(uid)}"]`);
+    if (el) el.focus({ preventScroll: true });
+  });
+
   // ---------- Zu zweit eintragen: two players, two phones, each enters one part ----------
   // The open villagers are cut into two blocks with about the same numbers to change, in the order of the game's list:
   // the game sorts villagers by name (the app's roster keeps the order they were added in, so late ones stand last). The split is shared ('duo/current', see duoCur) so both phones show the same parts and who
@@ -3855,7 +4140,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     const range = !live.length ? "–" : live.length === 1 ? `<b>${nm(live[0])}</b>` : `<b>${nm(live[0])}</b> bis <b>${nm(live[live.length - 1])}</b>`;
     const who = k ? view.whoB : view.whoA, otherWho = k ? view.whoA : view.whoB;
     const mine = !!who && who === myId, taken = !!who && !mine;
-    const whoLine = mine ? `<p class="duo-who">Das bist du</p>` : taken ? `<p class="duo-who">Macht gerade: ${esc(names.get(who) || "jemand anderes")}</p>` : "";
+    const whoLine = mine ? `<p class="duo-who">${figMini(who)}Das bist du</p>` : taken ? `<p class="duo-who">${figMini(who)}Macht gerade: ${esc(names.get(who) || "jemand anderes")}</p>` : "";
     const primary = open.length > 0 && !taken && !(!!myId && otherWho === myId);
     const meta = `${live.length} Bewohner · ${open.length ? zahlen(nums) : "alles eingetragen"}${done && open.length ? ` · ${done} fertig` : ""}`;
     const btn = `<button type="button" class="btn${primary ? " primary" : ""}" data-duo-pick="${k}"${open.length ? "" : " disabled"}>${open.length ? `Ich mache Teil ${k + 1}` : "Schon fertig"}</button>`;
@@ -4667,6 +4952,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     refreshReview();
     rkResults();   // Rekruten-Check, only while its panel is open
     renderStock();   // the Lager tab and its line on the Plan tab
+    renderCrew();    // Eigene Figur & wer ist online
   }
 
   // ---------- Storage backends ----------
@@ -4704,6 +4990,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     setCheck() { this.save(); },
     setStock() { this.save(); },
     setDuo() { /* one device: nothing to share ("Zu zweit eintragen" is only offered in shared mode) */ },
+    setPlayer() { /* one device: no figures, nobody else to show */ },
     // Tick-off per browser, as before: putIngame already merged the change into `applied`.
     setIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
     deleteIngame() { return Promise.resolve(lsSet(AP_KEY, applied)); },
@@ -4722,6 +5009,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     let gotK = false, sinceK = false;                      // the same for 'stock' (the Lager checks)
     let gotD = false, sinceD = false;                      // the same for 'duo/current' (Zu zweit eintragen)
     let srvDuo = null;                                     // the last split the server sent, to undo a refused write
+    let gotPl = false, sincePl = false;                    // the same for 'players' (Eigene Figur)
+    let srvPlayers = {};                                   // the last figures the server sent, to undo a refused write
     let srvStocks = {};                                    // the last Lager checks the server sent, to undo a refused write
     let srvStamps = {};                                    // the last stamps the server sent, to undo a refused write
     let srvChecks = {};                                    // the last checks the server sent, to undo a refused write
@@ -4738,7 +5027,8 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       if (gotC) state.checksReady = true;
       if (gotK) state.stockReady = true;
       if (gotD) state.duoReady = true;
-      if (sinceW && sinceS && sinceI && sinceP && sinceT && sinceC && sinceK && sinceD) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
+      if (gotPl) state.playersReady = true;
+      if (sinceW && sinceS && sinceI && sinceP && sinceT && sinceC && sinceK && sinceD && sincePl) { retries = 0; if (state.mode === "lost") state.mode = "db"; }
     }
 
     // Resolves true when the write went through (after one retry for a transient error).
@@ -4895,6 +5185,22 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       settle();
       renderPlan();
     }
+    function onPlayers(snap) {
+      gotPl = sincePl = true;
+      const srv = {};
+      for (const d of snap.docs) { const p = cleanPlayer(d.data && d.data()); if (p && d.id.length <= 200) srv[d.id] = p; }
+      srvPlayers = srv;
+      const m = { ...srv };
+      for (const key of pending) if (key.startsWith("pl:")) {   // a pick that is not saved yet keeps the local copy
+        const id = key.slice(3);
+        if (players[id]) m[id] = players[id]; else delete m[id];
+      }
+      players = m;
+      settle();
+      renderCrew();
+      renderPlan();   // the small figures next to "eingetragen von …"
+      crewSeen(false);
+    }
     // A refused Lager write: show what the server has again, unless a newer write is on its way.
     function restoreStock(id) {
       if (pending.has("k:" + id)) return;
@@ -4980,7 +5286,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
       }
     }
     function subscribe() {
-      sinceW = sinceS = sinceI = sinceP = sinceT = sinceC = sinceK = sinceD = false;
+      sinceW = sinceS = sinceI = sinceP = sinceT = sinceC = sinceK = sinceD = sincePl = false;
       unsubs = [
         db.collection("workers").onSnapshot(onWorkers, onListenError),
         db.doc("settings/main").onSnapshot(onSettings, onListenError),
@@ -4990,6 +5296,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
         db.collection("checks").onSnapshot(onChecks, onListenError),
         db.collection("stock").onSnapshot(onStock, onListenError),
         db.doc("duo/current").onSnapshot(onDuo, onListenError),
+        db.collection("players").onSnapshot(onPlayers, onListenError),
       ];
     }
     return {
@@ -5041,6 +5348,17 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
           const c = checks[wid], ref = db.collection("checks").doc(wid);
           return c ? ref.set({ at: c.at, by: c.by, vals: { ...c.vals }, want: { ...c.want } }) : ref.delete();
         }, ok => { if (!ok) restoreCheck(wid); });
+      },
+      // Eigene Figur: set() of this viewer's whole doc {fig, pic, seen}; a refused write shows the server's again.
+      setPlayer(uid, delay = 300) {
+        schedule("pl:" + uid, delay, () => {
+          const p = players[uid];
+          return p ? db.collection("players").doc(uid).set({ fig: p.fig, pic: p.pic, seen: p.seen }) : Promise.resolve();
+        }, ok => {
+          if (ok || pending.has("pl:" + uid)) return;
+          if (srvPlayers[uid]) players[uid] = srvPlayers[uid]; else delete players[uid];
+          renderCrew();
+        });
       },
       // Zu zweit eintragen: set() of the whole split (duoCur) at once; a refused write shows the server's split again.
       setDuo() {
@@ -5344,6 +5662,7 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     if (name === "plan" && lastPlan) renderPhaseControls(phaseCosts(lastPlan));   // worked out only while the Plan tab is in view
     if (focus) { const p = $("#panel-" + name); p.focus({ preventScroll: true }); window.scrollTo({ top: 0 }); }
     if (planOpens) { fokusScroll(); syncSticky(); }   // "Hier warst du" comes into view; the sticky bar follows the banner
+    crewTick();   // the others see the new tab at once
   }
 
   // ---------- Events ----------
@@ -7625,6 +7944,7 @@ Reply with only this JSON:
     backend.start();
     renderAll();
     await resolveUser(userP, true);
+    crewStart();
   })();
 })();
 </script>
