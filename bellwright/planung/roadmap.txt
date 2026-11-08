@@ -806,3 +806,22 @@ the part, read-only viewer, 360/390/1280, voll/ruhig/aus.
 DONE 2026-11-08: built, feat-duo.js 67/67, all 23 older harnesses green, published as Version 22.
 Decision while building: the split follows the GAME's list order = by name (German collation), not the app's roster
 order (late villagers like Imka stand last in the app but between Hubert and Jane in the game).
+
+====================================================================================================
+BUILD 20. Eigene Figur + Wer ist online (approved by the user 2026-11-08: "Ja passt") | effort M
+User wish: "jeder in der App einen Charakter … es einem anzeigt wer online ist und vielleicht so ein profilbild".
+The user picked: own figure + who is online. NOT wanted: XP/levels/badges ("Figur wird besser"), "Anstupsen".
+- Own figure: on first open (shared mode, signed in) a hint at the top "Wer bist du? Wähl deine Figur": 8 drawn
+  figures in the app's style (Vogt, Schmiedin, Jäger, Bäuerin, Köchin, Holzfäller, Gelehrte, Wache) or the claude.ai
+  profile picture. The name comes from the account (user.profiles; store only ids). Tap your own figure to change it.
+- Who is online: a small bar next to "Gemeinsam gespeichert" with the group's figures; online = glowing dot + what
+  they do ("schaut den Plan an", "trägt Teil 2 ein", "prüft das Lager", "liest Fotos ein", "bearbeitet Arbeiter" …);
+  offline = grey + "zuletzt vor 2 Std.". Tap a figure: name, figure and status bigger.
+- Extras: the small figure next to names the app already shows ("eingetragen von Lena", duo "Macht gerade: Lena").
+- Motion: voll = the online dot pulses gently; ruhig/aus = still (bellwright-animations skill).
+DATA: new collection 'players' (doc id = user id): {fig, pic, seen} (fig = figure id, pic = use the profile picture,
+seen = last time the app was open, written on open and every few minutes while visible). Live presence through the
+`room` capability (presence {fig, act}), nothing of it stored.
+TEST (feat-figur.js): two phones + a viewer; first-open hint, pick, change, profile picture, bar online/offline with
+"zuletzt", activity texts follow tabs / Eintragen-Modus / duo part, names next to existing lines, local mode none,
+360/390/1280, voll/ruhig/aus, reduced motion.
