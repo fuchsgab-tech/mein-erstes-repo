@@ -803,3 +803,6 @@ DATA: none new (works from the shared 'ingame' tick-off). Local mode works too (
 TEST (feat-duo.js): two phones on the shared fake server: split balance + contiguity, same split on both phones,
 each opens only its part, partner progress updates live, take-over offer, finale only when both done, reload resumes
 the part, read-only viewer, 360/390/1280, voll/ruhig/aus.
+DONE 2026-11-08: built, feat-duo.js 67/67, all 23 older harnesses green, published as Version 22.
+Decision while building: the split follows the GAME's list order = by name (German collation), not the app's roster
+order (late villagers like Imka stand last in the app but between Hubert and Jane in the game).
