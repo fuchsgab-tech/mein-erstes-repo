@@ -1,4 +1,11 @@
-Keine unfertigen Zwischenstände. Live ist arbeitsplan.html (Version 15: Festlegen, Animationen, Fotos richtig zuordnen).
+Stand 2026-11-08 (pausiert auf Wunsch: "Machen wir alles später mal ok")
 
-Noch offen (nur auf Wunsch): Foto zuschneiden (BUILD 6), Karte-Menü mit Animation (BUILD 9), „wer trägt gerade ein“.
-Außenposten (BUILD 8) ist gestrichen. Specs: planung/roadmap.txt und planung/batch2-notes.txt.
+BUILD 20 "Eigene Figur + wer ist online" (planung/roadmap.txt):
+- Fertig gebaut in arbeitsplan.html (dieser Stand ist committet), eigener Test tests/feat-figur.js: 61/61 grün.
+- NOCH NICHT veröffentlicht. Live ist Version 22 ("Zu zweit eintragen").
+- Offen vor dem Veröffentlichen: alle alten Tests einmal durchlaufen lassen (der Lauf wurde abgebrochen; bis dahin
+  grün: siehe unten), dann publish mit capabilities {db:{}, sample:{images:true}, user:{scopes:["profile"]}, room:{}}
+  (room ist NEU, für die Online-Anzeige), dann eine ArtifactData-list von 'players'.
+- Die Test-Server in feat-calm/entry/ingame/photo/pins/dbrace kennen schon die Sammlungen 'duo' und 'players'.
+--- Teil-Ergebnis des abgebrochenen Laufs:
+feat-figur.js exit=0 :: feat-figur: 61 passed, 0 failed 
