@@ -817,7 +817,8 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 .er-fest { color: var(--accent-hi); }
 
 /* Eigene Figur & wer ist online. The bar sits under the status pill: one chip per player (round token, name, what they
-   do); online = a green dot (voll: a slow ring fades out from it, paused with .motion-paused), away = an amber dot,
+   do); online = a green dot (voll: a slow ring fades out from it three times when someone comes online or does something
+   new, then the dot just glows; never an endless pulse; paused with .motion-paused), away = an amber dot,
    offline = grey token. Tokens are round medallions: a drawn figure on its colour (all from the palette) or the profile
    picture; s16 next to names in lines, s64 in the picker, s96 in the bigger view. */
 .crew { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 100%; }
@@ -835,7 +836,7 @@ html.entry-open .toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px));
 .crew-dot { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: var(--good); border: 2px solid var(--field); }
 .crew-m.away .crew-dot { background: var(--warn); }
 .crew-dot::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--good); opacity: 0; pointer-events: none; }
-[data-anim="voll"] .crew-m.on:not(.away) .crew-dot::after { animation: crewPulse 2.6s ease-out infinite; }
+[data-anim="voll"] .crew-m.on:not(.away) .crew-dot::after { animation: crewPulse 2.6s ease-out 3; }
 @keyframes crewPulse { 0% { opacity: 0.65; transform: scale(0.55); } 70%, 100% { opacity: 0; transform: scale(1.3); } }
 .crew-more { align-self: center; font-size: var(--step--1); color: var(--muted); padding: 0 4px; }
 @media (max-width: 560px) { .crew { justify-content: flex-start; } }
