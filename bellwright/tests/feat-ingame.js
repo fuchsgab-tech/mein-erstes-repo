@@ -332,7 +332,8 @@ const clickUndo = page => page.click('#toast .toast-act');
     const before = srv.log.length;
     await A.page.evaluate(([k, v]) => localStorage.setItem(k, JSON.stringify({ w_hilde: v })), [AP_KEY, ALL5]);
     await A.page.reload(); await A.page.waitForTimeout(700);
-    check('migrate: runs once per device', !srv.ingame.has('w_hilde') && srv.log.length === before, srv.log.slice(before));
+    // BUILD 20: the reload notes when A's phone was open ('players', its own doc); nothing else may be written.
+    check('migrate: runs once per device', !srv.ingame.has('w_hilde') && srv.log.slice(before).every(l => l.c === 'players' && l.id === 'u_owner'), srv.log.slice(before));
     for (const s of [A, B]) await s.ctx.close();
   }
   // 2b) A read-only device keeps its AP_KEY and does not set the flag.
