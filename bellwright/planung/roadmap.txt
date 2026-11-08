@@ -781,3 +781,25 @@ brings stone, clay and ore).
 TEST: update feat-stock.js – real fixture: knapp list Tierfutter, Seil (+ Leinen if its threshold makes it knapp) with
 Handwerk/Landwirtschaft/Tierhaltung hints; reichlich list contains Rohstein and Essen, never Federn/Fell; no text
 "zurückgestellt" with a job name anywhere; limit 5 + "weitere"; trend per item.
+
+====================================================================================================
+BUILD 19. Zu zweit eintragen (approved by the user 2026-11-08: "Ja passt so bau los") | effort M
+User wish: when two players transfer the plan into the game, each should do half instead of one doing everything.
+Each player sits at their own Xbox with their own phone and the app (my assumption, played back, not objected to).
+- New button "Zu zweit eintragen" next to "Im Spiel eintragen" (banner and grid head) when 2+ villagers are open.
+- Split: only villagers with open numbers (the Eintragen queue), in plan order (= the game's list), into TWO
+  CONTIGUOUS blocks, balanced by the number of numbers to change (a villager with 6 changes weighs more than one with
+  1; a new villager counts all its jobs). Labels "Teil 1: Arnold Dixon bis Jane Hodge", "Teil 2: Jane Rhodes bis …".
+- Each phone picks "Ich mache Teil 1" / "Teil 2"; the Eintragen-Modus opens with only that part (one villager per
+  screen as before).
+- Shared progress: ticks go through the shared 'ingame' collection as before; the mode shows the partner's progress
+  ("Mitspieler: 4 von 9 fertig") live.
+- Whoever finishes first gets the offer to take over the partner's remaining villagers from the END of the partner's
+  part (so both don't work on the same villager); the big finale only when BOTH parts are done; otherwise a smaller
+  "Dein Teil ist fertig" end screen with the partner's progress.
+- The split must be the same on both phones: compute it deterministically from the plan + tick-off (no extra data);
+  remember the chosen part per phone in localStorage (per-viewer convenience) so a reload resumes it.
+DATA: none new (works from the shared 'ingame' tick-off). Local mode works too (one phone can still pick a part).
+TEST (feat-duo.js): two phones on the shared fake server: split balance + contiguity, same split on both phones,
+each opens only its part, partner progress updates live, take-over offer, finale only when both done, reload resumes
+the part, read-only viewer, 360/390/1280, voll/ruhig/aus.
