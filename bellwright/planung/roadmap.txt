@@ -825,3 +825,8 @@ seen = last time the app was open, written on open and every few minutes while v
 TEST (feat-figur.js): two phones + a viewer; first-open hint, pick, change, profile picture, bar online/offline with
 "zuletzt", activity texts follow tabs / Eintragen-Modus / duo part, names next to existing lines, local mode none,
 360/390/1280, voll/ruhig/aus, reduced motion.
+DONE 2026-11-08: built, feat-figur.js 61/61, all older harnesses green (some test log checks now ignore each phone's own
+'players' seen write), published as Version 23 with capabilities {db, sample(images), user(profile), room}.
+Decisions while building: the background "seen" write happens only when the platform says the viewer may write
+(can("data.write") === true), so a viewer with unknown rights is never turned to "Nur ansehen" by a write nobody made;
+the online dot pulses 3 times (not endlessly, per the animation skill) when someone comes online or does something new.
