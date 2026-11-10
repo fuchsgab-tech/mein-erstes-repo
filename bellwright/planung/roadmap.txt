@@ -830,3 +830,20 @@ DONE 2026-11-08: built, feat-figur.js 61/61, all older harnesses green (some tes
 Decisions while building: the background "seen" write happens only when the platform says the viewer may write
 (can("data.write") === true), so a viewer with unknown rights is never turned to "Nur ansehen" by a write nobody made;
 the online dot pulses 3 times (not endlessly, per the animation skill) when someone comes online or does something new.
+
+====================================================================================================
+BUILD 21. Neuer Look "Spiel-Oberfläche" (approved by the user 2026-11-10: "Kannst los legen") | effort L
+Reference: planung/design-vorschau/ (vorschau-grok2-gross.png, vorschau-grok2-handy.png, vorschau.src.html = the
+approved mock-up; titel-grok2.jpg = the user's own Grok picture, mirrored, 2000x1342).
+STEP 1 (look only, every function as it is):
+- Palette darker with brass gold, headings in Cinzel, panels with a brass line and drawn corners, gold primary buttons.
+- Header as a framed bar: crest/bell, "BELLWRIGHT / ARBEITSPLAN", a strip of numbers (Bewohner, offen, Lager knapp,
+  Phase) from the real data, "Gemeinsam gespeichert", the crew bar.
+- Navigation with drawn gold icons: phone = fixed bar at the bottom, iPad/PC = bar on the left.
+- Priorities as plaques (1 gold, changes ember ring, wrong in the game crimson) - as today, new colours.
+STEP 2: "Übersicht" as a new start tab: title picture "Euer Dorf", progress "im Spiel eingetragen", Lager, wrong
+  priorities, old values, "Ins Spiel eintragen", "Zu zweit", Hinweise, wer ist da.
+LATER (the user will send them): 8 figure portraits from Grok (square, 1024x1024, head and shoulders, dark
+  background) to replace the drawn figures in the picker.
+RULES: no function changes; all harnesses stay green (expectations about the look may be updated, noted in the test);
+animation skill (voll/ruhig/aus, transform/opacity only, colours from variables); publish only when verified.
