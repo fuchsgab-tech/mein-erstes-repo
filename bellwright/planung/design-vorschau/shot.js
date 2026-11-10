@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch();
-  for (const [file, w, h, out, full] of [['vorschau-breit.html', 1280, 800, 'vorschau-gross.png', true], ['vorschau-handy.html', 390, 844, 'vorschau-handy.png', true]]) {
+  for (const [file, w, h, out, full] of [['vorschau-breit.html', 1280, 800, 'vorschau-grok-gross.png', true], ['vorschau-handy.html', 390, 844, 'vorschau-grok-handy.png', true]]) {
     const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, isMobile: w < 900, hasTouch: w < 900 });
     const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message));
