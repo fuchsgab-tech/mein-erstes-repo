@@ -3,5 +3,5 @@ Stil nach den drei Beispielbildern des Nutzers (dunkles Holz, Messing-Gold, Zier
 vorschau-gross.png = PC/iPad, vorschau-handy.png = Handy. Titelbild = selbst gezeichnete Vektorgrafik (titelbild.py -> titelbild.svg,
 in jeder Größe scharf; die Grok-Bilder des Nutzers sind nur Richtwert, nichts daraus übernommen). Noch NICHT freigegeben: erst nach dem Ja des Nutzers in die App übernehmen.
 2026-11-10 später: Der Nutzer hat ein eigenes Grok-Bild ohne Menüs geschickt (Ritter über dem Dorf, 1168x784) und will
-dieses als Titelbild: titel-grok.jpg (gespiegelt, damit der Ritter rechts steht und der Titel links Platz hat).
-Aktuelle Vorschau: vorschau-grok-gross.png / vorschau-grok-handy.png. Einbau in die App erst nach seinem Ja.
+dieses als Titelbild: titel-grok2.jpg (größere Fassung 2000x1342, gespiegelt, damit der Ritter rechts steht und der Titel links Platz hat).
+Aktuelle Vorschau: vorschau-grok2-gross.png / vorschau-grok2-handy.png. Einbau in die App erst nach seinem Ja.
