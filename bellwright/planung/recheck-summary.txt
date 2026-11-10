@@ -1,0 +1,328 @@
+====================================================================================================
+LENS js-state verified True
+SUMMARY The rewrite fixes the state, storage and event bugs from the last review. With stubbed runtimes, the db write race now works. A name typed right after "+ Arbeiter", a settings change made while a save is running, a delete during an in-flight write and a double-click on "Löschen" all end up correct on the server. Local mode locks editing until the roster has loaded, and two tabs stay in sync over the storage event (tested over HTTP). Revoked access switches to "Nur ansehen". After an 'unavailable' error the listeners recover on the next try. "Im Spiel eingetragen" tracking works for per-card marks, mark-all, deleted workers and example mode. The cards/table choice survives a reload, and the copy fallback appears and takes focus. No console errors in any run.
+
+New problems:
+- (1) "Ready" depends only on the workers snapshot. Settings changed before the settings snapshot arrives overwrite the stored settings for everyone. If only the settings listener fails, the page resubscribes forever.
+- (2) If the listeners never connect, the page ends in "Verbindung verloren" but shows the example team and unlocks editing, as if the shared list were empty.
+- (3) Max is raised to Stufe on every keystroke, so a typo in Stufe permanently overwrites Max.
+- (4) In local mode with blocked storage, the page says the list stays in this browser, but a reload loses everything.
+- (5) Smaller issues: pasting text that comes with an image hijacks the text import; import drops unparsable lines silently and clears the box; names with parentheses do not survive the app's own export and re-import; open explanation rows collapse on every snapshot; the "eingetragen" map is not synced between tabs.
+
+Scripts are in /tmp/claude-0/-home-user-mein-erstes-repo/463ad377-28a1-5da9-b964-5a5b652dc408/scratchpad/recheck-js/ (stub.js, serve.js, t_settingslag.js, t_settingsdead.js, t_lost.js, t_editor.js, t_nostorage.js, t_paste.js, t_db2.js, t_parse.js, t_round.js, t_applied.js, t_local.js; dbrace.js, photo.js and logic.js re-run with no errors).
+-- CONFIRMED 9
+
+[important] Settings changed before the settings snapshot arrives overwrite the shared settings; if only the settings listener fails, the page resubscribes forever
+  WHERE: makeDbBackend: onWorkers() sets `state.ready = true` and `retries = 0`; onSettings() does neither and returns early on `pending.has("settings")`; onListenError() retries every code
+  DETAIL: locked() looks only at state.ready, which the first workers snapshot sets. If the settings doc arrives later, the phase buttons, sliders and checkboxes are already enabled but hold defaultSettings(). setSettings copies those defaults, applies the click and writes the whole doc. The settings snapshot that then arrives is dropped because the key is pending.
+
+Reproduced in t_settingslag.js: the stored settings had smelting, woodcutting and animals off and phase 'eigene', and the settings snapshot was delayed 1.5 s. A click on 'Ausbau' 300 ms after load left the server with all three jobs switched on again, for every viewer.
+
+The second variant is in t_settingsdead.js. The settings listener fails with a terminal resource_exhausted error while the workers listener works. onListenError unsubscribes both listeners and resubscribes. The workers snapshot then resets `retries = 0`, so the page reached 7 subscriptions in 12 s, a loop that db.d.ts says 'cannot succeed'. Meanwhile it shows phase 'start' instead of the stored 'krieg', the controls are editable, and the status says 'Gemeinsam gespeichert'.
+  FIX: Track both first deliveries: `let gotW = false, gotS = false;`. In onWorkers set `gotW = true; if (gotS) state.ready = true;`. In onSettings set `gotS = true` and apply snap.data() BEFORE the pending check when `!state.ready`, then `if (gotW) state.ready = true;`. Reset `retries` only once both listeners have delivered since the last subscribe(). Do not resubscribe on `invalid_argument` or `resource_exhausted` (db.d.ts: retrying cannot succeed). Go straight to the 'lost' state for those.
+
+
+[minor] When the listeners never connect, 'Verbindung verloren' still shows the example team and unlocks editing; the status says 'Gemeinsam gespeichert' while loading
+  WHERE: onListenError(): `else { state.mode = "lost"; state.ready = true; renderAll(); }` and the revoked/not_granted branch `state.readOnly = true; state.ready = true;`; renderStatus(): `m = ... state.mode`
+  DETAIL: t_lost.js case A: every subscription dies with 'unavailable' before any snapshot. After about 6 s the page sets ready = true with an empty Map. isExample() is then true, so the Plan tab shows the example team with its banner, and '+ Arbeiter' and 'Beispielteam übernehmen' are enabled. The real roster on the server (Agnes) never appears.
+
+A player sees an 'empty' village. If writes still go through, adopting the example or adding people creates duplicates in the shared list. The revoked branch behaves the same way, read-only but showing the example as if it were their village.
+
+Also, from backend.start() until the first snapshot, and through the retries, the pill already says 'Gemeinsam gespeichert' while the list says 'Lädt eure Arbeiterliste …'.
+  FIX: In onListenError, set `state.ready = true` only if a workers snapshot has already arrived (gotW). Otherwise keep editing locked and show a load error in renderPlan and renderEditor instead of the example ('Die Arbeiterliste konnte nicht geladen werden. Ladet die Seite neu.'). Apply the same rule to the revoked/not_granted branch: read-only without the example banner when no data arrived. In renderStatus use `const m = state.mode === "lost" ? "lost" : state.readOnly ? "ro" : !state.ready ? "loading" : state.mode;`.
+
+
+[minor] A typo in Stufe permanently raises Max, because Max is pushed up on every keystroke
+  WHERE: #wlist input handler: `saveWorker(normWorker(id, w))` with normWorker's `if (max !== null && max < cur) max = cur;`
+  DETAIL: t_editor.js: Kochen is 3/5. Typing '12' into Stufe, then Backspace, stores cur 1 and max 12; the old Max 5 is gone and the Max field now shows 12. Typing '50' stores 15/15. Arrow keys or the mouse wheel over a focused Stufe field do the same: up then down leaves Max raised. Editing Max to a value below the current Stufe (correcting a row from 8/9 to 3/5, Max first) also silently becomes 8 when the field is left.
+
+The plan then rates the villager's potential too high, and nothing tells the player. compute() already uses max(cur, max), so a temporary max < cur is harmless and does not need fixing per keystroke.
+  FIX: Do not raise Max per keystroke. Give normWorker an option, e.g. `normWorker(id, d, { raiseMax: false })`, and use it in the #wlist input handler. In the existing change handler (runs when the field is left), normalise once: `const nw = normWorker(w.id, w); if (JSON.stringify(nw.stats) !== JSON.stringify(w.stats)) saveWorker(nw); fillCard(card, nw, true);`.
+
+
+[minor] Local mode with blocked storage claims the list stays in this browser, but a reload loses everything
+  WHERE: lsSet() swallows errors; local.save(); renderStatus 'local': 'Die Liste bleibt in diesem Browser.'
+  DETAIL: t_nostorage.js: window.localStorage throws SecurityError, which Chrome does in third-party iframes when third-party cookies are blocked, and in some private modes. use('db') resolves null. The player adds 'Agnes' with values, and the status says 'Nur auf diesem Gerät gespeichert – Die Liste bleibt in diesem Browser.' After a reload there are 0 cards. The whole roster is lost without warning.
+  FIX: Make lsSet return true or false. In local mode, probe once at boot with try { localStorage.setItem('__p','1'); localStorage.removeItem('__p'); } catch { state.noStore = true }. When noStore is set or a save fails, show a 'nosave' status such as 'Wird nicht gespeichert – beim Neuladen ist die Liste weg. Sichert sie mit „Arbeiterliste für Claude kopieren“.'
+
+
+[minor] Pasting text that also carries an image (e.g. cells copied from Excel) into a text field opens the photo flow instead of pasting the text
+  WHERE: document 'paste' listener: `const files = [...e.clipboardData.files].filter(image/*); if (!files.length) return; e.preventDefault(); openPhoto(); addFiles(files);`
+  DETAIL: t_paste.js: with the photo feature available, a ClipboardEvent holding text/plain 'Agnes: Kochen 5/8' plus an image/png file is dispatched on #import-text. Result: defaultPrevented true, the text is not inserted, the photo panel opens and one thumbnail is added. Excel, LibreOffice and Word on Windows put a picture of the selection on the clipboard next to the text. A player pasting a roster from a spreadsheet into 'Aus Text einfügen', or a name into a worker field, gets an image instead.
+  FIX: Before the files check, bail out when the target is a text field and the clipboard has text: `const t = e.target; if (t && t.closest && t.closest('textarea, input[type=text], input:not([type])') && [...(e.clipboardData?.types || [])].includes('text/plain')) return;`.
+
+
+[minor] Text import drops lines without values silently and then clears the box
+  WHERE: #do-import handler: `$("#import-text").value = ""` after parseRoster(); parseRoster `if (first < 0) continue;`
+  DETAIL: t_db2.js pastes 'Agnes: Kochen 4 / Bodo: Bauen 3/5 / bodo: Kochen 2/4 / - **Bodo** – Traits: Prodigy / Konrad / Carla: Jagd 5/7'. The message is '2 neu angelegt, 1 aktualisiert.' and the textarea is emptied. 'Konrad' was never created, and Bodo's 'Prodigy' trait was never applied, because a line without a number is skipped. Nothing says so, and the text needed to fix it is gone.
+  FIX: Have parseRoster also return the non-empty lines it skipped (excluding fences and table separators). After the import, put only those lines back into #import-text and append '…, N Zeilen ohne Werte nicht übernommen (Konrad, …).' to the message. Optionally apply a traits-only line to an existing worker with the same name.
+
+
+[minor] Names with parentheses and unnamed workers do not survive the app's own export and re-import (duplicates, wrong role)
+  WHERE: parseRoster(): `const rm = head.match(/\[(.*?)\]|\((.*?)\)/)` (only the first group); `head.replace(/\[.*?\]|\(.*?\)/g, "")`; traits tail; rosterText() 'Ohne Namen'
+  DETAIL: t_round.js copies the roster with 'Arbeiterliste für Claude kopieren' and pastes it back unchanged.
+- 'Anna-Lena (die Alte) [Begleiter]' gives a NEW worker 'Anna-Lena' with role worker. The role came from '(die Alte)', so '[Begleiter]' was ignored, and the stripped name no longer matches.
+- The unnamed worker is exported as 'Ohne Namen' and comes back as a new worker called 'Ohne Namen'.
+- In t_parse.js, 'Agnes: Labourer 3/5 (Traits: Optimist)' stores traits 'Optimist)'.
+- 'Agnes (Traits: Optimist): …' creates 'Agnes (' as a duplicate.
+Players who add nicknames in parentheses get duplicate villagers after a round trip through Claude.
+  FIX: Iterate all bracket groups (`head.matchAll(/\[(.*?)\]|\((.*?)\)/g)`). Take the role from any group with a role word, and remove only role or 'Arbeiter/Worker' groups from the name, keeping other parentheses. Alternatively, also try the unstripped name against byName. Trim stray brackets from traits (`.replace(/^[(\[]+|[)\]]+$/g, '')`) and cut the head at an unclosed '(' before the traits keyword. In rosterText, write an unnamed worker as '?'. On import, map '?' or 'Ohne Namen' to the single unnamed worker if there is exactly one.
+
+
+[minor] Open explanation rows in the per-worker cards collapse, and keyboard focus is lost, whenever the plan re-renders (another viewer's or tab's edit, any 'eingetragen' click)
+  WHERE: renderPlan(): `view.innerHTML = <div class=wplan>…cardPlanHtml…</div>`; cardPlanHtml() renders `<details class=wp-row>` without remembering which were open
+  DETAIL: t_applied.js: on a phone (390 px, cards view) one row's explanation was open. An edit of a trait in a second tab fired the storage event, and `details[open]` went from 1 to 0. The same happens in db mode for every snapshot from other viewers. Clicking a card's 'Im Spiel eingetragen' also rebuilds all cards, closing every open row and dropping focus to <body>. The table view keeps its selection through state.selected, but the cards view does not.
+  FIX: Add `data-key="${w.id}|${j.id}"` to each <details class=wp-row>. In renderPlan, collect `const open = new Set($$('#plan-view details[open]').map(d => d.dataset.key))` before replacing the HTML and render `open` on matching rows. Remember the worker id of the focused card (`document.activeElement.closest('.wp-card')`). After rendering, focus that card's status button or heading (give it tabindex=-1).
+
+
+[minor] The 'eingetragen' map is not synced between tabs (marks get overwritten), and newly enabled jobs read 'vorher neu'
+  WHERE: `let applied = lsGet(AP_KEY, {})` read once at boot; markApplied() and delete write the whole map with lsSet(AP_KEY, applied); the storage listener reacts only to LS_KEY (and only in local mode); cardPlanHtml `vorher ${was}`
+  DETAIL: t_applied.js: tab 2 deletes a worker and removes its entry, leaving 6 entries. Tab 1, still holding the old map, clicks 'Alles als … markieren' and writes the deleted id back. In the same way, a mark made in one tab is reverted when the other tab marks something. This happens in both local and db mode, since db mode has no storage listener at all.
+
+Separately, turning a job off, marking, and turning it back on shows every card with 'Schmelzen · vorher neu', and the table aria-label says ', vorher neu'. That wording is odd: the cell is new, there was no earlier value.
+  FIX: Add `window.addEventListener('storage', e => { if (e.key === AP_KEY) { const v = lsGet(AP_KEY, {}); applied = v && typeof v === 'object' ? v : {}; renderPlan(); } })` in every mode. In markApplied and in the delete handler, re-read the stored map before merging and writing. In cardPlanHtml and tableHtml, render `was === 'neu' ? 'neu im Plan' : 'vorher ' + was` (and the same in the aria-label).
+
+-- REJECTED 0
+====================================================================================================
+LENS planner verified True
+SUMMARY I ran compute() through expose.html on about 3,100 generated teams for the invariant check (N 0–25, all four phases, jobs switched off, random importances, traits, null max, ties, superstars, growth 0/0.35/1, disableWeak on and off). I also ran several thousand more teams for specific questions. The hard rules always hold: every worker has exactly one 1, every value is 1–9 or "aus", nothing crashes, and from N≥3 every job with imp≥2 is covered at the app's own need (≤2 or ≤3). In all 1,953 cases I could check against an exact DP optimum, the Hungarian assignment was optimal. Trait factors apply as written: Slacker/Stalwart halve and Neurotic ×1.5 only on Bauen, Kochen, Handwerk, Schmelzen and Forschung.
+
+The rewrite still has real weaknesses in its outcomes and texts:
+1. Two jobs that use the same skill (Handwerk/Schmelzen) are handed out at random. In the shipped example under "Aufrüsten", the 3/5 crafter makes weapons and the 6/10 crafter smelts.
+2. Research lost its guarantee in small teams. In the default Start phase, up to 41% of teams have nobody on Forschung 1–2, although the app says "Immer".
+3. The "Liefern from 5 workers" rule only applies to very large teams. In "Ausgewogen", 5–9 workers almost never get a hauler.
+4. The new main-job text "stärkere Fertigkeiten … besetzt oder abgeschaltet" is often false, including for Godric in the example.
+5. Prodigy workers are valued above their Max when "Potenzial einrechnen" is high.
+
+Smaller issues: the notes say "niemand weit vorne" for jobs the app itself covered on 3, coverage still stacks a third 2 on workers in 3–4-person teams, the reason text keeps a stale "2:" after a cell is moved to 3, and a few wording slips.
+
+Scripts are in /tmp/claude-0/-home-user-mein-erstes-repo/463ad377-28a1-5da9-b964-5a5b652dc408/scratchpad/recheck-planner/. expose2.html also exposes slots, must and score. The scripts are fuzz.js, texts.js, research.js, pair.js, craft2.js, craft3.js, twos2.js, sub.js, traits.js, notes.js, n5.js, haul.js and ex.js (run `node ex.js <phase>`). expose_fix.html is a patched copy with the coverage changes suggested below; with it, research is on 1–2 in 0% → 100% of teams.
+-- CONFIRMED 10
+
+[bug] Handwerk and Schmelzen (same skill) are assigned at random: the better crafter often smelts while a weak one makes weapons
+  WHERE: compute() step 2: `score = s + 0.7*(s-avg) + 0.25*imp(j.id)` plus `must ? 1000 : 0`, fed to hungarian(); same for Ernten/Holzfällen and Jagd/Tierhaltung
+  DETAIL: For two jobs that use the same attribute and the same pf, score(w, crafting) − score(w, smelting) = 0.25·(imp difference) for every worker. The must bonus is also the same for every worker. So any swap of the two workers between these jobs leaves the total unchanged, and Hungarian picks by column order. Importance never decides who gets which of the two jobs, only whether a job is filled.
+
+Why it matters: the app itself says Handwerk recipes have minimum levels ("Waffen und Rüstung brauchen hohe Stufen") and Schmelzen has none.
+
+Reproduced in the shipped example with the 'Aufrüsten (Waffen & Rüstung)' phase:
+- Bertram (Crafting 3/5, best builder 7/9) gets Hauptjob Handwerk.
+- Godric (Crafting 6/10, Prodigy) gets Hauptjob Schmelzen and only Handwerk 2.
+
+In random teams with exactly one crafter and one smelter, the smelter is ≥3 levels the better crafter in 356 of 3,000 Aufrüsten teams (12%), e.g. crafter 5/9 vs smelter 10/10. In Ausbau it happens in 60 of 1,101 teams (5%), e.g. crafter 4/6 vs smelter 10/10, even though Handwerk is 'dringend' (5) and Schmelzen only 'normal' (3).
+
+The Aufrüsten warning ('Euer bester Wert ist X') looks at the team maximum, so it stays silent while the actual crafter is the 3/5 one.
+  FIX: After the Hungarian step and the safety net, regroup workers inside each same-skill group by skill. Tested version: `for (const grp of [["crafting","smelting"],["harvesting","woodcutting"],["animals","hunting"]]) { const ws = team.filter(w => grp.includes(main[w.id])); if (ws.length < 2) continue; const cnt = Object.fromEntries(grp.map(id => [id, ws.filter(w => main[w.id] === id).length])); ws.sort((a,b) => raw(b, JOB[grp[0]]) - raw(a, JOB[grp[0]])); const order = grp.filter(id => cnt[id]).sort((a,b) => imp(b)-imp(a) || grp.indexOf(a)-grp.indexOf(b)); let k = 0; for (const id of order) for (let n = 0; n < cnt[id]; n++) main[ws[k++].id] = id; }`
+
+
+[bug] Regression: research often has nobody on 1–2 in small teams, against the app's own rule "Immer mindestens eine Person mit Forschung auf 1 oder 2"
+  WHERE: compute(): `if (N >= 3) ensure("research")` only exists in the `else` branch (N > cand.length); step 4 uses `const need = imp(j.id) >= 4 ? 2 : 3`
+  DETAIL: Forschung is imp 3 in Start and Aufrüsten. In the small-team branch it only gets a slot when the cut reaches 3, and it is never a must job. Coverage then only requires someone on ≤3.
+
+Share of random teams in which nobody has Forschung on 1 or 2 (research.js, 300 teams per N):
+- Start (the default phase): N3 41%, N4 38%, N5 28%, N6 25%, N7 18%, N8 9%.
+- Aufrüsten: N3 35%, N4 31%, N5 18%, N6 18%, N7 10%.
+The previous version had 0% in every case (oldres.js on review/algorithm/planner.js).
+
+Concrete case: Start phase with Agnes, Bertram and Edda from the example. The note says 'Forschung (niemand weit vorne)'. Edda has Forschung 3 with 'Auf 3, damit Forschung überhaupt jemand weit vorne hat.'
+
+The Hilfe tab (tip 4) and the Forschung job tip both say research must always be on 1 or 2, "Forschung stockt sonst unbemerkt".
+  FIX: In step 4, use `const need = (imp(j.id) >= 4 || j.id === "research") ? 2 : 3;`.
+
+
+[important] "Fester Träger ab 5 Arbeitern" only enforced for very large teams; in 'Ausgewogen' 5–9 workers almost never get a hauler
+  WHERE: compute() step 1: `if (N >= 5 && imp("delivery") >= 3 && …) { ensure("delivery"); must.add("delivery"); }` only in the `else` branch
+  DETAIL: The previous review's fix (Liefern is a must job when N≥5 and imp≥3) only runs when N exceeds the number of candidate jobs, which is 12+ workers with every job on.
+
+In 'Ausgewogen' (all jobs 3), delivery's score (haul ≈ 2–5) loses to every skilled job. Share of random teams with no Liefern main: N5–N8 100%, N9 98%, N10 73%. Then N11 has 0% because all 11 jobs get one slot, and from N12 a hauler is guaranteed. So whether there is a hauler jumps around with team size.
+
+Concrete case: the example team without Ida, in Ausgewogen, gets no hauler. The note says 'Liefern (Bertram auf 2)', which contradicts tip 3 ('Ab etwa 5 Arbeitern einen festen Träger') and the code's own intent at line 796.
+  FIX: In the `N <= cand.length` branch, after the cut loop, add: `if (N >= 5 && imp("delivery") >= 3 && jobs.some(j => j.id === "delivery")) { slots.delivery = Math.max(1, slots.delivery); must.add("delivery"); }`.
+
+
+[important] Main-job reason "Die stärkeren Fertigkeiten … sind schon mit anderen besetzt oder abgeschaltet" is often false, including in the shipped example
+  WHERE: compute() step 3, main branch: `: "Die stärkeren Fertigkeiten dieser Person sind schon mit anderen besetzt oder abgeschaltet."`
+  DETAIL: With the importance cut, a worker is often moved off their strongest job because that job got no main slot at all, not because it is occupied or switched off. This happened in 916 of 4,976 uses of the text (18%) in texts.js: every stronger enabled job of that worker had no main worker.
+
+Default example (Start phase): Godric gets 'Hauptjob. Ernten (Harvesting) 3/5. Die stärkeren Fertigkeiten dieser Person sind schon mit anderen besetzt oder abgeschaltet.' Handwerk (6/10) is on and nobody has it as main. The note directly above says 'Ohne festen Hauptjob …: Handwerk (Godric auf 2)'.
+
+Aufrüsten example: Bertram gets Handwerk 3/5 with the same text, while Bauen (7/9) and Holzfällen have no main.
+
+Random case: Start N=3, a worker with Ernten 4/6 as main while Feldarbeit 8/10 and Forschung 8/10 have nobody.
+  FIX: Base the text on the actual reason, using the worker's strongest enabled job k. If k is someone else's main: '… ist schon mit {Name} besetzt.' If k is on but has no main slot: '{Job} ist gerade wichtiger ({IMP_LABEL}) als {k.label}; das läuft nebenher.' Say 'abgeschaltet' only when k is actually off.
+
+
+[minor] Prodigy is valued above their Max when 'Potenzial einrechnen' is high, and wins main jobs they can never reach
+  WHERE: compute(): `const sk = (w, a) => Math.min(10, cur(w, a) + g * tr.get(w.id).gm * (mx(w, a) - cur(w, a)))`
+  DETAIL: With gm = 1.3, g·gm > 1 once g > 0.77, so sk goes past mx. Max is the hard cap in the game, and Prodigy only reaches it faster.
+
+Reproduced (traits.js) with Prodigy Kochen 2/6 vs a normal cook 6/6:
+- At 80%: the Prodigy is rated 6.16 vs 6.00, and the text says 'Kochen 2/6 ist gut. Niemand im Team ist hier besser'.
+- At 100%: the Prodigy becomes the main cook over the 6/6 cook ('Hauptjob. Kochen (Cooking) 2/6. Niemand im Team ist hier besser.').
+
+The slider goes to 100% and is described as 'auf lange Sicht planen', so players who plan long term hit this.
+  FIX: `const sk = (w, a) => Math.min(10, mx(w, a), cur(w, a) + g * tr.get(w.id).gm * (mx(w, a) - cur(w, a)));`
+
+
+[minor] Note says "(niemand weit vorne)" for jobs the app itself put on 3 "damit … jemand weit vorne hat"
+  WHERE: compute() step 5: `const helpers = team.filter(w => cells[w.id][j.id].p === 2)…; … `${j.label} (niemand weit vorne)``
+  DETAIL: Coverage accepts 3 for imp-3 jobs, and the trim moves extra 2s to 3. The note only counts 2s, so it calls a job uncovered while someone sits on 3. This happened in 712 of 3,120 fuzz runs.
+
+Examples:
+- Shipped example in 'Ausgewogen': 'Tierhaltung (niemand weit vorne)', while Agnes has Tierhaltung 3.
+- Start with Agnes, Bertram and Edda: 'Forschung (niemand weit vorne)', while Edda's cell says 'Auf 3, damit Forschung überhaupt jemand weit vorne hat.'
+
+The table footer even shows '1 auf 2–3' for the same job.
+  FIX: Build the helper list from cells that are not off and have p <= 3, and name each priority: `team.filter(w => { const c = cells[w.id][j.id]; return !c.off && c.p <= 3; }).map(w => `${w.name || "Ohne Namen"} auf ${cells[w.id][j.id].p}`)`.
+
+
+[minor] 3–4-person teams: coverage still gives a worker three 2s, mostly by forcing Liefern on 2 below 5 workers
+  WHERE: compute() step 4: `if (N < 3 || imp(j.id) < 2) continue;` (delivery not skipped for N<5), `c.p = need === 2 || twoCount(pick) < 2 ? 2 : 3`, loop in JOBS order
+  DETAIL: Measured in twos2.js: 29–35% of workers in 3-person teams and 11–13% in 4-person teams have more than two jobs on 2 (Start, Ausbau, Aufrüsten). The old code had 44% and 25%. Most come from Liefern coverage: in 100% of 3–4-person teams someone gets 'Liefern 2 – Auf 2, damit jemand fest beim Tragen hilft'. Yet below 5 workers delivery gets no slot and no note, and the help says to leave Liefern on 5 unless there are about 5 workers.
+
+A second cause: imp-3 jobs (need 3) are processed before imp-4 jobs and take a 2 whenever the pick has fewer than two. A later need-2 job then has to add a third 2.
+
+Examples from the example team:
+- Start with Agnes, Bertram and Godric: Bertram has Bauen 1, Liefern 2 (C), Holzfällen 2 (Nebenjob) and Kochen 2 (C).
+- Start with Agnes, Godric and Wulfric: Godric has Feldarbeit 2 (C, Farming 2/4), Kochen 2 (C, Cooking 1/4) and Handwerk 2.
+  FIX: In step 4, skip delivery when N < 5. Process coverage in importance order. Use `c.p = need` for need-3 jobs, so they never take a 2.
+
+
+[minor] Reason text keeps the old "2:" prefix after a cell was moved to 3
+  WHERE: compute() trim: `cells[w.id][j.id].p = 3; cells[w.id][j.id].why += " Auf 3 statt 2, …"`
+  DETAIL: The why still starts with `${c.p}: ` from before the trim. This affected 9,214 cells in 4,000 random teams.
+
+Shipped example in Ausgewogen: Agnes · Tierhaltung shows 'Priorität 3', followed by '2: Tierhaltung (Animal Handling) 5/8 ist gut. … Auf 3 statt 2, damit die Person nicht zu viele Jobs gleichzeitig vorne hat.'
+  FIX: In the trim: `c.p = 3; c.why = c.why.replace(/^2: /, "3: ") + " Auf 3 statt 2, …"`. Alternatively, add the `${c.p}: ` prefix only after all adjustments.
+
+
+[minor] "Niemand im Team ist hier besser" is awarded on potential although a teammate is better right now
+  WHERE: compute(): `strictTop` uses jobSkill (growth-adjusted) for both the main text and the '−1' bonus text
+  DETAIL: In 1,639 of 31,551 cases (5%) where this sentence was shown, another worker had a higher current value. Examples: 'Bauen 7/10' shown as unbeatable next to a teammate with 8/8, and 'Handwerk 6/10' next to 7/7.
+
+The previous review's fix (c) proposed 'bestes Potenzial im Team (Max X)' for this case, but it was not implemented. Workers with a missing Max are hit by this systematically.
+  FIX: When w is strictly top by sk but not by cur (times pf), write 'Hat das größte Potenzial im Team (Max {max}).' Otherwise keep 'Niemand im Team ist hier besser.'
+
+
+[minor] Small German wording slips in reasons and notes
+  WHERE: compute(): main text `… ${why} Auf 1 lernt sie das am schnellsten.`; level text `${attrName} ${fmt} ist ${level}.${traitNote}`; Aufrüsten note `Herstellungs-Stufen`
+  DETAIL: (a) After 'Niemand im Team ist hier besser.' the sentence 'Auf 1 lernt sie das am schnellsten.' has no antecedent and reads as 'she'. In the example this applies to Bertram, Godric and Wulfric.
+(b) With Slacker the level describes the halved effective value, so the text reads 'Handwerk (Crafting) 8/10 ist mittel. Slacker: …' and 'Forschung (Researching) 8/9 ist mittel.'
+(c) The Aufrüsten warning says 'Herstellungs-Stufen', while the app calls the job and skill 'Handwerk' everywhere else.
+  FIX: (a) `Auf 1 lernt ${w.name || "diese Person"} das am schnellsten.` (b) Optionally write 'effektiv {level} (Slacker)' when pf ≠ 1. (c) Write 'Handwerk-Stufen (Crafting)'.
+
+-- REJECTED 0
+====================================================================================================
+LENS photo-caps verified True
+SUMMARY The photo flow and the capability contract are now in good shape. sample.json is called with images, signal and cache:false (checked in the stub's call options), and limits() drives maxCount, maxInputBytes and mediaTypes. Every PHOTO_OFF code hides the feature with its own reason shown in the note and in a toast. The other error codes get their own messages, and unknown codes fall back to a retry message. addFiles handles these cases: empty type (converted), non-image and broken HEIC (counted, with a "PNG oder JPG" message), maxCount (checked again after the await) and oversize (converted to JPEG). Drop anywhere on the page never navigates away, even when photo reading is off. Paste of plain text still works. cleanPhotoResult accepts capitalised and German keys, "3/5" strings and {current, maximum}. Cards without values come unchecked and marked "keine Werte erkannt". mergeStat keeps a known Max when it is still at or above the new Stufe. Duplicates in one result merge into a single write. "Zum Plan" appears after applying and opens the Plan tab on desktop and phone. The "Foto machen" camera button shows only on coarse-pointer devices. On the db side, writes run one at a time per document (dbrace.js passes), and write and listener error codes are mapped. I reproduced seven remaining problems with a stubbed window.claude. (1) If you correct a misread name in the review, the role dropdown is not updated, so an existing guard is saved as a worker. (2) A paste that carries both text and an image (Excel and Word put both on the clipboard) is taken over by the photo flow, even inside the text-import box. (3) If you apply while one card has no name, that card's values are thrown away. (4) While the roster is still loading, the photo panel opens but picked files are dropped without any message. (5) If the view's limits() has no images, the note wrongly tells the user to sign in. (6) When the bridge dies, both listeners fail and two resubscribes run, leaving 4 live subscriptions. (7) Editing is unlocked after the first workers snapshot only, so a settings change made before the settings snapshot arrives overwrites the shared settings with defaults. Scripts: /tmp/claude-0/-home-user-mein-erstes-repo/463ad377-28a1-5da9-b964-5a5b652dc408/scratchpad/recheck-photo/ (clean.js, ui1.js, ui2.js, ui3.js, db1.js, plus the copied dbrace.js and photo.js).
+-- CONFIRMED 6
+
+[important] Correcting a misread name in the review saves an existing guard or companion as a worker
+  WHERE: renderReview(): `const role = w.role || (findByName(w.name) || {}).role || "worker";` and the #review input handler, which updates only the badge on a name change; applyReview(): `w.role = card.querySelector('[data-r="role"]').value;`
+  DETAIL: Reproduced in ui1.js T1. The roster has Kunibert as a guard. The model returns "Kunlbert" with role null, so the card is preselected "Arbeiter" as a new name. The player fixes the name to "Kunibert" and the badge switches to "aktualisiert Kunibert", but the role dropdown stays on worker. After applying, the stored worker is "Kunibert role=worker", so the guard now gets village jobs in the plan. Fixing misread names is exactly what the review step is for, and it breaks the promise that values not seen in the photo stay unchanged. A related case: two cards with the same new name, where the first has role "guard" and the second has role null (preselected worker). The second card silently overrides the first.
+  FIX: Give each .rcard `data-prole="${w.role || ""}"`. In the #review input handler, set `e.target.dataset.touched = "1"` when the role select changes. On a name change, when `!card.dataset.prole && !sel.dataset.touched`, set `sel.value = (findByName(e.target.value) || {}).role || "worker"`. In applyReview, write the role only if `!(ex && !card.dataset.prole && !sel.dataset.touched)`, so ex.role is kept, including a role taken from an earlier duplicate card.
+
+
+[minor] Pasting text that also carries an image is taken over by the photo flow, even in the text-import box
+  WHERE: document paste handler: `const files = [...((e.clipboardData && e.clipboardData.files) || [])].filter(f => String(f.type).startsWith("image/")); if (!files.length) return; e.preventDefault(); openPhoto(); addFiles(files);`
+  DETAIL: Reproduced in ui2.js T5. A paste event on #import-text whose clipboard holds text/plain ("Agnes: Kochen 5/8 …") plus an image/png file is cancelled. The photo panel opens and the image becomes a thumbnail, so the text never reaches the textarea. Excel and Word on Windows put a bitmap of the copied cells or text on the clipboard next to the text, and Excel and Numbers on macOS do the same. Browsers expose that bitmap as clipboardData.files. A player who keeps the roster in a spreadsheet therefore can never paste it into "Aus Text einfügen" while photo reading is available. A plain-text paste is not affected.
+  FIX: At the top of the paste handler: `const t = e.target; const textField = t && (t.isContentEditable || (t.matches && t.matches('textarea, input:not([type=number]):not([type=file])'))); if (textField && e.clipboardData && e.clipboardData.getData('text/plain').trim()) return;`
+
+
+[minor] Applying with one unnamed card throws away that card's values
+  WHERE: applyReview(): `if (!name) { skipped++; return; }` … then `clearPhotos();` whenever at least one card was applied
+  DETAIL: Reproduced in ui2.js T8. The result has "Neu" (cooking 4/6) and a card with an empty name (farming 7/9), and both are checked. After "Ausgewählte übernehmen" the message reads "1 neu angelegt, 1 ohne Namen übersprungen.", but the review and the photos are cleared. The unnamed villager's values are gone, and the player has to read the photo again, which spends Claude usage. cleanPhotoResult deliberately keeps nameless entries that have stats, so this can happen.
+  FIX: In applyReview, check names before writing anything. If any checked card has an empty name, set aria-invalid on its name field, focus it, call setPhotoMsg('Bitte bei jedem ausgewählten Eintrag einen Namen eintragen.') and return. Alternatively, after a partial apply keep only the skipped cards in photo.result, re-render, and keep the photos.
+
+
+[minor] When limits() has no images, the note wrongly tells the user to open the page in Claude and sign in
+  WHERE: renderPhotoAvail(): `photo.offReason || "Fotos einlesen klappt nur, wenn ihr die Seite in Claude geöffnet habt und angemeldet seid. …"`
+  DETAIL: Reproduced in ui1.js T4. use('sample') resolves the function and limits() resolves {maxPromptBytes} without images, as it does in a view that cannot send images. The note then says photo reading needs Claude and sign-in, but the viewer is already in Claude and signed in. The previous fix asked for the sign-in text only when use('sample') or limits() gave nothing.
+  FIX: `note.textContent = state.readOnly ? … : photo.offReason || (photo.sample && photo.limits ? "Bilder lesen geht in dieser Ansicht nicht. Tragt die Werte bitte von Hand oder als Text ein." : "Fotos einlesen klappt nur, wenn ihr die Seite in Claude geöffnet habt …");`
+
+
+[minor] A dead bridge kills both listeners, onListenError runs twice and opens two subscription pairs
+  WHERE: makeDbBackend → onListenError(): `for (const u of unsubs) …; unsubs = []; if (retries < 2) { retries++; setTimeout(subscribe, …); }` (shared by the workers and settings listeners)
+  DETAIL: Reproduced in db1.js D1. Both onSnapshot error callbacks receive `unavailable` (the dead-bridge case in db.d.ts, which hits every listener). The first call clears unsubs and schedules subscribe(). The second finds unsubs empty and schedules a second subscribe(). Afterwards 4 listeners are live (subCount 6) instead of 2. The second subscribe() overwrites `unsubs`, so the first pair can never be unsubscribed. Every snapshot then arrives twice and triggers renderAll twice. This breaks the contract's "subscribe once per document or query" rule.
+  FIX: `let retryT = null;` and in onListenError, after the unsubscribe loop: `if (retryT) return; if (retries < 2) { retries++; retryT = setTimeout(() => { retryT = null; subscribe(); }, 1500 + Math.random() * 1500); } else { state.mode = "lost"; state.ready = true; renderAll(); }`
+
+
+[minor] Editing unlocks before the settings snapshot, so an early settings change overwrites the shared settings with defaults
+  WHERE: onWorkers(): `state.ready = true;` (only the workers listener unlocks); onSettings(): `if (pending.has("settings")) return;`; setSettings() writes the whole document
+  DETAIL: Reproduced in db1.js D2, with the settings snapshot arriving 2 s after the workers snapshot and the server holding phase "krieg", growth 0.8 and several jobs switched off. The sliders unlock right away. Moving one slider writes the full settings/main document built from defaultSettings() plus that change. When the real snapshot arrives it is ignored because "settings" is pending. The server ends with phase "eigene", growth 0.35 and every job switched back on, so the whole group's settings are lost. Usually the window is only as long as the gap between the two first deliveries, but the result is silent data loss.
+  FIX: In makeDbBackend: `let gotW = false, gotS = false;`. Set gotW in onWorkers, and set gotS at the top of onSettings (before the pending check, also when !snap.exists). Use `state.ready = gotW && gotS` in both callbacks, and keep `state.ready = true` in the error/lost branches.
+
+-- REJECTED 2
+  x While the roster is loading, the photo panel opens but picked or dropped files vanish without a message :: The mechanism is real. renderPhotoAvail gates on `state.readOnly`, not on locked(), and addFiles() returns silently while !state.ready. But it reproduces only with an artificial 3 s delay before use('db') resolves. In real use, limits() is local and the first workers snapshot arrives 'soon after reg
+  x cleanPhotoResult drops a capitalised or German role and turns trait objects into "[object Object]" :: The behaviour reproduces in clean.js: 'Guard' and 'Wache' become null, and [{name:'Optimist'}] becomes '[object Object]'. But the trigger is speculative. PHOTO_PROMPT pins the exact lowercase values (`"worker", "guard" or "companion" … otherwise null`), and the reply template shows `"role":null,"tra
+====================================================================================================
+LENS ux verified True
+SUMMARY Recheck of the ux-mobile lens on the rewritten file, tested with Playwright. Setups: phone 390x844 (touch), 360/320 wide, phone landscape 844x390 and desktop 1280x900, each in light and dark. States: empty, the example plan, the example team adopted via "Beispielteam übernehmen", a 17-worker team, and shared (db) mode with a stubbed backend. Scripts and screenshots are in /tmp/claude-0/-home-user-mein-erstes-repo/463ad377-28a1-5da9-b964-5a5b652dc408/scratchpad/recheck-ux/.
+
+Most of the previous findings are really fixed. The new "Pro Arbeiter" card view (default on phones) shows each villager's 11 rows with change dots and "vorher X". The tapped-cell reason scrolls into view. Photo apply shows a toast and a "Zum Plan" button. Tabs fit at 360 px. Contrast passes in both themes: priority cells 4.5–13:1, "vorher" text 5.5:1 light and 7.7:1 dark. No JS errors. Tap targets are 40 px or more, apart from the role selects (32 px) and "Im Spiel eingetragen" (36 px).
+
+There is one real regression. The table view ("Tabelle") makes the whole page wider than the screen below about 870 px. The table no longer scrolls inside its own box, so the sticky first column never sticks. The how-to line, the legend and the reason box run off-screen. This hits phones that pick "Tabelle", phones in landscape (where the table is the default) and narrow desktop windows. A one-line CSS fix resolves it (checked).
+
+The rest is about the in-game transfer flow:
+- The "Im Spiel eingetragen" button reads like a status, not an action.
+- On a phone you can't jump to a villager or show only the changed ones (about 5,500 px of scrolling for 7 villagers).
+- The change tracking says "vorher neu" and leaves out newly added villagers.
+- The desktop table can't mark one villager as done.
+- In shared mode, any edit by another viewer closes the open reason and resets the table's scroll position.
+-- CONFIRMED 9
+
+[bug] Table view widens the whole page below ~870 px; sticky column never works and text runs off-screen
+  WHERE: CSS / renderPlan(): the new wrapper `<div id="plan-view"></div>` is a grid item of `section { display:grid }` with the default min-width:auto; `.matrix-wrap { overflow:auto }` sits inside it, and `table.matrix { min-width:720px }`
+  DETAIL: #plan-view is not a scroll container, so as a grid item its minimum width is the table's min-content (about 816 px with 11 jobs). The grid column of the section grows to 816 px. Measured with the table view: documentElement.scrollWidth is 840 at 360/390 px, 852 at 768/800 px, and 852 on a phone in landscape at 844x390 (where the table is the default view, because the width is over 760). In mobile emulation the page zooms out to 841 px, so clicks miss their targets. Playwright could not click #mark-all or 'Pro Arbeiter' because other elements covered them. .matrix-wrap never scrolls horizontally (scrollWidth equals clientWidth), so the sticky 'Arbeiter' column has no effect. The how-to line ends at x=658, and the legend and the reason box end at x=840 on a 390 px screen, so their text is cut off (screenshot p-table-overflow-390-b.png). Players who pick 'Tabelle' on a phone, use the phone sideways, or have a narrow desktop window get a page that scrolls sideways, and the job columns move away from the names. The previous version had no horizontal overflow, so this is a regression.
+  FIX: Add `#plan-view { min-width: 0; }` to the CSS. Optionally add a defensive `section > * { min-width: 0; }`.
+
+
+[minor] 'Im Spiel eingetragen' button reads like a status, not an action
+  WHERE: cardPlanHtml(): status = `<button ... data-applied>${hasSnap ? `${nChg} geändert · jetzt eingetragen` : "Im Spiel eingetragen"}</button>` vs `<span class="applied-ok">✓ im Spiel eingetragen</span>`, placed in .wp-head above the rows
+  DETAIL: Before anything is marked, every card shows the words 'Im Spiel eingetragen' at the top right, and the confirmed state uses almost the same words. After a phase change the button says '6 geändert · jetzt eingetragen', which reads as '6 changed, now entered'. A non-technical player cannot tell whether this is a claim ('already entered') or an instruction to press when done. The button also sits above the 11 rows, so it invites a tap before the numbers are typed into the game. Nothing on the Plan tab explains the flow: the legend item appears only after changes exist, and the explanation is item 10 in Hilfe. A wrong tap cannot be undone, and it throws away the 'vorher' values (the snapshot is simply overwritten).
+  FIX: Use action wording: before marking 'Als eingetragen abhaken'; after changes '6 Zahlen geändert – abhaken, wenn nachgezogen'; keep '✓ im Spiel eingetragen' as the status. Add one sentence to .howto: 'Habt ihr einen Arbeiter im Spiel fertig, hakt ihn hier ab. Ändert sich der Plan später, zeigen Punkte, was ihr nachziehen müsst.' Optional: keep the previous snapshot in markApplied and offer 'Rückgängig' in the toast.
+
+
+[minor] Phone card view: no way to jump to a villager or show only changed ones
+  WHERE: renderPlan() card branch; #mark-all placed after all cards
+  DETAIL: With the 7-worker example on a 390x844 phone, each card is 632 px tall and the page is 5,497 px. 'Alles als im Spiel eingetragen markieren' sits at y=5285, and a 17-worker team is about twice as long. In the game the player opens one villager at a time, often not in app order. After a phase change, most rows are unchanged 5s, but the player still has to scroll through every card to find the dots. The previous review proposed worker chips or 'Nächster Arbeiter'; neither was added. This is the biggest remaining friction for the core task of copying numbers into the game.
+  FIX: Keep it small: in card view, render a wrapping row of name chips above #plan-view (a ● for changed, a ✓ for entered) that calls scrollIntoView on the card. Render cards whose status is '✓ eingetragen' collapsed to their head, so they expand on tap. Skip the 'Nur Geänderte' toggle.
+
+
+[minor] Change tracking says 'vorher neu', omits new villagers and leaves '(6)' unexplained
+  WHERE: changesFor(): `if (snap[j.id] === undefined) d[j.id] = "neu";` rendered as `vorher ${was}` in cardPlanHtml and tableHtml aria-label; renderPlan change note `${w.name} (${Object.keys(d).length})` and `if (!snap) return null`
+  DETAIL: Reproduced. Turn Schmelzen off, mark all, then turn Schmelzen back on: every card shows 'Schmelzen · vorher neu', and the table aria-label reads 'Priorität 8, vorher neu', which is not German. A villager added after marking (e.g. 'Neuling') gets no dots and is missing from the note 'Geändert seit dem letzten Eintragen im Spiel: Edda (3) und Godric (3)', even though all of their numbers still have to be entered. The bare '(3)' does not say it counts numbers.
+  FIX: In cardPlanHtml/tableHtml, render 'neu im Plan' when was === 'neu'. In renderPlan, when at least one worker has a snapshot, collect team members with no applied[w.id] and append 'Noch nie eingetragen: Neuling.' to the change note. Write counts as 'Agnes (6 Zahlen)'.
+
+
+[minor] Table view (desktop default) cannot mark a single villager, and the old value is not shown
+  WHERE: tableHtml(): no data-applied control; renderReason() ignores changesFor(); `vorher` only in the cell's aria-label
+  DETAIL: On desktop the table is the default. A player who copies three of 17 villagers and stops can only mark all of them, and that also hides the dots for the 14 not yet done. A dot shows that a cell changed, but the earlier value is visible only to screen readers. Tapping the cell shows the reason without 'vorher X', so the player cannot double-check the in-game value.
+  FIX: In renderReason, when changesFor(lastPlan, w)?.[jid] is set, append `<br><span class="muted">Im Spiel bisher: ${was}</span>` (and 'neu im Plan' for 'neu'). Optionally add a small ✓ button with data-applied to the .wcol row header, aria-label '<Name> als eingetragen abhaken'.
+
+
+[minor] Shared mode: another viewer's edit closes the open reason and resets the table's scroll
+  WHERE: makeDbBackend onWorkers()/onSettings() → renderAll() → renderPlan() replaces #plan-view.innerHTML on every snapshot
+  DETAIL: Reproduced with a stubbed db. With a reason row open in card 5, a remote edit that only changes another worker's traits (plan unchanged) closes the <details>. In table view, an inner scroll of (281, 300) jumps to (0, 0). When two people share a village and one is typing stats, the other's Plan resets roughly every 600 ms while they copy numbers. The 'storage' listener in local mode with two tabs causes the same.
+  FIX: In renderPlan, build the HTML string and skip the innerHTML assignment when it equals the last rendered string. Otherwise, before swapping, record the open rows (add data-key="${w.id}|${j.id}" to each details) and .matrix-wrap scrollTop/scrollLeft, then restore them afterwards.
+
+
+[minor] Card view gives no hint that rows open an explanation
+  WHERE: cardPlanHtml(): `<details class="wp-row"><summary>` with `list-style:none` and the ::-webkit-details-marker hidden; renderPlan(): `$("#reason").hidden = state.view !== "table"`
+  DETAIL: The hint 'Tippt oder klickt auf eine Zahl …' exists only in table view. In the card view (default on phones) there is no chevron or text saying a row can be tapped, so most players will never find the reasons.
+  FIX: Add `.wp-row summary::after{content:'›';color:var(--muted);transition:transform .15s} .wp-row[open] summary::after{transform:rotate(90deg)}` and extend the grid to three columns (or put the chevron inside .wp-job). Show a one-line muted hint in card view: 'Tippt auf eine Zeile, dann seht ihr den Grund.'
+
+
+[minor] Reasons name skills with the same words as other jobs ('Holzfällen → Hauptjob. Ernten (Harvesting) 6/9')
+  WHERE: compute(): attrName(a) = `${ATTR[a].de} (${ATTR[a].game})` used in every reason; ATTR de labels 'Ernten', 'Bauen', 'Handwerk', 'Tierhaltung' are also job labels
+  DETAIL: Under the Holzfällen row the reason starts 'Hauptjob. Ernten (Harvesting) 6/9.' Schmelzen rows cite 'Handwerk (Crafting)' and Jagd & Fischen rows cite 'Tierhaltung (Animal Handling)'. A player reads this as a different job and thinks the row or the plan is wrong.
+  FIX: Change attrName to `a => `Fertigkeit ${ATTR[a].de} (${ATTR[a].game})`` or `${ATTR[a].de}-Wert (${ATTR[a].game})`. Check that sentences like 'und Fertigkeit Tierhaltung … ist schwach' still read well.
+
+
+[minor] How-to says 5 needs no change, which is wrong for villagers already adjusted in the game
+  WHERE: .howto: '5 ist der Standardwert im Spiel, dort müsst ihr nichts ändern.'; Liefern reason '5 ist der Standardwert im Spiel, einfach so lassen.'
+  DETAIL: This holds only for villagers whose priorities were never changed. A player who set priorities by hand before using the app skips every 5 and keeps the old values. On first use there is no snapshot, so no dot warns them.
+  FIX: .howto: 'Neue Dorfbewohner stehen im Spiel überall auf 5. Habt ihr schon etwas verstellt, setzt es auf die Zahl von hier.' Liefern reason: 'Auf 5 lassen (Standard), bzw. auf 5 zurücksetzen, falls ihr es verstellt habt.'
+
+-- REJECTED 1
+  x Photo review does not show the current values of the matched villager :: True as a fact (renderReview shows only the badge 'aktualisiert <Name>' and the values read from the photo), but this is a feature request, not a defect. The review screen deliberately asks the player to compare the values with the image ('Vergleicht kurz mit dem Bild'), and the thumbnails are right

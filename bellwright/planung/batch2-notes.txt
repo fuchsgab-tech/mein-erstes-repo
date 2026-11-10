@@ -1,0 +1,75 @@
+User answers (2026-10-14), to feed into batch 2:
+1. Screenshot of the Xbox job priorities tab: will come later -> keep plan.jobs order for now.
+2. Who enters priorities in the game: ALL players -> shared tick-off (build 2) is essential; add a live
+   "wer trägt gerade ein" hint (e.g. room presence or a short-lived claim in db) so two players don't enter the same villager.
+3. Outposts: ONE outpost that gathers tin (Zinn) and mud (Schlamm) -> both are Harvesting/Ernten (mining camp + mud collector),
+   plus Lieferung to bring goods home. Build 8: template "Mine / Steinbruch" fits; use placeholder "z. B. Zinn & Schlamm".
+4. Next goals (recruiting / books / guards): not decided -> keep those in "later".
+5. Animations (user picked): "Eintragen-Modus lebendig" + "was Passendes dazu, nichts Lahmes".
+   Build in round 2 (all inside prefers-reduced-motion: no-preference, plus a setting "Animationen: voll / ruhig / aus",
+   stored per device in localStorage; "ruhig" = no embers/pulses/waves but keep short functional transitions; "aus" = none):
+   - Entry mode: ledger page turn between villagers (3D rotateY page flip, direction-aware for Zurück/Weiter),
+     big wax seal stamped on "Fertig" with a short thump (scale/shake) and an ember burst from the seal,
+     finale: banner unfurls "Alle eingetragen" with an ember fountain + bell ring.
+   - Rolling numbers: changed values roll like an odometer from old to new (entry-mode rows "von 5 → 2" and plan cells/badges).
+   - Phase switch: a warm light sweep runs across the plan (staggered by column), changed cells glow as it passes.
+   - Header torch flicker: very subtle light flicker on the title glow (only in "voll").
+   Not doing: day/night, seasonal leaves, sound (user did not pick them).
+
+6. MAP (user 2026-10-14: "die echte Bellwright-Karte mit der 1. Sache" = village/outpost map ON the real game map).
+   We may NOT ship the game's map image or third-party resource data. Solution: the group uploads THEIR OWN screenshot of
+   the in-game world map; the app puts village + outposts + workers on it. Without an image: an app-drawn parchment
+   fallback map (generic, not Bellwright geography). Build as its own feature AFTER Außenposten (8) and AFTER the animation
+   feature (so it uses the "Animationen voll/ruhig/aus" setting).
+
+BUILD: 11. Karte – euer Dorf und die Außenposten auf eurer Spielkarte | effort L
+DATA:
+- Capability: add `assets: {}` (editors = Owner + invited Bearbeiter only; use("assets") null for others -> hide upload).
+  Publish capabilities become {db:{}, sample:{images:true}, user:{scopes:["profile"]}, assets:{}}.
+- db doc map/main: {img: assetId|null, w, h, by, at, village:{x,y}}; display via "/_blob/" + id; tolerate load error
+  (placeholder + fallback map). Location coords: locations/<id>.pos = {x,y} in 0..1 of the image (null = not placed).
+- Local mode (no window.claude): image kept as a downscaled JPEG data URL (≤1 MP) in localStorage with try/catch;
+  if it does not fit, keep it for this session only and say so.
+UPLOAD ("Spielkarte hochladen", editors):
+- file input image/* -> reuse the crop/rotate sheet from feature 6 -> JPEG up to ~4 MP q≈0.85 -> assets.upload ->
+  set map/main. Replace = upload new, then delete the old asset (ignore not_uploader).
+- Tip: "Am besten: auf der Xbox die Weltkarte öffnen, mit der Teilen-Taste einen Screenshot machen und ihn in der
+  Xbox-App am Handy unter „Aufnahmen“ speichern. Den Fernseher abfotografieren geht auch."
+VIEW: new tab "Karte" (check 360px tab row: tabs must still fit; shorten labels or scroll if needed).
+- Pan (one finger / mouse drag), pinch + wheel zoom, double-tap zoom, buttons + / − / "Alles zeigen"; clamp;
+  touch-action:none only on the map; map height ~60vh (min 320px) so the page still scrolls.
+- Pins: Hauptdorf (bigger seal/banner) + every outpost from 'locations'. Pin shows name, worker count badge and small
+  icons of the jobs switched on there (e.g. Ernten, Lieferung for "Zinn & Schlamm"). Unplaced locations listed in a strip
+  "Noch nicht auf der Karte: … (antippen und dann auf die Karte tippen)".
+- Tap pin -> sheet (bottom sheet on phone): name, its jobs, workers there with main job, buttons "Wer passt hin?"
+  (feature 8) and "Plan für diesen Ort" (switches to Plan tab with that location chip selected).
+EDIT (editors only, toggle "Karte bearbeiten"):
+- drag pins (pointer events, save on drop through schedule()); arrow keys move a focused pin; tap empty map ->
+  "Hier Außenposten anlegen" opens feature 8's create dialog with pos prefilled.
+- assign workers: drag a worker chip (roster strip under the map) onto a pin -> prefs/<wid>.loc -> recompute; toast with
+  Rückgängig (feature 2). Non-drag alternative: in the pin sheet "+ Bewohner hierher" select. Guards/companions excluded.
+READ-ONLY viewers: can pan/zoom and open pins, nothing else.
+ANIMATIONS (respect setting voll/ruhig/aus + prefers-reduced-motion): pins drop in with a small bounce; assigned worker
+  chip flies to the pin (FLIP) and the count rolls (odometer); selected pin glows ember. "ruhig" = only short fades.
+TESTS feat-map.js: mocked assets upload/delete, pins persist + second viewer sees them, drag/select assignment sets loc and
+  recomputes, undo, read-only viewer, fallback without image and on blob load error, local mode, 360px no overflow.
+MAP ADDENDUM (user sent https://bellwright.fandom.com/wiki/Map:Karvenia, the wiki's interactive map with resources):
+- Artifact pages cannot load images/iframes from fandom (CSP), and this session's network blocks fandom, so no embedding
+  and no copying of the wiki's marker data. Instead: in the Karte tab (top, next to "Spielkarte hochladen") and in Hilfe a
+  link button "Rohstoffe & Orte suchen: interaktive Karte im Bellwright-Wiki" -> https://bellwright.fandom.com/wiki/Map:Karvenia
+  (target=_blank rel="noopener"), small caption "Fan-Wiki, öffnet sich in neuem Tab".
+- Upload accepts ANY image the group saves themselves (Xbox screenshot or a map image they saved); copy:
+  "Euer Xbox-Screenshot oder ein Kartenbild, das ihr selbst gespeichert habt."
+MAP DECISION (user, later 2026-10-14): "Egal, dann machen wir es so, dass in der App der Link zur interaktiven Karte ist."
+-> DROP feature 11 (own map, assets capability, upload, pins, drag) for now; moved to "later" (if they get more outposts).
+-> BUILD ONLY the link: a small "Karte" block (no new tab) in the Plan tab near the location chips / Außenposten section and
+   in Hilfe: link button "Interaktive Karte im Bellwright-Wiki (Rohstoffe & Orte)" -> https://bellwright.fandom.com/wiki/Map:Karvenia,
+   target=_blank rel="noopener", caption "Fan-Wiki, öffnet sich in neuem Tab". Fold this into feature 8 (Außenposten) notes.
+   No assets capability needed; publish capabilities stay {db:{}, sample:{images:true}, user:{scopes:["profile"]}}.
+OUTPOST DECISION (user, 2026-10-14 ~20:10): "Außenposten weg, aber Link zur Minikarte soll bleiben in einem eigenen Menü mit cooler Animation!"
+-> Feature 8 (Außenposten) CANCELLED. New BUILD 9 "Karte-Menü mit Animation" (spec at the end of roadmap.txt) replaces it:
+   own tab "Karte" before Hilfe, app-drawn animated parchment map, button to https://bellwright.fandom.com/wiki/Map:Karvenia.
+   The animation setting from batch 2b must also gate playMapIntro().
+STOP DECISION (user, 2026-10-14 ~20:35 local): "nur mehr das Nötigste, um das Nutzungslimit nicht zu leeren; die App soll gut laufen."
+-> All feature builds stopped. Published Version 10 = Version 9 + a simple "Karte" section in Hilfe with the wiki-map link.
+-> Later (only when the user asks): BUILD 5 (partial in bellwright/in-arbeit/photo-unfertig.html), 6, 7, 9, round 2 part 2.
