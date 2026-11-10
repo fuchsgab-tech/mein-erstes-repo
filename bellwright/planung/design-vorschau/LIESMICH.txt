@@ -1,4 +1,4 @@
 Design-Vorschau (2026-11-10): nur ein Entwurf als Bild, die App (arbeitsplan.html) ist unverändert.
 Stil nach den drei Beispielbildern des Nutzers (dunkles Holz, Messing-Gold, Zierrahmen, Symbol-Navigation, Übersichtsseite).
-vorschau-gross.png = PC/iPad, vorschau-handy.png = Handy. Titelbild = Ausschnitt aus einem Beispielbild des Nutzers
-(Platzhalter). Noch NICHT freigegeben: erst nach dem Ja des Nutzers in die App übernehmen.
+vorschau-gross.png = PC/iPad, vorschau-handy.png = Handy. Titelbild = selbst gezeichnete Vektorgrafik (titelbild.py -> titelbild.svg,
+in jeder Größe scharf; die Grok-Bilder des Nutzers sind nur Richtwert, nichts daraus übernommen). Noch NICHT freigegeben: erst nach dem Ja des Nutzers in die App übernehmen.

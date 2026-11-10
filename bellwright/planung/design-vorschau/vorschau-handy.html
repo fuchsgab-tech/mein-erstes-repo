@@ -24,7 +24,7 @@ h1, h2, h3, p { margin: 0; }
 /* A panel: dark wood, a thin brass line, drawn corners. */
 .frame { position: relative; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--gold-dim); border-radius: 3px;
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.55), inset 0 1px 0 1px rgb(239 210 138 / 0.05), 0 10px 26px rgb(0 0 0 / 0.5); }
-.frame::before { content: ""; position: absolute; inset: -3px; pointer-events: none;
+.frame::before { content: ""; position: absolute; inset: -3px; z-index: 2; pointer-events: none;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M1 19V7l6-6h12' fill='none' stroke='%23efd28a' stroke-width='1.3'/%3E%3Cpath d='M5 10.5L7.7 7.8l2.7 2.7-2.7 2.7z' fill='%23c9a24e'/%3E%3C/svg%3E") top left no-repeat,
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cg transform='matrix(-1 0 0 1 20 0)'%3E%3Cpath d='M1 19V7l6-6h12' fill='none' stroke='%23efd28a' stroke-width='1.3'/%3E%3Cpath d='M5 10.5L7.7 7.8l2.7 2.7-2.7 2.7z' fill='%23c9a24e'/%3E%3C/g%3E%3C/svg%3E") top right no-repeat,
@@ -81,10 +81,9 @@ h1, h2, h3, p { margin: 0; }
 .fig.vogt { background: #d9a441; } .fig.schmiedin { background: #f08a3c; }
 
 main { grid-area: main; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
-.hero { overflow: hidden; min-height: 236px; display: flex; align-items: flex-end; background: #000; }
-.hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
-.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(8 6 4 / 0.9) 0%, rgb(8 6 4 / 0.5) 36%, rgb(8 6 4 / 0) 66%), linear-gradient(0deg, rgb(8 6 4 / 0.7), transparent 40%); }
-.hero img { filter: brightness(1.25) contrast(1.05); }
+.hero { min-height: 300px; display: flex; align-items: flex-end; background: #000; }
+.hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 80%; }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(8 6 4 / 0.88) 0%, rgb(8 6 4 / 0.45) 30%, rgb(8 6 4 / 0) 52%); }
 .hero-in { position: relative; z-index: 1; padding: 20px 24px; max-width: 520px; }
 .hero h1 { font: 700 2.1rem/1.1 var(--display); letter-spacing: 0.07em; text-transform: uppercase; color: var(--gold-hi); text-shadow: 0 2px 0 #000, 0 0 24px rgb(0 0 0 / 0.8); }
 .hero .tag { margin-top: 6px; font: 600 0.82rem var(--display); letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold); }
@@ -142,8 +141,9 @@ aside { grid-area: aside; display: grid; gap: 14px; }
   .stats { order: 3; width: 100%; margin: 0; }
   .stat { flex: 1; padding: 6px 4px; gap: 6px; justify-content: center; } .stat .ic { width: 19px; height: 19px; } .stat b { font-size: 1rem; } .stat small { font-size: 0.62rem; letter-spacing: 0.02em; }
   .stat.hide-s { display: none; }
-  .hero { min-height: 168px; } .hero-in { padding: 14px 16px; } .hero h1 { font-size: 1.5rem; } .hero .tag { font-size: 0.66rem; letter-spacing: 0.24em; } .hero p.q { display: none; }
-  .hero::after { background: linear-gradient(0deg, rgb(8 6 4 / 0.95) 4%, rgb(8 6 4 / 0.35) 55%, rgb(8 6 4 / 0.1)); }
+  .hero { min-height: 190px; } .hero-in { padding: 14px 16px; } .hero h1 { font-size: 1.5rem; } .hero .tag { font-size: 0.66rem; letter-spacing: 0.24em; } .hero p.q { display: none; }
+  .hero { align-items: flex-start; } .hero img { object-position: 62% 100%; }
+  .hero::after { background: linear-gradient(180deg, rgb(8 6 4 / 0.8) 0%, rgb(8 6 4 / 0.25) 45%, rgb(8 6 4 / 0)); }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile { padding: 10px 12px; } .tile:nth-child(3) { border-left: 0; } .tile:nth-child(n+3) { border-top: 1px solid var(--line); }
   .tile .ic { width: 26px; height: 26px; } .tile b { font-size: 1.15rem; }
   .only-phone { display: block; }
@@ -218,7 +218,7 @@ aside { grid-area: aside; display: grid; gap: 14px; }
 
   <main>
     <section class="hero frame">
-      <img src="hero-phone.jpg" alt="">
+      <img src="titelbild.svg" alt="">
       <div class="hero-in">
         <h1>Euer Dorf</h1>
         <div class="tag">Phase: Ausbau</div>
