@@ -856,3 +856,8 @@ the big run and passed alone: the known headless Chromium localStorage loss). Ol
 explicitly; feat-stock expects six tabs. The title picture is the user's own Grok picture, mirrored, 1600 px wide,
 embedded in the page (about 270 KB). On phones the tab reads "Dorf" (six fields in the bottom bar).
 OPEN: the user wants to send 8 figure portraits from Grok (square, 1024x1024) for the figure picker.
+FIGURES DONE 2026-11-10: the user sent 14 portraits (784x1168, no names). Cropped to head and shoulders (240 px, about
+144 KB in all), set as background pictures in the stylesheet; names chosen by me (the user may rename): Vogt, Schmiedin,
+Jäger, Bäuerin, Köchin, Holzfäller, Gelehrter, Wache (the eight saved ids keep working) + König, Königin, Prinz, Fürst,
+Herzog, Graf. Published as Version 26. feat-figur 62/62 and 11 affected harnesses green. planung/figuren/fig-crop.py
+holds the crop boxes (the original pictures are not in the repo).
