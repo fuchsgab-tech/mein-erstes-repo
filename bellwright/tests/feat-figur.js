@@ -24,8 +24,9 @@ const T = load(APP);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const clone = d => JSON.parse(JSON.stringify(d));
 const LS_KEY = 'bellwright-arbeitsplan-v1';
-const FIG_IDS = ['vogt', 'schmiedin', 'jaeger', 'baeuerin', 'koechin', 'holzfaeller', 'gelehrte', 'wache'];
-const FIG_LABELS = ['Vogt', 'Schmiedin', 'Jäger', 'Bäuerin', 'Köchin', 'Holzfäller', 'Gelehrte', 'Wache'];
+// BUILD 21: the figures are the players' own portraits now (14 of them); the first eight ids are the saved ones.
+const FIG_IDS = ['vogt', 'schmiedin', 'jaeger', 'baeuerin', 'koechin', 'holzfaeller', 'gelehrte', 'wache', 'koenig', 'koenigin', 'prinz', 'fuerst', 'herzog', 'graf'];
+const FIG_LABELS = ['Vogt', 'Schmiedin', 'Jäger', 'Bäuerin', 'Köchin', 'Holzfäller', 'Gelehrter', 'Wache', 'König', 'Königin', 'Prinz', 'Fürst', 'Herzog', 'Graf'];
 
 const st = o => Object.fromEntries(Object.entries(o).map(([k, [cur, max]]) => [k, { cur, max }]));
 const NAMES = ['Agnes', 'Bertram', 'Cilli', 'Dietmar', 'Edda', 'Fritz'];
@@ -201,7 +202,9 @@ const noOverflow = page => page.evaluate(() => document.documentElement.scrollWi
     // Pick a figure.
     await PA.click('#crew [data-crew="u_a"]'); await PA.waitForTimeout(200);
     let d = await dlg(PA);
-    check('own chip opens "Wer bist du?" with 8 figures and the profile picture', d.open && d.title === 'Wer bist du?' && d.opts.length === 9 && JSON.stringify(d.opts.slice(0, 8).map(o => o.id)) === JSON.stringify(FIG_IDS) && d.opts[8].id === 'pic', d);
+    check('own chip opens "Wer bist du?" with the 14 figures and the profile picture', d.open && d.title === 'Wer bist du?' && d.opts.length === 15 && JSON.stringify(d.opts.slice(0, 14).map(o => o.id)) === JSON.stringify(FIG_IDS) && d.opts[14].id === 'pic', d);
+    const pics = await PA.evaluate(() => [...document.querySelectorAll('#figdlg .fig[data-fig]')].map(e => getComputedStyle(e).backgroundImage.startsWith('url("data:image/jpeg')));
+    check('every figure shows its portrait', pics.length === 14 && pics.every(Boolean), pics);
     check('figure names as in the app', JSON.stringify(d.opts.map(o => o.label)) === JSON.stringify([...FIG_LABELS, 'Profilbild']), d.opts.map(o => o.label));
     check('the dialog says who you are', d.text.includes('Du bist Gabriel.'), d.text);
     check('nothing chosen yet', d.opts.every(o => o.pressed === 'false'), d.opts);
