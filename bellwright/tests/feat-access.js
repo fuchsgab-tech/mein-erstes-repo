@@ -68,7 +68,7 @@ const fails = [];
 let passes = 0;
 const check = (name, ok, detail) => { if (ok) passes++; else fails.push(name + (detail !== undefined ? ' -> ' + JSON.stringify(detail) : '')); };
 
-async function session(browser, cfg, { width = 360, file = 'page.html', hash = '' } = {}) {
+async function session(browser, cfg, { width = 360, file = 'page.html', hash = '#plan' } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height: 780 }, hasTouch: width < 600, isMobile: width < 600 });
   const page = await ctx.newPage();
   page.__errs = [];

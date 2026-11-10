@@ -97,7 +97,7 @@ let passes = 0;
 const check = (name, ok, detail) => { if (ok) passes++; else fails.push(name + (detail !== undefined ? ' -> ' + JSON.stringify(detail) : '')); };
 const errs = [];
 
-async function phone(browser, srv, cfg, { width = 390, height = 844, reduced = false, hash = '', ctx = null } = {}) {
+async function phone(browser, srv, cfg, { width = 390, height = 844, reduced = false, hash = '#plan', ctx = null } = {}) {
   const mobile = width < 900;
   const own = !ctx;
   ctx = ctx || await browser.newContext({ viewport: { width, height }, hasTouch: mobile, isMobile: mobile, reducedMotion: reduced ? 'reduce' : 'no-preference' });

@@ -17,7 +17,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       };
       window.claude = { use: async n => n === 'db' ? db : null };
     });
-    await page.goto('file://' + process.cwd() + '/page.html');
+    await page.goto('file://' + process.cwd() + '/page.html#plan');
     await page.waitForTimeout(300);
     const lockedEarly = await page.$eval('#panel-plan [data-phase="ausbau"]', e => e.disabled);
     const statusEarly = await page.$eval('#status-text', e => e.textContent);
@@ -36,7 +36,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       const db = { collection: () => ({ doc: () => ({}), onSnapshot: fail }), doc: () => ({ onSnapshot: fail }) };
       window.claude = { use: async n => n === 'db' ? db : null };
     });
-    await page.goto('file://' + process.cwd() + '/page.html');
+    await page.goto('file://' + process.cwd() + '/page.html#plan');
     await page.waitForTimeout(8000);
     console.log('2) status:', await page.$eval('#status-text', e => e.textContent), '| banner hidden:', await page.isHidden('#example-banner'), '| plan text:', (await page.$eval('#plan-view', e => e.textContent)).trim().slice(0, 60), '| add disabled:', await page.$eval('#add-worker', e => e.disabled), '| subs:', await page.evaluate(() => window.__subs));
     await ctx.close();
@@ -98,7 +98,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     const ctx = await browser.newContext(); const page = await ctx.newPage();
     page.on('pageerror', e => errs.push('4: ' + e.message));
     await page.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } }); });
-    await page.goto('file://' + process.cwd() + '/page.html');
+    await page.goto('file://' + process.cwd() + '/page.html#plan');
     await page.waitForTimeout(400);
     console.log('4) blocked storage status:', await page.$eval('#status-text', e => e.textContent), '|', await page.$eval('#status-line', e => e.textContent));
     await ctx.close();

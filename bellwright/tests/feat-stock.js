@@ -481,7 +481,7 @@ async function standIns(browser) {
       const B = await phone(browser, srv, { name: 'B', inClaude: true, writable: true, user: lena, anim: 'aus' }, { width: 1280, height: 900 });
       const P = A.page;
       let r = await SK(P);
-      check('tab row: Plan, Arbeiter, Lager, Einstellungen, Hilfe', JSON.stringify(r.tabs) === '["tab-plan","tab-arbeiter","tab-lager","tab-jobs","tab-wissen"]', r.tabs);
+      check('tab row: (BUILD 21: Übersicht,) Plan, Arbeiter, Lager, Einstellungen, Hilfe', JSON.stringify(r.tabs) === '["tab-uebersicht","tab-plan","tab-arbeiter","tab-lager","tab-jobs","tab-wissen"]', r.tabs);
       check('tab "Lager"; "Einstellungen" keeps its name for screen readers', await P.evaluate(() => document.getElementById('tab-lager').textContent.trim() === 'Lager' && document.getElementById('tab-jobs').textContent.trim() === 'Einstellungen'));
       check('no Plan line without a check', r.line === null);
       await P.click('#tab-lager'); await P.waitForTimeout(150);

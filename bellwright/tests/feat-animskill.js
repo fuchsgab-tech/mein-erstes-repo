@@ -134,7 +134,7 @@ let passes = 0;
 const check = (name, ok, detail) => { if (ok) passes++; else fails.push(name + (detail !== undefined ? ' -> ' + JSON.stringify(detail).slice(0, 900) : '')); };
 const errs = [];
 
-async function open(browser, srv, cfg, { width = 390, height = 844, reduced = false, hash = '', dpr } = {}) {
+async function open(browser, srv, cfg, { width = 390, height = 844, reduced = false, hash = '#plan', dpr } = {}) {
   const mobile = width < 900;
   const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: mobile, isMobile: mobile, reducedMotion: reduced ? 'reduce' : 'no-preference', ...(dpr ? { deviceScaleFactor: dpr } : {}) });
   const page = await ctx.newPage();

@@ -45,7 +45,7 @@ const { chromium } = require('playwright');
   }
   // reduced motion: no embers loop
   const ctx = await browser.newContext({ reducedMotion: 'reduce' }); const page = await ctx.newPage();
-  await page.goto('file://' + process.cwd() + '/page.html'); await page.waitForTimeout(800);
+  await page.goto('file://' + process.cwd() + '/page.html#plan'); await page.waitForTimeout(800);
   console.log('reduced motion ember pixels', await page.evaluate(() => { const c = document.getElementById('embers'); const d = c.getContext('2d').getImageData(0, 0, Math.max(1, c.width), Math.max(1, c.height)).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 10) n++; return n; }));
   await ctx.close();
   console.log('ERRORS', errs);
