@@ -847,3 +847,6 @@ LATER (the user will send them): 8 figure portraits from Grok (square, 1024x1024
   background) to replace the drawn figures in the picker.
 RULES: no function changes; all harnesses stay green (expectations about the look may be updated, noted in the test);
 animation skill (voll/ruhig/aus, transform/opacity only, colours from variables); publish only when verified.
+STEP 1 DONE 2026-11-10: published as Version 24. All 25 harnesses green; expectations adapted to the new look:
+feat-focus (the new --accent-hi value), feat-photo / feat-check / feat-stock (sticky action bars stand right above the
+fixed bottom navigation on phones). The brass line under the chosen tab stays (voll grows, ruhig fades).
