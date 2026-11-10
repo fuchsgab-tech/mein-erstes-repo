@@ -8,6 +8,7 @@
 //  - table readability: zebra rows, taller rows on phones, sticky name column, the focused row tinted across.
 // Local mode for most of it, two phones on one fake server (node) for the live snapshot.
 const { chromium } = require('playwright');
+const ACCENT_HI = 'rgb(239, 210, 138)';   // --accent-hi (BUILD 21: the new look's brass; before: rgb(240, 200, 106))
 const path = require('path');
 
 const SHOTS = path.resolve(__dirname, '../shots-r3');
@@ -237,7 +238,7 @@ async function section(name, fn) { try { await fn(); } catch (e) { check(`${name
         const be = getComputedStyle(a, '::before');
         return { edge: be.backgroundColor, w: parseFloat(be.width), bgA: getComputedStyle(a).backgroundImage, bgO: getComputedStyle(o).backgroundImage, mark: getComputedStyle(a.querySelector('.fokus-mark')).color };
       });
-      check('the marked card: a clear gold left edge (accent-hi, >= 3 px) and a warm tint', look.edge === 'rgb(240, 200, 106)' && look.w >= 3 && look.bgA !== look.bgO, look);
+      check('the marked card: a clear gold left edge (accent-hi, >= 3 px) and a warm tint', look.edge === ACCENT_HI && look.w >= 3 && look.bgA !== look.bgO, look);
       // A row inside another card: it opens as before, and the mark moves.
       await P.click('#wp-w_hilde details.wp-row:nth-of-type(1) > summary'); await P.waitForTimeout(150);
       f = await F(P);
@@ -313,7 +314,7 @@ async function section(name, fn) { try { await fn(); } catch (e) { check(`${name
       await P.click('[data-cell="w_godric|cooking"]'); await P.waitForTimeout(150);
       rows = await rowInfo(P);
       const g = rows.find(r => r.wid === 'w_godric'), other = rows.find(r => r.wid === 'w_bertram');
-      check(`${w} table: tap in Godric's row marks the row, the gold edge on the name, "◆ hier"`, g && g.fokus && rows.filter(r => r.fokus).length === 1 && g.edge === 'rgb(240, 200, 106)' && g.mark && (await F(P)).ls === 'w_godric', g);
+      check(`${w} table: tap in Godric's row marks the row, the gold edge on the name, "◆ hier"`, g && g.fokus && rows.filter(r => r.fokus).length === 1 && g.edge === ACCENT_HI && g.mark && (await F(P)).ls === 'w_godric', g);
       check(`${w} table: the marked row is tinted across the whole width`, g && g.tds.every(c => c === g.tds[0]) && g.tds[0] !== other.tds[0] && g.th !== other.th, { g: g && [g.th, g.tds[0]], o: other && [other.th, other.tds[0]] });
       const sticky = await P.evaluate(() => {
         const wrap = document.querySelector('.matrix-wrap'), th = document.querySelector('#plan-view tbody tr th.wcol');

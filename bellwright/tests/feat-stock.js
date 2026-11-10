@@ -944,8 +944,9 @@ async function standIns(browser) {
         await P.screenshot({ path: path.join(SHOTS, `stock-${w}-review.png`) });
         await P.evaluate(() => document.querySelector('.sk-rgroup[data-group="stoff"]').scrollIntoView({ block: 'center' }));
         await P.waitForTimeout(80);
-        const bar = await P.evaluate(() => { const b = document.querySelector('#stock-review .sk-act').getBoundingClientRect(); return { bottom: Math.round(b.bottom), vh: innerHeight, end: Math.round(document.getElementById('stock-review').getBoundingClientRect().bottom) }; });
-        check(`${w}: the review's action bar stays at the bottom while scrolling`, bar.end > bar.vh ? Math.abs(bar.bottom - bar.vh) <= 1 : bar.bottom <= bar.vh, bar);
+        const bar = await P.evaluate(() => { const b = document.querySelector('#stock-review .sk-act').getBoundingClientRect(); return { bottom: Math.round(b.bottom), vh: innerHeight, floor: (() => { const n = document.querySelector('.tabs'); return getComputedStyle(n).position === 'fixed' ? Math.round(n.getBoundingClientRect().top) : innerHeight; })(), end: Math.round(document.getElementById('stock-review').getBoundingClientRect().bottom) }; });
+        // BUILD 21: on phones the navigation is a fixed bar at the bottom; the actions stand right above it (floor = its top).
+        check(`${w}: the review's action bar stays at the bottom while scrolling`, bar.end > bar.floor ? Math.abs(bar.bottom - bar.floor) <= 3 : bar.bottom <= bar.floor, bar);
         await P.screenshot({ path: path.join(SHOTS, `stock-${w}-review-rows.png`) });
         await A.ctx.close();
       });

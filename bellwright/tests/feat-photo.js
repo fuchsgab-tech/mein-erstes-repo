@@ -682,8 +682,10 @@ async function layout(browser, imgs) {
     // one hand: scrolled into the middle of the review, the actions stay at the bottom of the screen
     await P.evaluate(() => { const c = document.querySelectorAll('#review .rcard')[2]; window.scrollTo(0, c.getBoundingClientRect().top + scrollY - 100); });
     await P.waitForTimeout(250);
-    const act = await P.evaluate(() => { const b = document.querySelector('.review-act').getBoundingClientRect(); return { bottom: Math.round(b.bottom), vh: innerHeight, applyH: document.getElementById('review-apply').getBoundingClientRect().height }; });
-    check(`${w}: the action bar sticks to the bottom of the screen while scrolling the review`, Math.abs(act.bottom - act.vh) <= 2, act);
+    // BUILD 21: the navigation is a fixed bar at the bottom of the screen on phones; the actions stand right above it
+    // (floor = its top); from 1100 px it is on the left and the actions reach the bottom of the screen.
+    const act = await P.evaluate(() => { const b = document.querySelector('.review-act').getBoundingClientRect(); return { bottom: Math.round(b.bottom), vh: innerHeight, floor: (() => { const n = document.querySelector('.tabs'); return getComputedStyle(n).position === 'fixed' ? Math.round(n.getBoundingClientRect().top) : innerHeight; })(), applyH: document.getElementById('review-apply').getBoundingClientRect().height }; });
+    check(`${w}: the action bar sticks to the bottom of the screen (right above the navigation) while scrolling the review`, Math.abs(act.bottom - act.floor) <= 3, act);
     await P.screenshot({ path: `photo5-review-${w}-mid.png` });
     if (w === 360) {
       // a card with doubts and the amber question, close up

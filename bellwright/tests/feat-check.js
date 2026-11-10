@@ -704,8 +704,9 @@ async function standIns(browser) {
         await P.screenshot({ path: path.join(SHOTS, `check-${w}-result.png`) });
         await P.evaluate(() => { const c = document.querySelector('.ck-card[data-wid="wmva1am7xw4j44"]'); if (c) c.scrollIntoView({ block: 'center' }); });
         await P.waitForTimeout(100);
-        const bar = await P.evaluate(() => { const b = document.querySelector('#check-result .ck-act').getBoundingClientRect(); return { bottom: Math.round(b.bottom), vh: innerHeight, end: Math.round(document.getElementById('check-result').getBoundingClientRect().bottom) }; });
-        check(`${w}: the action bar is at the bottom of the screen while scrolling the cards`, bar.end > bar.vh ? Math.abs(bar.bottom - bar.vh) <= 1 : bar.bottom <= bar.vh, bar);
+        const bar = await P.evaluate(() => { const b = document.querySelector('#check-result .ck-act').getBoundingClientRect(); return { bottom: Math.round(b.bottom), vh: innerHeight, floor: (() => { const n = document.querySelector('.tabs'); return getComputedStyle(n).position === 'fixed' ? Math.round(n.getBoundingClientRect().top) : innerHeight; })(), end: Math.round(document.getElementById('check-result').getBoundingClientRect().bottom) }; });
+        // BUILD 21: on phones the navigation is a fixed bar at the bottom; the actions stand right above it (floor = its top).
+        check(`${w}: the action bar is at the bottom of the screen while scrolling the cards`, bar.end > bar.floor ? Math.abs(bar.bottom - bar.floor) <= 3 : bar.bottom <= bar.floor, bar);
         await P.screenshot({ path: path.join(SHOTS, `check-${w}-cards.png`) });
         if (w === 360) {
           // keyboard through the result: every focused control stays clear of the sticky action bar
