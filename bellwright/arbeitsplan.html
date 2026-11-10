@@ -1,23 +1,23 @@
 <title>Bellwright Arbeitsplan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap">
 <style>
 /* Layout: one working column (max 1180px) on a dark night-village ground. Header with a bell, tab bar; the Plan tab shows priorities as a table (desktop) or one card per villager (phone).
    Look: deliberately single dark theme, like the game's UI at night: oak and iron panels, parchment text, brass for priorities, a wax-red ring for the main job, ember orange for changes. */
 :root {
   color-scheme: dark;
-  --bg: #14100c;          /* oak at night */
-  --surface: #221b15;     /* panel wood */
-  --surface-2: #2d241c;
-  --field: #18120d;       /* inputs */
-  --line: #4b3c2d;        /* iron-brown border */
-  --line-strong: #6e573a;
-  --fg: #eee2c8;          /* parchment */
-  --muted: #b3a283;
-  --accent: #d9a441;      /* brass */
-  --accent-hi: #f0c86a;
-  --on-accent: #1b130a;
+  --bg: #0b0907;          /* oak at night */
+  --surface: #15110d;     /* panel wood */
+  --surface-2: #1d1711;
+  --field: #0f0c09;       /* inputs */
+  --line: #3b2e1b;        /* dark brass border */
+  --line-strong: #7a5f2c;
+  --fg: #eadfc6;          /* parchment */
+  --muted: #a8977a;
+  --accent: #c9a24e;      /* brass */
+  --accent-hi: #efd28a;
+  --on-accent: #1a1206;
   --crimson: #b3362f;     /* wax seal / banner */
   --on-crimson: #f8ead6;
   --ember: #f08a3c;
@@ -26,16 +26,16 @@
   --bad: #e66b5d;
   --ochre: var(--crimson);
   --ochre-text: var(--ember);
-  --font-display: "IM Fell English SC", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-display: "Cinzel", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --font-body: "Alegreya Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --radius: 4px;
   --shadow: 0 8px 22px rgb(0 0 0 / 0.38);
   --edge: inset 0 1px 0 rgb(255 236 200 / 0.06);
   --step--1: 0.8125rem;
   --step-0: 1rem;
-  --step-1: 1.25rem;
-  --step-2: 1.6rem;
-  --step-3: 2.35rem;
+  --step-1: 1.15rem;
+  --step-2: 1.35rem;
+  --step-3: 1.9rem;
 }
 
 * { box-sizing: border-box; }
@@ -1212,19 +1212,127 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
 :is([data-anim="voll"], [data-anim="ruhig"]) :is(.sk-rgroup, .sk-group) > summary::after { transition: transform 0.15s ease, color 0.15s; }
 [data-anim="voll"] .stock-line { animation: rise 0.22s ease-out backwards; }
 [data-anim="ruhig"] .stock-line { animation: calmIn 0.15s ease-out both; }
+/* ===== Spiel-Oberfläche (BUILD 21): the look of a game menu. Darker oak, brass lines with drawn corners, headings in
+   Cinzel, a framed header with the team's numbers, and the navigation with drawn icons: a fixed bar at the bottom on
+   phones and tablets, a bar on the left from 1100 px. Only the look: every element and function is the one from before.
+   The corners are background layers (no pseudo-elements, nothing to clip); their brass is the --accent-hi/--accent pair. ===== */
+:root {
+  --corners:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M1 15V6l5-5h9' fill='none' stroke='%23efd28a' stroke-width='1.2'/%3E%3Cpath d='M4.300 8.500L6.400 6.400l2.100 2.100-2.100 2.100z' fill='%23c9a24e'/%3E%3C/svg%3E") left 2px top 2px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cg transform='matrix(-1 0 0 1 16 0)'%3E%3Cpath d='M1 15V6l5-5h9' fill='none' stroke='%23efd28a' stroke-width='1.2'/%3E%3Cpath d='M4.300 8.500L6.400 6.400l2.100 2.100-2.100 2.100z' fill='%23c9a24e'/%3E%3C/g%3E%3C/svg%3E") right 2px top 2px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cg transform='matrix(1 0 0 -1 0 16)'%3E%3Cpath d='M1 15V6l5-5h9' fill='none' stroke='%23efd28a' stroke-width='1.2'/%3E%3Cpath d='M4.300 8.500L6.400 6.400l2.100 2.100-2.100 2.100z' fill='%23c9a24e'/%3E%3C/g%3E%3C/svg%3E") left 2px bottom 2px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cg transform='matrix(-1 0 0 -1 16 16)'%3E%3Cpath d='M1 15V6l5-5h9' fill='none' stroke='%23efd28a' stroke-width='1.2'/%3E%3Cpath d='M4.300 8.500L6.400 6.400l2.100 2.100-2.100 2.100z' fill='%23c9a24e'/%3E%3C/g%3E%3C/svg%3E") right 2px bottom 2px no-repeat;
+}
+.sprite { position: absolute; }
+h1, h2, h3 { font-weight: 600; letter-spacing: 0.04em; }
+h1 { font-weight: 700; letter-spacing: 0.09em; line-height: 1; text-transform: uppercase; }
+h1 .h1-b { display: block; margin-top: 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.34em; color: var(--accent); text-shadow: none; }
+.wcard, .wp-card, .photo, .check, .import, .review, .opts, .jobrows, .reason, .empty, .banner, .mast {
+  background: var(--corners), linear-gradient(180deg, var(--surface-2), var(--surface));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.5), var(--edge), var(--shadow);
+}
+.btn { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 12%, var(--surface-2)), var(--surface)); }
+.btn.primary { background: linear-gradient(180deg, var(--accent-hi), var(--accent) 58%, color-mix(in oklab, var(--accent) 78%, black)); border-color: var(--accent-hi);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), 0 0 16px color-mix(in oklab, var(--accent) 28%, transparent), 0 2px 0 rgb(0 0 0 / 0.5); }
+.btn.armed { background: var(--crimson); }
+.toast { background: linear-gradient(180deg, var(--surface-2), var(--surface)); }
+
+/* Header: a framed bar. Crest with the bell, the title in two lines, the numbers, then status and who is there. */
+.mast { align-items: center; gap: 10px 22px; padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); }
+.mast .eyebrow, .mast-sub.has-team { display: none; }
+.crest { position: relative; flex: none; display: grid; place-items: center; width: 46px; height: 52px; filter: drop-shadow(0 0 10px color-mix(in oklab, var(--accent) 40%, transparent)); }
+.crest-s { position: absolute; inset: 0; width: 100%; height: 100%; }
+.crest-a { fill: var(--surface); stroke: var(--accent-hi); stroke-width: 1.6; }
+.crest-b { fill: none; stroke: var(--line-strong); stroke-width: 1; }
+.crest .bell { position: relative; width: 25px; height: 25px; margin-top: -3px; color: var(--accent-hi); filter: none; }
+.mstats { display: flex; align-items: stretch; margin-left: auto; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: rgb(0 0 0 / 0.28); }
+.mstat { display: flex; align-items: center; gap: 9px; padding: 6px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.mstat:first-child { border-left: 0; }
+.mstat-i, .tab-i { flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.mstat-i { width: 23px; height: 23px; color: var(--accent); }
+.mstat b { display: block; font-size: 1.1rem; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.mstat small { display: block; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.mstat.warn b, .mstat.warn .mstat-i { color: var(--warn); }
+.mstat.good b { color: var(--fg); }
+@media (max-width: 560px) {
+  .mast { padding: 10px 12px; }
+  .crest { width: 38px; height: 43px; } .crest .bell { width: 21px; height: 21px; }
+  h1 { font-size: 1.3rem; } h1 .h1-b { font-size: 0.6rem; letter-spacing: 0.28em; margin-top: 5px; }
+  .mstats { order: 3; width: 100%; margin: 0; }
+  .mstat { flex: 1 1 0; justify-content: center; gap: 6px; padding: 6px 4px; }
+  .mstat-i { width: 19px; height: 19px; } .mstat b { font-size: 1rem; } .mstat small { font-size: 0.62rem; letter-spacing: 0.02em; }
+  .mast-side { order: 4; width: 100%; }
+}
+@media (max-width: 400px) { .mstat.wide { display: none; } }
+
+/* Navigation: icon and word; the selected one lit in brass. */
+.tabs { margin: 0; border: 0; }
+.tab { display: flex; align-items: center; gap: 10px; border: 1px solid transparent; border-radius: var(--radius); font-weight: 600; text-transform: uppercase; }
+.tab::after { display: none; }
+.tab-i { width: 22px; height: 22px; color: var(--line-strong); }
+.tab:hover .tab-i { color: var(--accent); }
+.tab[aria-selected="true"] { border-color: var(--accent); background: linear-gradient(90deg, color-mix(in oklab, var(--accent) 30%, transparent), color-mix(in oklab, var(--accent) 6%, transparent));
+  box-shadow: inset 0 0 14px color-mix(in oklab, var(--accent) 18%, transparent), 0 0 14px color-mix(in oklab, var(--accent) 12%, transparent); }
+.tab[aria-selected="true"] .tab-i { color: var(--accent-hi); }
+#tab-jobs .tab-ico { display: none; }
+/* Phones and tablets: a fixed bar at the bottom, five equal fields; what sticks to the bottom of a tab stands above it. */
+@media (max-width: 1099px) {
+  .wrap { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+  .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line-strong);
+    background: linear-gradient(180deg, var(--surface-2), var(--bg)); box-shadow: 0 -8px 24px rgb(0 0 0 / 0.7); }
+  .tablist { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; overflow: visible; max-width: 640px; margin: 0 auto; }
+  .tab { flex-direction: column; justify-content: center; gap: 3px; min-width: 0; min-height: 52px; padding: 6px 2px 4px; font-size: 0.6rem; letter-spacing: 0.06em; text-align: center; }
+  .tab[aria-selected="true"] { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 30%, transparent), color-mix(in oklab, var(--accent) 5%, transparent)); }
+  .tab-i { width: 24px; height: 24px; }
+  .tab .count { position: absolute; top: 3px; left: calc(50% + 9px); margin: 0; padding: 0 5px; border-radius: 999px; font-size: 0.62rem; line-height: 1.5; letter-spacing: 0; color: var(--on-accent); background: var(--accent); }
+  .tab .count:empty { display: none; }
+  #tab-jobs .tab-txt { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  #tab-jobs .tab-i { width: 28px; height: 28px; }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  body:has(#panel-plan:not([hidden]) #entry-sticky:not([hidden])) .toast { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+  .entry-sticky { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .review-act, .ck-act { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+/* From 1100 px: the navigation as a framed bar on the left, the tab's content beside it. */
+@media (min-width: 1100px) {
+  .wrap { display: grid; grid-template-columns: 212px minmax(0, 1fr); column-gap: 20px; align-items: start; max-width: 1400px; }
+  .mast, .foot { grid-column: 1 / -1; }
+  .tabs { grid-column: 1; grid-row: 2; position: sticky; top: 14px; margin-top: 22px; padding: 8px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+    background: var(--corners), linear-gradient(180deg, var(--surface-2), var(--surface)); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.5), var(--edge), var(--shadow); }
+  .tablist { display: grid; gap: 2px; overflow: visible; }
+  .tab { width: 100%; padding: 12px 10px; font-size: 0.8rem; letter-spacing: 0.06em; text-align: left; }
+  .tab .count { margin-left: auto; padding: 0 7px; border-radius: 999px; font-size: 0.75rem; letter-spacing: 0; color: var(--on-accent); background: var(--accent); }
+  .tab .count:empty { display: none; }
+  .panel { grid-column: 2; grid-row: 2; min-width: 0; }
+  .foot { grid-row: 3; }
+}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
+<!-- Drawn line icons (brass), used by the navigation and the header numbers. -->
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-plan" viewBox="0 0 24 24"><path d="M6 3.500h10.500a2 2 0 0 1 2 2V18a2.500 2.500 0 0 0 2.500 2.500H8.500A2.500 2.500 0 0 1 6 18z"/><path d="M6 6.500H4a1.500 1.500 0 0 1 0-3h2"/><path d="M9.500 8.500H15M9.500 12H15M9.500 15.500h3"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.200"/><path d="M2.800 19.500c.4-3.600 3-5.500 6.200-5.500s5.800 1.900 6.200 5.500"/><circle cx="17" cy="9" r="2.500"/><path d="M17.200 13.800c2.300.2 3.800 1.900 4.100 4.700"/></symbol>
+    <symbol id="i-chest" viewBox="0 0 24 24"><path d="M3.500 10.500V8a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4v2.500z"/><path d="M3.500 10.500h17V19h-17z"/><path d="M10.500 10.500v3h3v-3"/><path d="M7.500 4.200v6.300M16.500 4.200v6.300"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.500M12 18.500V21M3 12h2.500M18.500 12H21M5.600 5.600l1.800 1.800M16.600 16.600l1.800 1.800M5.600 18.400l1.800-1.800M16.600 7.400l1.800-1.800"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.500C10 5 7 4.500 3.500 5v13.500c3.500-.5 6.500 0 8.500 1.500 2-1.500 5-2 8.500-1.500V5C17 4.500 14 5 12 6.500z"/><path d="M12 6.500V20"/></symbol>
+    <symbol id="i-quill" viewBox="0 0 24 24"><path d="M20 4c-7 1-11.500 5.500-13 13l3-1c4.500-1.500 8.500-5 10-12z"/><path d="M7 17l-3 3M10 14l4-4"/></symbol>
+    <symbol id="i-tower" viewBox="0 0 24 24"><path d="M6 21V9L4.500 8V4h3v2h3V4h3v2h3V4h3v4L18 9v12z"/><path d="M10 21v-5a2 2 0 0 1 4 0v5"/></symbol>
+  </defs>
+</svg>
 <div class="wrap">
   <header class="mast reveal" style="--i:0">
     <div class="mast-title">
       <span class="eyebrow">Bellwright · Arbeitsprioritäten</span>
       <div class="title-row">
-        <svg class="bell" id="bell" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M24 4c1.7 0 3 1.3 3 3v1.2c6.6 1.4 11 7.2 11 14.3V31l4 5v2H6v-2l4-5v-8.5C10 15.4 14.4 9.6 21 8.2V7c0-1.7 1.3-3 3-3z"/><path fill="currentColor" d="M19 41h10a5 5 0 0 1-10 0z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55" d="M15 22c0-4 2.5-7.5 6-8.6"/></svg>
-        <h1>Bellwright Arbeitsplan</h1>
+        <span class="crest"><svg class="crest-s" viewBox="0 0 46 52" aria-hidden="true"><path class="crest-a" d="M23 1.500L43.500 7v19c0 12-8.500 20-20.500 24.500C11 46 2.500 38 2.500 26V7z"/><path class="crest-b" d="M23 5.500L39.500 10v16c0 9.500-6.800 16.200-16.500 20C13.300 42.200 6.500 35.500 6.500 26V10z"/></svg><svg class="bell" id="bell" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M24 4c1.7 0 3 1.3 3 3v1.2c6.6 1.4 11 7.2 11 14.3V31l4 5v2H6v-2l4-5v-8.5C10 15.4 14.4 9.6 21 8.2V7c0-1.7 1.3-3 3-3z"/><path fill="currentColor" d="M19 41h10a5 5 0 0 1-10 0z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55" d="M15 22c0-4 2.5-7.5 6-8.6"/></svg></span>
+        <h1><span class="h1-a">Bellwright</span> <span class="h1-b">Arbeitsplan</span></h1>
       </div>
       <p class="mast-sub" id="mast-sub">Tragt eure Arbeiter mit ihren Werten ein oder lest sie per Foto ein. Die App schlägt für jeden Job eine Priorität von 1 (zuerst) bis 9 (zuletzt) vor, so wie ihr sie im Spiel einstellt.</p>
     </div>
+    <!-- The numbers of the real team: Bewohner, offen, Lager, Phase (renderMstats). -->
+    <div class="mstats" id="mstats" role="group" aria-label="Kurzübersicht" hidden></div>
     <div class="mast-side" id="mast-side">
       <span class="status" id="status" data-mode="loading"><i></i><span id="status-text">Lädt …</span></span>
       <!-- Eigene Figur & wer ist online: you first, then the others (online first). Shared mode only. -->
@@ -1239,12 +1347,12 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
 
   <nav class="tabs reveal" style="--i:1" aria-label="Bereiche">
     <div class="tablist" role="tablist">
-      <button class="tab" role="tab" id="tab-plan" data-tab="plan" aria-selected="true" aria-controls="panel-plan">Plan</button>
-      <button class="tab" role="tab" id="tab-arbeiter" data-tab="arbeiter" aria-selected="false" aria-controls="panel-arbeiter">Arbeiter<span class="count" id="wcount" aria-hidden="true"></span><span class="vh" id="wcount-sr"></span></button>
-      <button class="tab" role="tab" id="tab-lager" data-tab="lager" aria-selected="false" aria-controls="panel-lager">Lager</button>
+      <button class="tab" role="tab" id="tab-plan" data-tab="plan" aria-selected="true" aria-controls="panel-plan"><svg class="tab-i" aria-hidden="true"><use href="#i-plan"/></svg>Plan</button>
+      <button class="tab" role="tab" id="tab-arbeiter" data-tab="arbeiter" aria-selected="false" aria-controls="panel-arbeiter"><svg class="tab-i" aria-hidden="true"><use href="#i-people"/></svg>Arbeiter<span class="count" id="wcount" aria-hidden="true"></span><span class="vh" id="wcount-sr"></span></button>
+      <button class="tab" role="tab" id="tab-lager" data-tab="lager" aria-selected="false" aria-controls="panel-lager"><svg class="tab-i" aria-hidden="true"><use href="#i-chest"/></svg>Lager</button>
       <!-- Narrow phones show a gear instead of the word, so five tabs fit in one row; the word stays for screen readers. -->
-      <button class="tab" role="tab" id="tab-jobs" data-tab="jobs" aria-selected="false" aria-controls="panel-jobs"><svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M9.52 4.82L9.28 1.86L14.72 1.86L14.48 4.82L15.32 5.17L17.24 2.90L21.10 6.76L18.83 8.68L19.18 9.52L22.14 9.28L22.14 14.72L19.18 14.48L18.83 15.32L21.10 17.24L17.24 21.10L15.32 18.83L14.48 19.18L14.72 22.14L9.28 22.14L9.52 19.18L8.68 18.83L6.76 21.10L2.90 17.24L5.17 15.32L4.82 14.48L1.86 14.72L1.86 9.28L4.82 9.52L5.17 8.68L2.90 6.76L6.76 2.90L8.68 5.17ZM12 8.4a3.6 3.6 0 1 0 0 7.2a3.6 3.6 0 1 0 0-7.2Z"/></svg><span class="tab-txt">Einstellungen</span></button>
-      <button class="tab" role="tab" id="tab-wissen" data-tab="wissen" aria-selected="false" aria-controls="panel-wissen">Hilfe</button>
+      <button class="tab" role="tab" id="tab-jobs" data-tab="jobs" aria-selected="false" aria-controls="panel-jobs"><svg class="tab-i" aria-hidden="true"><use href="#i-gear"/></svg><svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M9.52 4.82L9.28 1.86L14.72 1.86L14.48 4.82L15.32 5.17L17.24 2.90L21.10 6.76L18.83 8.68L19.18 9.52L22.14 9.28L22.14 14.72L19.18 14.48L18.83 15.32L21.10 17.24L17.24 21.10L15.32 18.83L14.48 19.18L14.72 22.14L9.28 22.14L9.52 19.18L8.68 18.83L6.76 21.10L2.90 17.24L5.17 15.32L4.82 14.48L1.86 14.72L1.86 9.28L4.82 9.52L5.17 8.68L2.90 6.76L6.76 2.90L8.68 5.17ZM12 8.4a3.6 3.6 0 1 0 0 7.2a3.6 3.6 0 1 0 0-7.2Z"/></svg><span class="tab-txt">Einstellungen</span></button>
+      <button class="tab" role="tab" id="tab-wissen" data-tab="wissen" aria-selected="false" aria-controls="panel-wissen"><svg class="tab-i" aria-hidden="true"><use href="#i-book"/></svg>Hilfe</button>
     </div>
   </nav>
 
@@ -4295,9 +4403,28 @@ html.recruit-open .toast { bottom: calc(88px + env(safe-area-inset-bottom, 0px))
     entryGo(from, 1);
   }
 
+  // The numbers in the header (the real team only): Bewohner, offen (villagers with numbers to enter in the game), Lager
+  // (what the last check found knapp) and the phase. The parts come from renderPlan (team, open, phase) and from the
+  // Lager overview (knapp); null team = nothing to show (example team, still loading).
+  const mstat = { team: null, open: 0, phase: "", knapp: null };
+  let mstatHtml = "";
+  function renderMstats(part) {
+    Object.assign(mstat, part);
+    const box = $("#mstats");
+    if (!box) return;
+    if (mstat.team === null) { if (!box.hidden) box.hidden = true; return; }
+    const it = (icon, val, label, cls) => `<span class="mstat${cls ? " " + cls : ""}"><svg class="mstat-i" aria-hidden="true"><use href="#i-${icon}"/></svg><span><b>${esc(String(val))}</b><small>${esc(label)}</small></span></span>`;
+    const html = it("people", mstat.team, "Bewohner") + it("quill", mstat.open, "offen", mstat.open ? "warn" : "good")
+      + (mstat.knapp === null ? "" : it("chest", mstat.knapp ? `${mstat.knapp} knapp` : "gut", "Lager", mstat.knapp ? "warn" : "good"))
+      + (mstat.phase ? it("tower", mstat.phase, "Phase", "wide") : "");
+    if (html !== mstatHtml) { box.innerHTML = html; mstatHtml = html; }
+    if (box.hidden) box.hidden = false;
+  }
   // The open button, the sticky bar (touch) and the resume banner. Part of renderPlan.
   function renderEntryTriggers(plan, track) {
     const queue = track ? entryQueue(plan) : [], n = queue.length;
+    const ph = PHASES.find(x => x.id === state.settings.phase);
+    renderMstats({ team: track && plan ? plan.team.length : null, open: n, phase: ph ? ph.label : state.settings.phase === "eigene" ? "Eigene" : "" });
     const label = `Im Spiel eintragen (${n} offen)`;
     for (const b of $$("[data-entry-open]:not(#entry-banner-go)")) if (b.textContent !== label) b.textContent = label;
     if (track && !resumeChecked) { resumeChecked = true; resumeOffer = entryReadResume(); }
@@ -7636,6 +7763,7 @@ Reply with only this JSON:
     if (fk) { const t = el.querySelector(`[data-focus="${CSS.escape(fk)}"]`); if (t) t.focus({ preventScroll: true }); }
   }
   function renderStockLine(m) {
+    renderMstats({ knapp: m && Array.isArray(m.knapp) ? m.knapp.length : null });   // the header's "Lager" number
     const line = m ? m.line : "", b = $("#stock-line-go");
     if (b.textContent !== line) b.textContent = line;
     $("#stock-line").hidden = !line;
