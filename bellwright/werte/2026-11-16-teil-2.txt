@@ -1,0 +1,16 @@
+Karl Hobb: Ernte 6/8, Landwirtschaft 7/10, Tierpflege 3/5, Kochen 4/6, Handwerk 4/6, Forschen 4/6, Arbeiter 3/6
+Kasimir Gaenor: Ernte 4/5, Landwirtschaft 8/10, Tierpflege 3/5, Kochen 4/5, Handwerk 4/5, Forschen 4/6, Arbeiter 3/6
+Krystoffer Blavier: Ernte 9/10, Landwirtschaft 3/5, Tierpflege 3/5, Kochen 5/5, Handwerk 4/6, Forschen 4/6, Arbeiter 4/5
+Larkin Reinold: Ernte 3/5, Landwirtschaft 4/4, Tierpflege 5/5, Kochen 5/5, Handwerk 4/4, Forschen 3/5, Arbeiter 3/4
+Leopold Edgeworth: Ernte 2/5, Landwirtschaft 2/5, Tierpflege 3/4, Kochen 4/4, Handwerk 3/4, Forschen 2/5, Arbeiter 3/4
+Lubomir Netterby: Ernte 5/5, Landwirtschaft 2/5, Tierpflege 4/6, Kochen 7/7, Handwerk 5/6, Forschen 3/6, Arbeiter 4/5
+Luca Hardouin: Ernte 3/5, Landwirtschaft 6/9, Tierpflege 4/5, Kochen 7/10, Handwerk 5/9, Forschen 3/5, Arbeiter 3/5
+Michel Warwick: Ernte 3/5, Landwirtschaft 5/5, Tierpflege 3/4, Kochen 4/4, Handwerk 4/4, Forschen 3/5, Arbeiter 4/4
+Milon Hamnet: Ernte 3/5, Landwirtschaft 6/6, Tierpflege 3/4, Kochen 5/5, Handwerk 5/5, Forschen 2/4, Arbeiter 4/5
+Nell Terrin: Ernte 3/3, Landwirtschaft 3/3, Tierpflege 3/3, Kochen 3/3, Handwerk 4/4, Forschen 6/6, Arbeiter 2/3
+Nuttel: Ernte 4/4, Landwirtschaft 4/4, Tierpflege 6/6, Kochen 4/4, Handwerk 4/4, Forschen 3/5, Arbeiter 4/5
+Oliver Colley: Ernte 4/6, Landwirtschaft 6/10, Tierpflege 6/10, Kochen 6/9, Handwerk 4/6, Forschen 3/6, Arbeiter 3/6
+Ondrej Barrington: Ernte 4/5, Landwirtschaft 5/5, Tierpflege 3/6, Kochen 8/8, Handwerk 3/5, Forschen 3/5, Arbeiter 6/8
+Percival Oenus: Ernte 3/4, Landwirtschaft 3/4, Tierpflege 3/4, Kochen 5/5, Handwerk 8/8, Forschen 2/5, Arbeiter 2/4
+Peyton Remont: Ernte 4/5, Landwirtschaft 4/5, Tierpflege 7/10, Kochen 5/8, Handwerk 4/6, Forschen 4/5, Arbeiter 7/10
+Phoebe Graves: Ernte 3/5, Landwirtschaft 5/6, Tierpflege 4/6, Kochen 5/5, Handwerk 9/10, Forschen 3/6, Arbeiter 6/9
