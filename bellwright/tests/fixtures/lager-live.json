@@ -1,0 +1,551 @@
+{
+ "note": "Lead's manual transcription of the group's real Lager photos (2026-10-30). Columns per row: Lager (chest), reserviert (chest with hourglass), unterwegs (arrow into chest) – column meaning is the lead's reading of the icons. German thousands separator: '2.115' = 2115. Some names are cut off with '…'. A red search-icon box next to a name is the game cursor, ignore it. Population 32, Vieh 10-13.",
+ "categories": [
+  "Proviant",
+  "Waffen",
+  "Rohstoffe",
+  "Rüstungen",
+  "Kleidung",
+  "Werkzeuge",
+  "Ausrüstung",
+  "Munition",
+  "Dekorationen",
+  "Questgegenstände",
+  "Kenntnisbücher",
+  "Sonstiges"
+ ],
+ "photos": {
+  "lager-rohstoffe-1..5.jpg": "Rohstoffe, scrolled with overlaps",
+  "lager-proviant-1.jpg": "Proviant",
+  "lager-kategorien.jpg": "category dropdown open"
+ },
+ "rows": [
+  {
+   "name": "Apfelsamen",
+   "category": "Rohstoffe",
+   "lager": 2,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Baumsamen",
+   "category": "Rohstoffe",
+   "lager": 139,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Baumsetzling",
+   "category": "Rohstoffe",
+   "lager": 28,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Baumstamm",
+   "category": "Rohstoffe",
+   "lager": 70,
+   "reserviert": 1,
+   "unterwegs": 0
+  },
+  {
+   "name": "Baumwollbolzen",
+   "category": "Rohstoffe",
+   "lager": 50,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Baumwolle",
+   "category": "Rohstoffe",
+   "lager": 123,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Baumwollsamen",
+   "category": "Rohstoffe",
+   "lager": 2,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Bronzebarren",
+   "category": "Rohstoffe",
+   "lager": 8,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Dünger",
+   "category": "Rohstoffe",
+   "lager": 33,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Einfache Schnur",
+   "category": "Rohstoffe",
+   "lager": 61,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Eisenbarren",
+   "category": "Rohstoffe",
+   "lager": 30,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Eisenerz",
+   "category": "Rohstoffe",
+   "lager": 14,
+   "reserviert": 0,
+   "unterwegs": 2
+  },
+  {
+   "name": "Eisennägel",
+   "category": "Rohstoffe",
+   "lager": 34,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Federn",
+   "category": "Rohstoffe",
+   "lager": 2115,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Fell",
+   "category": "Rohstoffe",
+   "lager": 179,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Fischschuppe",
+   "category": "Rohstoffe",
+   "lager": 23,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Flachs",
+   "category": "Rohstoffe",
+   "lager": 0,
+   "reserviert": 9,
+   "unterwegs": 0
+  },
+  {
+   "name": "Flachssamen",
+   "category": "Rohstoffe",
+   "lager": 24,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Flussschilf",
+   "category": "Rohstoffe",
+   "lager": 149,
+   "reserviert": 6,
+   "unterwegs": 0
+  },
+  {
+   "name": "Getreide",
+   "category": "Rohstoffe",
+   "lager": 69,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Granit",
+   "category": "Rohstoffe",
+   "lager": 21,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Grobes Tierfutter",
+   "category": "Rohstoffe",
+   "lager": 7,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Hahnkadaver",
+   "category": "Rohstoffe",
+   "lager": 0,
+   "reserviert": 1,
+   "unterwegs": 0
+  },
+  {
+   "name": "Hanf",
+   "category": "Rohstoffe",
+   "lager": 105,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Hanfsamen",
+   "category": "Rohstoffe",
+   "lager": 16,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Hartholzplanke",
+   "category": "Rohstoffe",
+   "lager": 8,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Hartholzstamm",
+   "category": "Rohstoffe",
+   "lager": 19,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Hirschgeweih",
+   "category": "Rohstoffe",
+   "lager": 9,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Holz",
+   "category": "Rohstoffe",
+   "lager": 130,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Holzplanke",
+   "category": "Rohstoffe",
+   "lager": 68,
+   "reserviert": 3,
+   "unterwegs": 0
+  },
+  {
+   "name": "Knoblauch",
+   "category": "Rohstoffe",
+   "lager": 118,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Knoblauchsamen",
+   "category": "Rohstoffe",
+   "lager": 3,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Kupferbarren",
+   "category": "Rohstoffe",
+   "lager": 4,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Kupfererz",
+   "category": "Rohstoffe",
+   "lager": 66,
+   "reserviert": 1,
+   "unterwegs": 0
+  },
+  {
+   "name": "Kupfernägel",
+   "category": "Rohstoffe",
+   "lager": 25,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Leder",
+   "category": "Rohstoffe",
+   "lager": 20,
+   "reserviert": 4,
+   "unterwegs": 0
+  },
+  {
+   "name": "Leinen",
+   "category": "Rohstoffe",
+   "lager": 1,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Moos",
+   "category": "Rohstoffe",
+   "lager": 1,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Pelz",
+   "category": "Rohstoffe",
+   "lager": 102,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Radieschensamen",
+   "category": "Rohstoffe",
+   "lager": 2,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Regenwürmer",
+   "category": "Rohstoffe",
+   "lager": 0,
+   "reserviert": 1,
+   "unterwegs": 0
+  },
+  {
+   "name": "Riemen",
+   "category": "Rohstoffe",
+   "lager": 77,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Rohpelz",
+   "category": "Rohstoffe",
+   "lager": 15,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Rohstein",
+   "category": "Rohstoffe",
+   "lager": 737,
+   "reserviert": 0,
+   "unterwegs": 5
+  },
+  {
+   "name": "Rote-Bete-Samen",
+   "category": "Rohstoffe",
+   "lager": 6,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Rübensamen",
+   "category": "Rohstoffe",
+   "lager": 13,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Salbei",
+   "category": "Rohstoffe",
+   "lager": 59,
+   "reserviert": 2,
+   "unterwegs": 0
+  },
+  {
+   "name": "Salbeisamen",
+   "category": "Rohstoffe",
+   "lager": 3,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Schilf",
+   "category": "Rohstoffe",
+   "lager": 54,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Schlamm",
+   "category": "Rohstoffe",
+   "lager": 332,
+   "reserviert": 15,
+   "unterwegs": 0
+  },
+  {
+   "name": "Seil",
+   "category": "Rohstoffe",
+   "lager": 4,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Stampflehm",
+   "category": "Rohstoffe",
+   "lager": 15,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Stroh",
+   "category": "Rohstoffe",
+   "lager": 40,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Torf",
+   "category": "Rohstoffe",
+   "lager": 160,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Unverarbeitetes Leder",
+   "category": "Rohstoffe",
+   "lager": 51,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Weiße Perle",
+   "category": "Rohstoffe",
+   "lager": 2,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Weizen",
+   "category": "Rohstoffe",
+   "lager": 96,
+   "reserviert": 10,
+   "unterwegs": 0
+  },
+  {
+   "name": "Wolfszahn",
+   "category": "Rohstoffe",
+   "lager": 14,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Zinnbarren",
+   "category": "Rohstoffe",
+   "lager": 11,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Zinnerz",
+   "category": "Rohstoffe",
+   "lager": 77,
+   "reserviert": 2,
+   "unterwegs": 4
+  },
+  {
+   "name": "Angebrannter Fisch",
+   "category": "Proviant",
+   "lager": 6,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Angebrannter Pilz",
+   "category": "Proviant",
+   "lager": 2,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Beere",
+   "category": "Proviant",
+   "lager": 13,
+   "reserviert": 4,
+   "unterwegs": 0
+  },
+  {
+   "name": "Fischfilet",
+   "category": "Proviant",
+   "lager": 0,
+   "reserviert": 2,
+   "unterwegs": 0
+  },
+  {
+   "name": "Geräucherter Pilz",
+   "category": "Proviant",
+   "lager": 43,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Großes Stück rohes Flei…",
+   "category": "Proviant",
+   "lager": 0,
+   "reserviert": 4,
+   "unterwegs": 0
+  },
+  {
+   "name": "Kleines Stück geräucher…",
+   "category": "Proviant",
+   "lager": 166,
+   "reserviert": 0,
+   "unterwegs": 4
+  },
+  {
+   "name": "Kleines Stück rohes Flei…",
+   "category": "Proviant",
+   "lager": 12,
+   "reserviert": 3,
+   "unterwegs": 0
+  },
+  {
+   "name": "Radieschen",
+   "category": "Proviant",
+   "lager": 118,
+   "reserviert": 0,
+   "unterwegs": 1
+  },
+  {
+   "name": "Rote Bete",
+   "category": "Proviant",
+   "lager": 184,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Rübe",
+   "category": "Proviant",
+   "lager": 102,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Stück geräuchertes Fleis…",
+   "category": "Proviant",
+   "lager": 137,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Stück rohes Fleisch",
+   "category": "Proviant",
+   "lager": 0,
+   "reserviert": 5,
+   "unterwegs": 0
+  },
+  {
+   "name": "Verdorbene Nahrung",
+   "category": "Proviant",
+   "lager": 79,
+   "reserviert": 0,
+   "unterwegs": 0
+  },
+  {
+   "name": "Zwiebel",
+   "category": "Proviant",
+   "lager": 32,
+   "reserviert": 0,
+   "unterwegs": 0
+  }
+ ],
+ "population": 32,
+ "livestock": 11
+}
